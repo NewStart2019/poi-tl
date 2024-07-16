@@ -15,6 +15,7 @@
  */
 package com.deepoove.poi.policy;
 
+import com.deepoove.poi.config.Configure;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.poi.xwpf.usermodel.XWPFRun;
 import org.slf4j.Logger;
@@ -31,7 +32,7 @@ import com.deepoove.poi.xwpf.BodyContainerFactory;
 /**
  * General logic for data verification, rendering, clearing template tags, and
  * exception handling
- * 
+ *
  * @author Sayi
  */
 public abstract class AbstractRenderPolicy<T> implements RenderPolicy {
@@ -66,7 +67,10 @@ public abstract class AbstractRenderPolicy<T> implements RenderPolicy {
             doRender(context);
             afterRender(context);
         } catch (Exception e) {
-            reThrowException(context, e);
+            Configure config = template.getConfig();
+            if (config.getIsStrictMode()) {
+                reThrowException(context, e);
+            }
         }
 
     }
@@ -97,10 +101,10 @@ public abstract class AbstractRenderPolicy<T> implements RenderPolicy {
     /**
      * For operations that are not in the current tag position, the tag needs to be
      * cleared
-     * 
+     *
      * @param context
      * @param clearParagraph if clear paragraph
-     * 
+     *
      */
     protected void clearPlaceholder(RenderContext<?> context, boolean clearParagraph) {
         XWPFRun run = context.getRun();

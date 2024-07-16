@@ -51,7 +51,7 @@ import com.deepoove.poi.xwpf.NiceXWPFDocument;
  * <p>
  * It works by expanding tags in a template using values provided in a Map or Object.
  * </p>
- * 
+ *
  * @author Sayi
  */
 public class XWPFTemplate implements Closeable {
@@ -71,7 +71,7 @@ public class XWPFTemplate implements Closeable {
 
     /**
      * Compile template from absolute file path
-     * 
+     *
      * @param absolutePath template path
      * @return
      */
@@ -81,7 +81,7 @@ public class XWPFTemplate implements Closeable {
 
     /**
      * Compile template from file
-     * 
+     *
      * @param templateFile template file
      * @return
      */
@@ -91,7 +91,7 @@ public class XWPFTemplate implements Closeable {
 
     /**
      * Compile template from template input stream
-     * 
+     *
      * @param inputStream template input
      * @return
      */
@@ -101,7 +101,7 @@ public class XWPFTemplate implements Closeable {
 
     /**
      * Compile template from document
-     * 
+     *
      * @param document template document
      * @return
      */
@@ -111,7 +111,7 @@ public class XWPFTemplate implements Closeable {
 
     /**
      * Compile template from absolute file path with configure
-     * 
+     *
      * @param absolutePath absolute template file path
      * @param config
      * @return
@@ -122,7 +122,7 @@ public class XWPFTemplate implements Closeable {
 
     /**
      * Compile template from file with configure
-     * 
+     *
      * @param templateFile template file
      * @param config
      * @return
@@ -137,7 +137,7 @@ public class XWPFTemplate implements Closeable {
 
     /**
      * Compile template from document with configure
-     * 
+     *
      * @param document template document
      * @param config
      * @return
@@ -152,7 +152,7 @@ public class XWPFTemplate implements Closeable {
 
     /**
      * Compile template from template input stream with configure
-     * 
+     *
      * @param inputStream template input
      * @param config
      * @return
@@ -176,7 +176,7 @@ public class XWPFTemplate implements Closeable {
 
     /**
      * Create new document
-     * 
+     *
      * @return template
      * @since 1.10.0
      */
@@ -186,7 +186,7 @@ public class XWPFTemplate implements Closeable {
 
     /**
      * Create new document with styled tag
-     * 
+     *
      * @return template
      * @since 1.10.0
      */
@@ -201,7 +201,7 @@ public class XWPFTemplate implements Closeable {
 
     /**
      * Render the template by data model
-     * 
+     *
      * @param model render data
      * @return
      */
@@ -213,7 +213,7 @@ public class XWPFTemplate implements Closeable {
     /**
      * Render the template by data model and write to OutputStream, do'not forget invoke {@link XWPFTemplate#close()},
      * {@link OutputStream#close()}
-     * 
+     *
      * @param model render data
      * @param out   output
      * @return
@@ -227,7 +227,7 @@ public class XWPFTemplate implements Closeable {
 
     /**
      * write to output stream, do'not forget invoke {@link XWPFTemplate#close()}, {@link OutputStream#close()} finally
-     * 
+     *
      * @param out eg.ServletOutputStream
      * @throws IOException
      */
@@ -237,7 +237,7 @@ public class XWPFTemplate implements Closeable {
 
     /**
      * write to and close output stream
-     * 
+     *
      * @param out eg.ServletOutputStream
      * @throws IOException
      */
@@ -252,7 +252,7 @@ public class XWPFTemplate implements Closeable {
 
     /**
      * write to file, this method will close all the stream
-     * 
+     *
      * @param path output path
      * @throws IOException
      */
@@ -262,7 +262,7 @@ public class XWPFTemplate implements Closeable {
 
     /**
      * reload the template
-     * 
+     *
      * @param doc load new template document
      */
     public void reload(NiceXWPFDocument doc) {
@@ -273,7 +273,7 @@ public class XWPFTemplate implements Closeable {
 
     /**
      * close the document
-     * 
+     *
      * @throws IOException
      */
     @Override
@@ -283,16 +283,20 @@ public class XWPFTemplate implements Closeable {
 
     /**
      * Get all tags in the document
-     * 
+     *
      * @return
      */
     public List<MetaTemplate> getElementTemplates() {
         return eleTemplates;
     }
 
+    public List<MetaTemplate> setElementTemplates(List<MetaTemplate> eleTemplates) {
+        return this.eleTemplates = eleTemplates;
+    }
+
     /**
      * Get document
-     * 
+     *
      * @return
      */
     public NiceXWPFDocument getXWPFDocument() {
@@ -301,7 +305,7 @@ public class XWPFTemplate implements Closeable {
 
     /**
      * Get configuration
-     * 
+     *
      * @return
      */
     public Configure getConfig() {
@@ -310,7 +314,7 @@ public class XWPFTemplate implements Closeable {
 
     /**
      * Get Resolver
-     * 
+     *
      * @return
      */
     public Resolver getResolver() {

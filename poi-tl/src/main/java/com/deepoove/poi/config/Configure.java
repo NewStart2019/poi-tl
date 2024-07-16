@@ -55,10 +55,12 @@ import com.deepoove.poi.xwpf.BodyContainerFactory;
 
 /**
  * The config of template
- * 
+ *
  * @author Sayi
  */
 public class Configure implements Cloneable {
+
+    private boolean isStrictMode = false;
 
     /**
      * regular expression: Chinese, letters, numbers and underscores
@@ -165,7 +167,7 @@ public class Configure implements Cloneable {
 
     /**
      * create default config
-     * 
+     *
      * @return
      */
     public static Configure createDefault() {
@@ -174,7 +176,7 @@ public class Configure implements Cloneable {
 
     /**
      * Builder to build {@link Configure}
-     * 
+     *
      * @return
      */
     public static ConfigureBuilder builder() {
@@ -183,7 +185,7 @@ public class Configure implements Cloneable {
 
     /**
      * add grammar plugin
-     * 
+     *
      * @param c      grammar char
      * @param policy render function
      */
@@ -362,4 +364,11 @@ public class Configure implements Cloneable {
         }
     }
 
+    public boolean getIsStrictMode() {
+        return isStrictMode;
+    }
+
+    public void setStrictMode(boolean strictMode) {
+        isStrictMode = strictMode;
+    }
 }
