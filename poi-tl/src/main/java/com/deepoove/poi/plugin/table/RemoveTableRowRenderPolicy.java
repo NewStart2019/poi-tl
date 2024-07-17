@@ -20,6 +20,16 @@ import java.util.stream.Collectors;
 
 public class RemoveTableRowRenderPolicy implements RenderPolicy {
 
+    private final String defaultDeleteValue;
+
+    public RemoveTableRowRenderPolicy() {
+        this(null);
+    }
+
+    public RemoveTableRowRenderPolicy(String defaultDeleteValue) {
+        this.defaultDeleteValue = defaultDeleteValue;
+    }
+
     @Override
     public void render(ElementTemplate eleTemplate, Object data, XWPFTemplate template) {
         RunTemplate runTemplate = (RunTemplate) eleTemplate;
@@ -40,7 +50,7 @@ public class RemoveTableRowRenderPolicy implements RenderPolicy {
                 if (d) {
                     removeTableCellNoSpan(tableRow, rowIndex);
                 }
-            } else if (data == null) {
+            } else if (data == defaultDeleteValue) {
                 removeTableCellNoSpan(tableRow, rowIndex);
             }
         } catch (Exception e) {
