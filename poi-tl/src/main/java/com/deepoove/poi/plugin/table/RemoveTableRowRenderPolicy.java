@@ -38,7 +38,7 @@ public class RemoveTableRowRenderPolicy implements RenderPolicy {
                 if (d) {
                     removeTableCellNoSpan(tableRow, rowIndex);
                 }
-            } else if (data != null) {
+            } else if (data == null) {
                 removeTableCellNoSpan(tableRow, rowIndex);
             }
         } catch (Exception e) {
@@ -49,8 +49,7 @@ public class RemoveTableRowRenderPolicy implements RenderPolicy {
     /**
      * 删除表格行，跨行数据需要单独处理。
      * 情况一：如果是跨行的开头则需要把数据弄到下一行对应的列，然后把他的跨行标记为 restart
-     * 情况二：TODO
-     *      如果是跨行的下一列也删除
+     * 情况二： 如果是跨行的下一列也删除
      *      如果是跨行的n行 都删除则不应该移动restart的数据，而是删除数据
      *
      * @param tableRow
