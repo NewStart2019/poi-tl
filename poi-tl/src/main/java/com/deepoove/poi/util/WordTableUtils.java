@@ -4,7 +4,9 @@ import org.apache.poi.xwpf.usermodel.*;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTc;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTcPr;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTVMerge;
+import org.springframework.util.CollectionUtils;
 
+import java.util.Collections;
 import java.util.List;
 
 public class WordTableUtils {
@@ -178,6 +180,18 @@ public class WordTableUtils {
         int size = paragraphs.size();
         for (int i = size - 1; i >= 0; i--) {
             cell.removeParagraph(i);
+        }
+    }
+
+    public static void removeParagraph(XWPFTableCell cell, XWPFParagraph paragraph) {
+        if (!CollectionUtils.isEmpty(cell.getParagraphs())){
+            cell.removeParagraph(cell.getParagraphs().indexOf(paragraph));
+        }
+    }
+
+    public static void removeRun(XWPFParagraph paragraph, XWPFRun run) {
+        if (!CollectionUtils.isEmpty(paragraph.getRuns())){
+            paragraph.removeRun(paragraph.getRuns().indexOf(run));
         }
     }
 

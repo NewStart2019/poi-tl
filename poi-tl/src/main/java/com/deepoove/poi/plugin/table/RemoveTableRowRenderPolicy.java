@@ -29,6 +29,8 @@ public class RemoveTableRowRenderPolicy implements RenderPolicy {
                 throw new IllegalStateException(
                     "The template tag " + runTemplate.getSource() + " must be inside a table");
             }
+            XWPFParagraph paragraph = (XWPFParagraph) run.getParent();
+            WordTableUtils.removeRun(paragraph, run);
             XWPFTableCell tagCell = (XWPFTableCell) ((XWPFParagraph) run.getParent()).getBody();
             XWPFTableRow tableRow = tagCell.getTableRow();
             XWPFTable table = tableRow.getTable();
@@ -50,9 +52,9 @@ public class RemoveTableRowRenderPolicy implements RenderPolicy {
      * 删除表格行，跨行数据需要单独处理。
      * 情况一：如果是跨行的开头则需要把数据弄到下一行对应的列，然后把他的跨行标记为 restart
      * 情况二： 如果是跨行的下一列也删除
-     *      如果是跨行的n行 都删除则不应该移动restart的数据，而是删除数据
+     * 如果是跨行的n行 都删除则不应该移动restart的数据，而是删除数据
      *
-     * @param tableRow
+     * @param tableRow 表格行
      */
     private void removeTableCellNoSpan(XWPFTableRow tableRow, int rowIndex) {
         int size = tableRow.getTableCells().size();
@@ -63,13 +65,13 @@ public class RemoveTableRowRenderPolicy implements RenderPolicy {
             XWPFTableCell templateCell = tableRow.getCell(i);
             // 获取是否跨行
             Integer vMerge = getVMerge(templateCell);
-            if (vMerge != null && vMerge == 2){
+            if (vMerge != null && vMerge == 2) {
                 // 获取跨行数
                 int mergedRows = WordTableUtils.getMergedRows(table, rowIndex, i);
                 WordTableUtils.moveCellToNextRow(table, rowIndex, i);
-                if (mergedRows == 2){
+                if (mergedRows == 2) {
                     // 把跨列的标记取消掉
-                    table.getRow(rowIndex+1).getTableCells().get(i).getCTTc().getTcPr().unsetVMerge();
+                    table.getRow(rowIndex + 1).getTableCells().get(i).getCTTc().getTcPr().unsetVMerge();
                 }
             }
         }
