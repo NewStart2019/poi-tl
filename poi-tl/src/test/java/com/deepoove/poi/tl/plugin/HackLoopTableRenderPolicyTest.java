@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+import com.deepoove.poi.plugin.table.LoopExistedRowTableRenderPolicy;
+import com.deepoove.poi.plugin.table.RemoveTableRowRenderPolicy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -64,6 +66,17 @@ public class HackLoopTableRenderPolicyTest {
                 .bind("labors2", hackLoopSameLineTableRenderPolicy).build();
         XWPFTemplate template = XWPFTemplate.compile(resource, config).render(data);
         template.writeToFile("target/out_render_looprow.docx");
+    }
+
+    @Test
+    public void testLoopExistedRow() throws Exception {
+        LoopExistedRowTableRenderPolicy hackLoopTableRenderPolicy = new LoopExistedRowTableRenderPolicy();
+        Configure config = Configure.builder()
+            .bind("goods", hackLoopTableRenderPolicy)
+            .bind("labors", hackLoopTableRenderPolicy)
+            .build();
+        XWPFTemplate template = XWPFTemplate.compile(resource, config).render(data);
+        template.writeToFile("target/out_render_loopexistedrow.docx");
     }
 
 }

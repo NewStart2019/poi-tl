@@ -128,6 +128,7 @@ public class WordTableUtils {
     public static void copyParagraph(XWPFParagraph source, XWPFParagraph target) {
         for (XWPFRun run : source.getRuns()) {
             XWPFRun newRun = target.createRun();
+            newRun.getCTR().setRPr(run.getCTR().getRPr());
             newRun.setText(run.text());
         }
     }
@@ -183,14 +184,26 @@ public class WordTableUtils {
         }
     }
 
+    /**
+     * 移除单元格段落
+     *
+     * @param cell      {@link XWPFTableCell cell}
+     * @param paragraph {@link XWPFParagraph paragraph}
+     */
     public static void removeParagraph(XWPFTableCell cell, XWPFParagraph paragraph) {
-        if (!CollectionUtils.isEmpty(cell.getParagraphs())){
+        if (!CollectionUtils.isEmpty(cell.getParagraphs())) {
             cell.removeParagraph(cell.getParagraphs().indexOf(paragraph));
         }
     }
 
+    /**
+     * 移除段落指定的run
+     *
+     * @param paragraph {@link XWPFParagraph paragraph}
+     * @param run       {@link XWPFRun run}
+     */
     public static void removeRun(XWPFParagraph paragraph, XWPFRun run) {
-        if (!CollectionUtils.isEmpty(paragraph.getRuns())){
+        if (!CollectionUtils.isEmpty(paragraph.getRuns())) {
             paragraph.removeRun(paragraph.getRuns().indexOf(run));
         }
     }
