@@ -211,7 +211,7 @@ public class WordTableUtils {
 
     public static void removeAllRun(XWPFParagraph paragraph) {
         if (paragraph != null && org.apache.commons.collections4.CollectionUtils.isNotEmpty(paragraph.getRuns())){
-            for (int i = 0; i < paragraph.getRuns().size(); i++) {
+            for (int i = paragraph.getRuns().size() - 1; i >= 0; i--) {
                 paragraph.removeRun(i);
             }
         }
