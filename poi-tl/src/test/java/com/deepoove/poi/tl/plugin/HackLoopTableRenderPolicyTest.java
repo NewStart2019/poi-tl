@@ -70,10 +70,10 @@ public class HackLoopTableRenderPolicyTest {
 
     @Test
     public void testLoopExistedRow() throws Exception {
-        LoopExistedRowTableRenderPolicy hackLoopTableRenderPolicy = new LoopExistedRowTableRenderPolicy();
+        LoopExistedRowTableRenderPolicy hackLoopTableRenderPolicy = new LoopExistedRowTableRenderPolicy(false, true);
         Configure config = Configure.builder()
             .bind("goods", hackLoopTableRenderPolicy)
-            .bind("labors", hackLoopTableRenderPolicy)
+//            .bind("labors", hackLoopTableRenderPolicy)
             .build();
         XWPFTemplate template = XWPFTemplate.compile(resource, config).render(data);
         template.writeToFile("target/out_render_loopexistedrow.docx");

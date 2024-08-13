@@ -32,20 +32,17 @@ import com.deepoove.poi.util.WordTableUtils;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.poi.xwpf.usermodel.*;
 import org.apache.xmlbeans.XmlCursor;
-import org.apache.xmlbeans.XmlException;
 import org.apache.xmlbeans.XmlObject;
-import org.apache.xmlbeans.XmlOptions;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.*;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTPPr;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTRow;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTcPr;
 
-import java.io.IOException;
-import java.io.StringReader;
-import java.io.StringWriter;
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
 /**
- * Hack for loop table row
+ * loop table row
  *
  * @author Sayi
  */
@@ -54,23 +51,30 @@ public class LoopExistedRowTableRenderPolicy implements RenderPolicy {
     private String prefix;
     private String suffix;
     private boolean onSameLine;
+    private boolean isSaveNextLine;
 
     public LoopExistedRowTableRenderPolicy() {
         this(false);
     }
 
     public LoopExistedRowTableRenderPolicy(boolean onSameLine) {
-        this("[", "]", onSameLine);
+        this("[", "]", onSameLine, false);
+    }
+
+
+    public LoopExistedRowTableRenderPolicy(boolean onSameLine, boolean isSaveNextLine) {
+        this("[", "]", onSameLine, isSaveNextLine);
     }
 
     public LoopExistedRowTableRenderPolicy(String prefix, String suffix) {
-        this(prefix, suffix, false);
+        this(prefix, suffix, false, false);
     }
 
-    public LoopExistedRowTableRenderPolicy(String prefix, String suffix, boolean onSameLine) {
+    public LoopExistedRowTableRenderPolicy(String prefix, String suffix, boolean onSameLine, boolean isSaveNextLine) {
         this.prefix = prefix;
         this.suffix = suffix;
         this.onSameLine = onSameLine;
+        this.isSaveNextLine = isSaveNextLine;
     }
 
     @Override
@@ -87,21 +91,26 @@ public class LoopExistedRowTableRenderPolicy implements RenderPolicy {
             run.setText("", 0);
 
             int templateRowIndex = getTemplateRowIndex(tagCell);
+            int allRowNumber = table.getRows().size() - 1;
+            TemplateResolver resolver = new TemplateResolver(template.getConfig().copy(prefix, suffix));
+            XWPFTableRow templateRow = null;
             if (data instanceof Iterable) {
                 Iterator<?> iterator = ((Iterable<?>) data).iterator();
                 int insertPosition;
-                int allRowNumber = table.getRows().size() - 1;
 
-                TemplateResolver resolver = new TemplateResolver(template.getConfig().copy(prefix, suffix));
                 int index = 0;
                 boolean hasNext = iterator.hasNext();
                 while (hasNext) {
                     Object root = iterator.next();
                     hasNext = iterator.hasNext();
                     insertPosition = templateRowIndex++;
-                    XWPFTableRow templateRow = allRowNumber < templateRowIndex ? table.insertNewTableRow(templateRowIndex)
+                    templateRow = allRowNumber < templateRowIndex ? table.insertNewTableRow(templateRowIndex)
                         : table.getRow(templateRowIndex);
                     XWPFTableRow currentLine = table.getRow(insertPosition);
+                    if (isSaveNextLine && templateRowIndex + 1 <= allRowNumber) {
+                        // 把下一行移到下下一行
+                        this.copyLine(templateRow, table.getRow(templateRowIndex + 1), templateRowIndex + 1);
+                    }
                     this.copyLine(currentLine, templateRow, templateRowIndex);
 
                     RenderDataCompute dataCompute = template.getConfig()
@@ -115,7 +124,10 @@ public class LoopExistedRowTableRenderPolicy implements RenderPolicy {
                 }
             }
 
-            table.removeRow(templateRowIndex);
+            // 清空这一行内容
+            if (templateRow != null){
+                this.cleanRowTextContent(templateRow);
+            }
             afterloop(table, data);
         } catch (Exception e) {
             throw new RenderException("HackLoopTable for " + eleTemplate + " error: " + e.getMessage(), e);
@@ -191,6 +203,24 @@ public class LoopExistedRowTableRenderPolicy implements RenderPolicy {
         if (firstParagraph != null) {
             WordTableUtils.removeParagraph(target, firstParagraph);
         }
+    }
+
+    public void cleanRowTextContent(XWPFTable table, int rowIndex) {
+        cleanRowTextContent(table.getRow(rowIndex));
+    }
+
+    /**
+     * 清除一行的所有文本内容
+     *
+     * @param templateRow {@link XWPFTableRow templateRow}
+     */
+    public void cleanRowTextContent(XWPFTableRow templateRow) {
+        List<XWPFTableCell> tableCells = templateRow.getTableCells();
+        tableCells.forEach(cell -> {
+            if (CollectionUtils.isNotEmpty(cell.getParagraphs())) {
+                cell.getParagraphs().forEach(WordTableUtils::removeAllRun);
+            }
+        });
     }
 
     private int getTemplateRowIndex(XWPFTableCell tagCell) {
