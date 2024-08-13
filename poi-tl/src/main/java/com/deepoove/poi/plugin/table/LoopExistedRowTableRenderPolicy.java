@@ -124,9 +124,18 @@ public class LoopExistedRowTableRenderPolicy implements RenderPolicy {
                 }
             }
 
-            // 清空这一行内容
-            if (templateRow != null){
-                this.cleanRowTextContent(templateRow);
+            // 清空这一行模板内容内容，把最近的一行往上移动一格
+            if (templateRow != null) {
+                XWPFTableRow row;
+                if (isSaveNextLine && templateRowIndex + 1 <= allRowNumber) {
+                    row = table.getRow(templateRowIndex + 1);
+                    this.cleanRowTextContent(templateRow);
+                    this.copyLine(row, templateRow, templateRowIndex);
+                } else {
+                    row = templateRow;
+                }
+                this.cleanRowTextContent(row);
+
             }
             afterloop(table, data);
         } catch (Exception e) {
