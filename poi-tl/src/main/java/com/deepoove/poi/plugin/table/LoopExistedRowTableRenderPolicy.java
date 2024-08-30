@@ -195,8 +195,8 @@ public class LoopExistedRowTableRenderPolicy implements RenderPolicy {
             }
             if (nextLine.getCtRow().isSetTrPr()) {
                 nextLine.getCtRow().unsetTrPr();
+                nextLine.getCtRow().setTrPr(currentLine.getCtRow().getTrPr());
             }
-//            nextLine.getCtRow().setTrPr(currentLine.getCtRow().getTrPr());
         }
 
     }
