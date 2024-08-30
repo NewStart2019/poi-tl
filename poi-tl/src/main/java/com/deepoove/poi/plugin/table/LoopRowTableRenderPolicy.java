@@ -46,7 +46,7 @@ import com.deepoove.poi.util.TableTools;
 
 /**
  * Hack for loop table row
- * 
+ *
  * @author Sayi
  */
 public class LoopRowTableRenderPolicy implements RenderPolicy {
@@ -127,7 +127,7 @@ public class LoopRowTableRenderPolicy implements RenderPolicy {
 
                     RenderDataCompute dataCompute = template.getConfig()
                             .getRenderDataComputeFactory()
-                            .newCompute(EnvModel.of(root, EnvIterator.makeEnv(index++, hasNext)));
+                            .newCompute(EnvModel.of(root, EnvIterator.makeEnv(++index, hasNext)));
                     List<XWPFTableCell> cells = nextRow.getTableCells();
                     cells.forEach(cell -> {
                         List<MetaTemplate> templates = resolver.resolveBodyElements(cell.getBodyElements());
