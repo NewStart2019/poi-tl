@@ -36,6 +36,7 @@ public class HackLoopTableRenderPolicyTest {
         goods.add(good);
         goods.add(good);
         goods.add(good);
+        goods.add(good);
         data.setGoods(goods);
 
         List<Labor> labors = new ArrayList<>();

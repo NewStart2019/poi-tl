@@ -1,6 +1,8 @@
 package com.deepoove.poi.util;
 
 import org.apache.poi.xwpf.usermodel.*;
+import org.apache.xmlbeans.XmlObject;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTRPr;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTc;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTcPr;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTVMerge;
@@ -128,9 +130,28 @@ public class WordTableUtils {
     public static void copyParagraph(XWPFParagraph source, XWPFParagraph target) {
         for (XWPFRun run : source.getRuns()) {
             XWPFRun newRun = target.createRun();
-            newRun.getCTR().setRPr(run.getCTR().getRPr());
+            CTRPr sourceCTRPr = run.getCTR().getRPr();
+            CTRPr newCTRPr = CTRPr.Factory.newInstance();
+            copyCTRPr(sourceCTRPr, newCTRPr);
+            newRun.getCTR().setRPr(newCTRPr);
             newRun.setText(run.text());
         }
+    }
+
+    private static void copyCTRPr(CTRPr sourceCTRPr, CTRPr targetCTRPr) {
+        // 验证 sourceCTRPr 和 targetCTRPr 是非空的
+        if (sourceCTRPr == null || targetCTRPr == null) {
+            throw new IllegalArgumentException("CTRPr objects cannot be null");
+        }
+
+        // 使用 XMLBeans 的 deepCopy 方法来复制属性
+        XmlObject sourceXmlObject = sourceCTRPr.newCursor().getObject();
+        XmlObject targetXmlObject = targetCTRPr.newCursor().getObject();
+        // 深度复制源对象到目标对象
+        targetXmlObject.set(sourceXmlObject);
+
+        // 更新目标 CTRPr 对象
+        targetCTRPr.set(targetXmlObject);
     }
 
     // 清空单元格内容

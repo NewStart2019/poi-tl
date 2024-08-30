@@ -92,6 +92,7 @@ public class LoopExistedRowTableRenderPolicy implements RenderPolicy {
 
             int templateRowIndex = getTemplateRowIndex(tagCell);
             int allRowNumber = table.getRows().size() - 1;
+            int oldRowNumber = allRowNumber;
             TemplateResolver resolver = new TemplateResolver(template.getConfig().copy(prefix, suffix));
             XWPFTableRow templateRow = null;
             if (data instanceof Iterable) {
@@ -104,11 +105,19 @@ public class LoopExistedRowTableRenderPolicy implements RenderPolicy {
                     Object root = iterator.next();
                     hasNext = iterator.hasNext();
                     insertPosition = templateRowIndex++;
-                    templateRow = allRowNumber < templateRowIndex ? table.insertNewTableRow(templateRowIndex)
-                        : table.getRow(templateRowIndex);
+                    if (allRowNumber < templateRowIndex) {
+                        allRowNumber += 1;
+                        templateRow = table.insertNewTableRow(templateRowIndex);
+                    } else {
+                        templateRow = table.getRow(templateRowIndex);
+                    }
                     XWPFTableRow currentLine = table.getRow(insertPosition);
-                    if (isSaveNextLine && templateRowIndex + 1 <= allRowNumber) {
+                    if (isSaveNextLine) {
                         // 把下一行移到下下一行
+                        if (templateRowIndex + 1 > allRowNumber) {
+                            allRowNumber += 1;
+                            table.insertNewTableRow(templateRowIndex + 1);
+                        }
                         this.copyLine(templateRow, table.getRow(templateRowIndex + 1), templateRowIndex + 1);
                     }
                     this.copyLine(currentLine, templateRow, templateRowIndex);
@@ -126,16 +135,29 @@ public class LoopExistedRowTableRenderPolicy implements RenderPolicy {
 
             // 清空这一行模板内容内容，把最近的一行往上移动一格
             if (templateRow != null) {
-                XWPFTableRow row;
-                if (isSaveNextLine && templateRowIndex + 1 <= allRowNumber) {
-                    row = table.getRow(templateRowIndex + 1);
-                    this.cleanRowTextContent(templateRow);
-                    this.copyLine(row, templateRow, templateRowIndex);
+                int newAdd = allRowNumber - oldRowNumber;
+                if (isSaveNextLine) {
+                    if (newAdd == 0) {
+                        XWPFTableRow row = table.getRow(templateRowIndex + 1);
+                        this.cleanRowTextContent(templateRow);
+                        this.copyLine(row, templateRow, templateRowIndex);
+                        this.cleanRowTextContent(row);
+                    } else if (newAdd == 1) {
+                        XWPFTableRow row = table.getRow(templateRowIndex + 1);
+                        this.cleanRowTextContent(templateRow);
+                        this.copyLine(row, templateRow, templateRowIndex);
+                        table.removeRow(templateRowIndex + 1);
+                    } else {
+                        table.removeRow(templateRowIndex + 1);
+                        table.removeRow(templateRowIndex);
+                    }
                 } else {
-                    row = templateRow;
+                    if (newAdd == 0) {
+                        this.cleanRowTextContent(templateRow);
+                    } else {
+                        table.removeRow(templateRowIndex);
+                    }
                 }
-                this.cleanRowTextContent(row);
-
             }
             afterloop(table, data);
         } catch (Exception e) {
@@ -155,9 +177,12 @@ public class LoopExistedRowTableRenderPolicy implements RenderPolicy {
     private void copyLine(XWPFTableRow currentLine, XWPFTableRow nextLine, int templateRowIndex) {
         XWPFTable table = currentLine.getTable();
         if (CollectionUtils.isEmpty(nextLine.getTableCells())) {
-            XmlCursor newCursor = currentLine.getCtRow().newCursor();
-            XmlObject object = newCursor.getObject();
-            nextLine = new XWPFTableRow((CTRow) object, table);
+            // 复制行
+            XmlCursor sourceCursor = currentLine.getCtRow().newCursor();
+            XmlObject object = sourceCursor.getObject();
+            XmlObject targetXmlObject = nextLine.getCtRow().newCursor().getObject();
+            targetXmlObject = targetXmlObject.set(object);
+            nextLine = new XWPFTableRow((CTRow) targetXmlObject, table);
             setTableRow(table, nextLine, templateRowIndex);
         } else {
             List<XWPFTableCell> tableCells = currentLine.getTableCells();
@@ -170,8 +195,8 @@ public class LoopExistedRowTableRenderPolicy implements RenderPolicy {
             }
             if (nextLine.getCtRow().isSetTrPr()) {
                 nextLine.getCtRow().unsetTrPr();
-                nextLine.getCtRow().setTrPr(currentLine.getCtRow().getTrPr());
             }
+//            nextLine.getCtRow().setTrPr(currentLine.getCtRow().getTrPr());
         }
 
     }
