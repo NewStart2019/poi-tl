@@ -124,7 +124,7 @@ public class LoopExistedRowTableRenderPolicy implements RenderPolicy {
 
                     RenderDataCompute dataCompute = template.getConfig()
                         .getRenderDataComputeFactory()
-                        .newCompute(EnvModel.of(root, EnvIterator.makeEnv(index++, hasNext)));
+                        .newCompute(EnvModel.of(root, EnvIterator.makeEnv(++index, hasNext)));
                     List<XWPFTableCell> cells = currentLine.getTableCells();
                     cells.forEach(cell -> {
                         List<MetaTemplate> templates = resolver.resolveBodyElements(cell.getBodyElements());
