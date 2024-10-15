@@ -10,6 +10,15 @@ public class Goods {
     private int tax;
     private int price;
     private int totalPrice;
+    private String total;
+
+    public String getTotal() {
+        return total;
+    }
+
+    public void setTotal(String total) {
+        this.total = total;
+    }
 
     private PictureRenderData picture;
 

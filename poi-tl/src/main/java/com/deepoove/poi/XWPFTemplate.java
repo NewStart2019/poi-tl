@@ -25,7 +25,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
+import com.deepoove.poi.render.compute.EnvModel;
 import org.apache.poi.openxml4j.exceptions.OLE2NotOfficeXmlFileException;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFRun;
@@ -65,6 +67,7 @@ public class XWPFTemplate implements Closeable {
     private Resolver resolver;
     private Render renderer;
     private List<MetaTemplate> eleTemplates;
+    private EnvModel envModel;
 
     private XWPFTemplate() {
     }
@@ -203,10 +206,11 @@ public class XWPFTemplate implements Closeable {
      * Render the template by data model
      *
      * @param model render data
-     * @return
+     * @return XWPFTemplate
      */
     public XWPFTemplate render(Object model) {
-        this.renderer.render(this, model);
+        this.envModel = model instanceof Map ? EnvModel.of(null, (Map) model) : EnvModel.ofModel(model);
+        this.renderer.render(this, this.envModel);
         return this;
     }
 
@@ -321,4 +325,11 @@ public class XWPFTemplate implements Closeable {
         return resolver;
     }
 
+    public EnvModel getEnvModel() {
+        return envModel;
+    }
+
+    public void setEnvModel(EnvModel envModel) {
+        this.envModel = envModel;
+    }
 }

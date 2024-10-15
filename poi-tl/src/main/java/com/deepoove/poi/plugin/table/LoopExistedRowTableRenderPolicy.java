@@ -16,10 +16,12 @@
 package com.deepoove.poi.plugin.table;
 
 import com.deepoove.poi.XWPFTemplate;
+import com.deepoove.poi.config.Configure;
 import com.deepoove.poi.exception.RenderException;
 import com.deepoove.poi.policy.RenderPolicy;
 import com.deepoove.poi.render.compute.EnvModel;
 import com.deepoove.poi.render.compute.RenderDataCompute;
+import com.deepoove.poi.render.compute.SpELRenderDataCompute;
 import com.deepoove.poi.render.processor.DocumentProcessor;
 import com.deepoove.poi.render.processor.EnvIterator;
 import com.deepoove.poi.resolver.TemplateResolver;
@@ -37,9 +39,9 @@ import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTPPr;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTRow;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTcPr;
 
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 /**
  * loop table row
@@ -101,6 +103,7 @@ public class LoopExistedRowTableRenderPolicy implements RenderPolicy {
 
                 int index = 0;
                 boolean hasNext = iterator.hasNext();
+                Map<String, Object> globalEnv = template.getEnvModel().getEnv();
                 while (hasNext) {
                     Object root = iterator.next();
                     hasNext = iterator.hasNext();
@@ -122,9 +125,11 @@ public class LoopExistedRowTableRenderPolicy implements RenderPolicy {
                     }
                     this.copyLine(currentLine, templateRow, templateRowIndex);
 
-                    RenderDataCompute dataCompute = template.getConfig()
-                        .getRenderDataComputeFactory()
-                        .newCompute(EnvModel.of(root, EnvIterator.makeEnv(++index, hasNext)));
+                    EnvIterator.makeEnv(globalEnv, ++index, hasNext);
+                    Configure config = template.getConfig();
+                    config.setRenderDataComputeFactory(model -> new SpELRenderDataCompute(model, false));
+                    RenderDataCompute dataCompute = config.getRenderDataComputeFactory()
+                        .newCompute(EnvModel.of(root, globalEnv));
                     List<XWPFTableCell> cells = currentLine.getTableCells();
                     cells.forEach(cell -> {
                         List<MetaTemplate> templates = resolver.resolveBodyElements(cell.getBodyElements());

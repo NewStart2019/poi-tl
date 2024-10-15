@@ -45,4 +45,13 @@ public class EnvIterator {
         return env;
     }
 
+    public static void makeEnv(Map<String, Object> env ,int index, boolean hasNext) {
+        env.put("_is_first", index == 0);
+        env.put("_is_last", !hasNext);
+        env.put("_has_next", hasNext);
+        env.put("_is_even_item", index % 2 == 1);
+        env.put("_is_odd_item", index % 2 == 0);
+        env.put("_index", index);
+    }
+
 }

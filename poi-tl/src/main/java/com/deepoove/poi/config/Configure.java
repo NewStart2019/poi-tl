@@ -265,6 +265,11 @@ public class Configure implements Cloneable {
         return handler;
     }
 
+    public void setRenderDataComputeFactory(RenderDataComputeFactory renderDataComputeFactory) {
+        assert null != renderDataComputeFactory;
+        this.renderDataComputeFactory = renderDataComputeFactory;
+    }
+
     public RenderDataComputeFactory getRenderDataComputeFactory() {
         return renderDataComputeFactory;
     }

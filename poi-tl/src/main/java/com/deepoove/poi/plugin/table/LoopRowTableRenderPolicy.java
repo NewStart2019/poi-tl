@@ -17,7 +17,10 @@ package com.deepoove.poi.plugin.table;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
+import com.deepoove.poi.config.Configure;
+import com.deepoove.poi.render.compute.SpELRenderDataCompute;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.apache.poi.xwpf.usermodel.XWPFRun;
 import org.apache.poi.xwpf.usermodel.XWPFTable;
@@ -87,7 +90,7 @@ public class LoopRowTableRenderPolicy implements RenderPolicy {
             run.setText("", 0);
 
             int templateRowIndex = getTemplateRowIndex(tagCell);
-            if (null != data && data instanceof Iterable) {
+            if (data instanceof Iterable) {
                 Iterator<?> iterator = ((Iterable<?>) data).iterator();
                 XWPFTableRow templateRow = table.getRow(templateRowIndex);
                 int insertPosition = templateRowIndex;
@@ -96,6 +99,7 @@ public class LoopRowTableRenderPolicy implements RenderPolicy {
                 boolean firstFlag = true;
                 int index = 0;
                 boolean hasNext = iterator.hasNext();
+                Map<String, Object> globalEnv = template.getEnvModel().getEnv();
                 while (hasNext) {
                     Object root = iterator.next();
                     hasNext = iterator.hasNext();
@@ -125,9 +129,11 @@ public class LoopRowTableRenderPolicy implements RenderPolicy {
                     }
                     setTableRow(table, nextRow, insertPosition);
 
-                    RenderDataCompute dataCompute = template.getConfig()
-                            .getRenderDataComputeFactory()
-                            .newCompute(EnvModel.of(root, EnvIterator.makeEnv(++index, hasNext)));
+                    EnvIterator.makeEnv(globalEnv,++index, hasNext);
+                    Configure config = template.getConfig();
+                    config.setRenderDataComputeFactory(model -> new SpELRenderDataCompute(model, false));
+                    RenderDataCompute dataCompute = config.getRenderDataComputeFactory()
+                        .newCompute(EnvModel.of(root, globalEnv));
                     List<XWPFTableCell> cells = nextRow.getTableCells();
                     cells.forEach(cell -> {
                         List<MetaTemplate> templates = resolver.resolveBodyElements(cell.getBodyElements());

@@ -16,7 +16,9 @@
 
 package com.deepoove.poi.render.compute;
 
-import java.util.Collections;
+import org.apache.commons.beanutils.BeanUtils;
+
+import java.util.HashMap;
 import java.util.Map;
 
 public class EnvModel {
@@ -25,11 +27,25 @@ public class EnvModel {
     private Map<String, Object> env;
 
     public static EnvModel ofModel(Object root) {
-        return of(root, Collections.emptyMap());
+        return of(root, new HashMap<>());
     }
 
     public static EnvModel of(Object root, Map<String, Object> env) {
         EnvModel envModel = new EnvModel();
+        if (env == null){
+            env = new HashMap<>();
+        }
+        if(root == null){
+            root = new Object();
+        } else {
+            // 使用 BeanUtils 转换对象到 Map
+            Map<String, Object> map = new HashMap<>();
+            try {
+                BeanUtils.populate(root, map);
+            } catch (Exception ignore) {
+            }
+            env.putAll(map);
+        }
         envModel.root = root;
         envModel.env = env;
         return envModel;

@@ -1,19 +1,15 @@
 package com.deepoove.poi.tl.plugin;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
-
+import com.deepoove.poi.XWPFTemplate;
+import com.deepoove.poi.config.Configure;
+import com.deepoove.poi.data.Pictures;
 import com.deepoove.poi.plugin.table.LoopExistedRowTableRenderPolicy;
-import com.deepoove.poi.plugin.table.RemoveTableRowRenderPolicy;
+import com.deepoove.poi.plugin.table.LoopRowTableRenderPolicy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import com.deepoove.poi.XWPFTemplate;
-import com.deepoove.poi.config.Configure;
-import com.deepoove.poi.data.Pictures;
-import com.deepoove.poi.plugin.table.LoopRowTableRenderPolicy;
+import java.util.*;
 
 @DisplayName("Example for HackLoop Table")
 public class HackLoopTableRenderPolicyTest {
@@ -33,10 +29,10 @@ public class HackLoopTableRenderPolicyTest {
         good.setTax(new Random().nextInt(10) + 20);
         good.setTotalPrice(1600);
         good.setPicture(Pictures.ofLocal("src/test/resources/earth.png").size(24, 24).create());
-        goods.add(good);
-        goods.add(good);
-        goods.add(good);
-        goods.add(good);
+        good.setTotal("1024");
+        for (int i = 0; i < 13; i++) {
+            goods.add(good);
+        }
         data.setGoods(goods);
 
         List<Labor> labors = new ArrayList<>();
@@ -63,21 +59,44 @@ public class HackLoopTableRenderPolicyTest {
         LoopRowTableRenderPolicy hackLoopTableRenderPolicy = new LoopRowTableRenderPolicy();
         LoopRowTableRenderPolicy hackLoopSameLineTableRenderPolicy = new LoopRowTableRenderPolicy(true);
         Configure config = Configure.builder().bind("goods", hackLoopTableRenderPolicy)
-                .bind("labors", hackLoopTableRenderPolicy).bind("goods2", hackLoopSameLineTableRenderPolicy)
-                .bind("labors2", hackLoopSameLineTableRenderPolicy).build();
+            .bind("labors", hackLoopTableRenderPolicy).bind("goods2", hackLoopSameLineTableRenderPolicy)
+            .bind("labors2", hackLoopSameLineTableRenderPolicy).build();
+        resource = "src/test/resources/template/table_render_row_span.docx";
         XWPFTemplate template = XWPFTemplate.compile(resource, config).render(data);
-        template.writeToFile("target/out_render_looprow.docx");
+        template.writeToFile("target/out_table_render_row_span.docx");
+    }
+
+    public Map<String, Object> init2() {
+        Map<String, Object> test = new HashMap<>();
+        test.put("companyName", "测试公司");
+        List<Map<String, Object>> data = new ArrayList<>();
+        test.put("test", data);
+        for (int i = 1; i <= 40; i++) {
+            Map<String, Object> e1 = new HashMap<>();
+            data.add(e1);
+            e1.put("xh", i);
+            e1.put("qywz", "测试位置" + i);
+            e1.put("rq", "技术指标" + i);
+            e1.put("jcjg", "检测结果" + i);
+            e1.put("jgpd", "结果判定" + i);
+            e1.put("a", 10);
+            e1.put("b", 20);
+        }
+        return test;
     }
 
     @Test
     public void testLoopExistedRow() throws Exception {
         LoopExistedRowTableRenderPolicy hackLoopTableRenderPolicy = new LoopExistedRowTableRenderPolicy(false, true);
+        resource = "D:\\DingTalkAppData\\DingTalk\\download\\路基路面几何尺寸（宽度）试验检测报告.docx";
+        Map<String, Object> stringObjectMap = init2();
         Configure config = Configure.builder()
             .bind("goods", hackLoopTableRenderPolicy)
+            .bind("test", hackLoopTableRenderPolicy)
 //            .bind("labors", hackLoopTableRenderPolicy)
             .build();
-        XWPFTemplate template = XWPFTemplate.compile(resource, config).render(data);
-        template.writeToFile("target/out_render_loopexistedrow.docx");
+        XWPFTemplate template = XWPFTemplate.compile(resource, config).render(stringObjectMap);
+        template.writeToFile("target/test.docx");
     }
 
 }

@@ -11,7 +11,7 @@
 
 	<groupId>com.deepoove</groupId>
 	<artifactId>poi-tl</artifactId>
-	<version>1.12.5.6</version>
+	<version>1.12.5.9</version>
 	<packaging>jar</packaging>
 
 	<name>poi-tl</name>
@@ -71,7 +71,18 @@
 			<artifactId>commons-lang3</artifactId>
             <version>3.12.0</version> <!-- 使用最新版本或至少 3.4 版本 -->
 		</dependency>
-		<dependency>
+        <dependency>
+            <groupId>commons-beanutils</groupId>
+            <artifactId>commons-beanutils</artifactId>
+            <version>1.9.4</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>commons-logging</groupId>
+                    <artifactId>commons-logging</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi-ooxml</artifactId>
 			<version>5.2.2</version>
@@ -115,6 +126,20 @@
 			<artifactId>swagger-parser</artifactId>
 			<version>1.0.50</version>
 			<scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.commons</groupId>
+                    <artifactId>commons-lang3</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-api</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>commons-io</groupId>
+                    <artifactId>commons-io</artifactId>
+                </exclusion>
+            </exclusions>
 		</dependency>
 		<dependency>
 			<groupId>org.jsoup</groupId>
@@ -134,19 +159,7 @@
 			<version>5.6.0</version>
 			<scope>test</scope>
 		</dependency>
-        <!--支持多种公式渲染策略 -->
-        <dependency>
-            <groupId>io.github.draco1023</groupId>
-            <artifactId>poi-tl-ext</artifactId>
-            <version>0.4.15-poi5</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.jsoup</groupId>
-            <artifactId>jsoup</artifactId>
-            <version>1.15.3</version>
-        </dependency>
-	</dependencies>
+    </dependencies>
 
 	<profiles>
 		<profile>
@@ -256,7 +269,8 @@
 					<maxmem>256m</maxmem>
 					<!-- aggregated reports for multi-module projects -->
 					<aggregate>true</aggregate>
-				</configuration>
+                    <check/>
+                </configuration>
 			</plugin>
 			<plugin>
 				<groupId>org.eluder.coveralls</groupId>
