@@ -1,99 +1,112 @@
 package com.deepoove.poi.util;
 
 import org.apache.poi.xwpf.usermodel.*;
+import org.apache.xmlbeans.XmlCursor;
 import org.apache.xmlbeans.XmlObject;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTRPr;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTc;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTcPr;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTVMerge;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.*;
 import org.springframework.util.CollectionUtils;
 
-import java.util.Collections;
 import java.util.List;
 
+/**
+ * copy → clean → remove → find → set
+ */
+@SuppressWarnings("unused")
 public class WordTableUtils {
 
+
     /**
-     * 获取表格的最大列数
+     * Copy the content of the current line to the next line. If the next line is a newly added line,
+     * then directly copy the entire XML of the current line to the next line. Otherwise, just copy
+     * the content to the next line.
      *
-     * @param table XWPFTable 表格
-     * @return 最大列数
+     * @param currentLine      current line
+     * @param nextLine         next line
+     * @param templateRowIndex next line row index
      */
-    public static int getMaxColCount(XWPFTable table) {
-        int maxColCount = 0;
-        List<XWPFTableRow> rows = table.getRows();
-        for (XWPFTableRow row : rows) {
-            int colCount = row.getTableCells().size();
-            if (colCount > maxColCount) {
-                maxColCount = colCount;
+    public static XWPFTableRow copyLineContent(XWPFTableRow currentLine, XWPFTableRow nextLine, int templateRowIndex) {
+        XWPFTable table = currentLine.getTable();
+        if (org.apache.commons.collections4.CollectionUtils.isEmpty(nextLine.getTableCells())) {
+            // 复制行
+            XmlCursor sourceCursor = currentLine.getCtRow().newCursor();
+            XmlObject object = sourceCursor.getObject();
+            XmlObject targetXmlObject = nextLine.getCtRow().newCursor().getObject();
+            targetXmlObject = targetXmlObject.set(object);
+            nextLine = new XWPFTableRow((CTRow) targetXmlObject, table);
+            setTableRow(table, nextLine, templateRowIndex);
+        } else {
+            List<XWPFTableCell> tableCells = currentLine.getTableCells();
+            int nextCellSize = nextLine.getTableCells().size() - 1;
+            for (int i = 0; i < tableCells.size(); i++) {
+                XWPFTableCell currentCell = tableCells.get(i);
+                boolean isNoHasCell = nextCellSize < i;
+                XWPFTableCell nextCell = isNoHasCell ? nextLine.addNewTableCell() : nextLine.getCell(i);
+                copyCellContent(currentCell, nextCell, isNoHasCell);
+            }
+            if (nextLine.getCtRow().isSetTrPr()) {
+                nextLine.getCtRow().unsetTrPr();
+                nextLine.getCtRow().setTrPr(currentLine.getCtRow().getTrPr());
             }
         }
-        return maxColCount;
+        return nextLine;
     }
 
     /**
-     * 获取表格的最大实际列数（包括所有跨行）
+     * Copy the content of a cell that spans multiple columns, including its style. Since the data spanning columns
+     * is only present in the first row, there's no need to clear the content of the target cells
      *
-     * @param table XWPFTable 表格
-     * @return 最大列数
+     * @param source source
+     * @param target target
      */
-    public static int getMaxActualCol(XWPFTable table) {
-        int max = -1;
-        for (XWPFTableRow row : table.getRows()) {
-            List<XWPFTableCell> tableCells = row.getTableCells();
-            int temp = 0;
-            for (XWPFTableCell cell : tableCells) {
-                if (cell.getCTTc() == null) {
-                    temp += 1;
-                    continue;
-                }
-                CTTc ctTc = cell.getCTTc();
-                if (ctTc.getTcPr() == null) {
-                    temp += 1;
-                    continue;
-                }
-                if (ctTc.getTcPr().getGridSpan() == null) {
-                    temp += 1;
-                    continue;
-                } else {
-                    temp += ctTc.getTcPr().getGridSpan().getVal().intValue();
-                }
+    public static void copyCellContent(XWPFTableCell source, XWPFTableCell target, boolean isIncludeStyle) {
+        List<XWPFParagraph> paragraphs = source.getParagraphs();
+        CTPPr targetCtPPr = null;
+        XWPFParagraph firstParagraph = null;
+        if (org.apache.commons.collections4.CollectionUtils.isNotEmpty(target.getParagraphs())) {
+            firstParagraph = target.getParagraphs().get(0);
+            targetCtPPr = firstParagraph.getCTP().getPPr();
+        }
+        for (XWPFParagraph paragraph : source.getParagraphs()) {
+            XWPFParagraph newParagraph = target.addParagraph();
+            WordTableUtils.copyParagraphContent(paragraph, newParagraph);
+            if (targetCtPPr != null) {
+                // 复制段落样式
+                newParagraph.getCTP().setPPr(targetCtPPr);
+                newParagraph.setStyle(firstParagraph.getStyle());
             }
-            if (temp > max) {
-                max = temp;
+            if (isIncludeStyle) {
+                newParagraph.getCTP().unsetPPr();
+                newParagraph.getCTP().setPPr(paragraph.getCTP().getPPr());
             }
         }
-        return max;
+        if (isIncludeStyle) {
+            CTTcPr sourceTcPr = source.getCTTc().getTcPr();
+            if (sourceTcPr != null) {
+                target.getCTTc().setTcPr(source.getCTTc().getTcPr());
+            }
+        }
+        if (firstParagraph != null) {
+            WordTableUtils.removeParagraph(target, firstParagraph);
+        }
     }
 
     /**
-     * 获取跨行数据，restart=2 表示跨行的开始
-     * continue=1是跨行数据的持续，知道跨行信息不存在则结束跨行
+     * Copy the content of the spanned cells including the style. Since the spanned data only exists in the first row,
+     * there is no need to clear the content of the target cells.
      *
-     * @param cell 单元格
-     * @return null则表示没有跨行
+     * @param source source
+     * @param target target
      */
-    public static Integer getVMerge(XWPFTableCell cell) {
-        // 获取单元格属性
-        CTTcPr tcPr = cell.getCTTc().getTcPr();
-        if (tcPr != null) {
-            // 获取垂直合并属性
-            CTVMerge vMerge = tcPr.getVMerge();
-            if (vMerge != null) {
-                return vMerge.getVal().intValue();
-            }
+    public static void copyVerticallyCellContent(XWPFTableCell source, XWPFTableCell target) {
+        removeAllParagraphs(target);
+        for (XWPFParagraph paragraph : source.getParagraphs()) {
+            XWPFParagraph newParagraph = target.addParagraph();
+            copyParagraphContent(paragraph, newParagraph);
         }
-        return null;
+        target.getCTTc().setTcPr(source.getCTTc().getTcPr());
     }
 
-    /**
-     * 将当前单元格移动到下一行同一列
-     *
-     * @param table    XWPFTable 表格
-     * @param rowIndex 当前行索引
-     * @param colIndex 当前列索引
-     */
-    public static void moveCellToNextRow(XWPFTable table, int rowIndex, int colIndex) {
+    public static void copyCellToNextRow(XWPFTable table, int rowIndex, int colIndex) {
         XWPFTableRow currentRow = table.getRow(rowIndex);
         XWPFTableCell currentCell = currentRow.getCell(colIndex);
 
@@ -108,26 +121,10 @@ public class WordTableUtils {
         }
 
         copyVerticallyCellContent(currentCell, newCell);
-        clearCellContent(currentCell);
+        cleanCellContent(currentCell);
     }
 
-    /**
-     * 复制跨列的单元格内容包括样式，由于跨列的数据只在第一一行有，所以不需要清除目标单元格的内容
-     *
-     * @param source source
-     * @param target target
-     */
-    public static void copyVerticallyCellContent(XWPFTableCell source, XWPFTableCell target) {
-        removeAllParagraphs(target);
-        for (XWPFParagraph paragraph : source.getParagraphs()) {
-            XWPFParagraph newParagraph = target.addParagraph();
-            copyParagraph(paragraph, newParagraph);
-        }
-        target.getCTTc().setTcPr(source.getCTTc().getTcPr());
-    }
-
-    // 复制段落内容
-    public static void copyParagraph(XWPFParagraph source, XWPFParagraph target) {
+    public static void copyParagraphContent(XWPFParagraph source, XWPFParagraph target) {
         for (XWPFRun run : source.getRuns()) {
             XWPFRun newRun = target.createRun();
             CTRPr sourceCTRPr = run.getCTR().getRPr();
@@ -138,7 +135,7 @@ public class WordTableUtils {
         }
     }
 
-    private static void copyCTRPr(CTRPr sourceCTRPr, CTRPr targetCTRPr) {
+    public static void copyCTRPr(CTRPr sourceCTRPr, CTRPr targetCTRPr) {
         // 验证 sourceCTRPr 和 targetCTRPr 是非空的
         if (sourceCTRPr == null || targetCTRPr == null) {
             throw new IllegalArgumentException("CTRPr objects cannot be null");
@@ -154,20 +151,60 @@ public class WordTableUtils {
         targetCTRPr.set(targetXmlObject);
     }
 
-    // 清空单元格内容
-    public static void clearCellContent(XWPFTableCell cell) {
+    public static void cleanRowTextContent(XWPFTable table, int rowIndex) {
+        cleanRowTextContent(table.getRow(rowIndex));
+    }
+
+    public static void cleanRowTextContent(XWPFTableRow templateRow) {
+        List<XWPFTableCell> tableCells = templateRow.getTableCells();
+        tableCells.forEach(cell -> {
+            if (org.apache.commons.collections4.CollectionUtils.isNotEmpty(cell.getParagraphs())) {
+                cell.getParagraphs().forEach(WordTableUtils::removeAllRun);
+            }
+        });
+    }
+
+    public static void cleanCellContent(XWPFTableCell cell) {
         cell.removeParagraph(0);
     }
 
+    public static void removeAllParagraphs(XWPFTableCell cell) {
+        List<XWPFParagraph> paragraphs = cell.getParagraphs();
+        int size = paragraphs.size();
+        for (int i = size - 1; i >= 0; i--) {
+            cell.removeParagraph(i);
+        }
+    }
+
+    public static void removeParagraph(XWPFTableCell cell, XWPFParagraph paragraph) {
+        if (!CollectionUtils.isEmpty(cell.getParagraphs())) {
+            cell.removeParagraph(cell.getParagraphs().indexOf(paragraph));
+        }
+    }
+
+    public static void removeRun(XWPFParagraph paragraph, XWPFRun run) {
+        if (!CollectionUtils.isEmpty(paragraph.getRuns())) {
+            paragraph.removeRun(paragraph.getRuns().indexOf(run));
+        }
+    }
+
+    public static void removeAllRun(XWPFParagraph paragraph) {
+        if (paragraph != null && org.apache.commons.collections4.CollectionUtils.isNotEmpty(paragraph.getRuns())) {
+            for (int i = paragraph.getRuns().size() - 1; i >= 0; i--) {
+                paragraph.removeRun(i);
+            }
+        }
+    }
+
     /**
-     * 获取表格的跨列数（问题：如果列错位了处理方式就有问题）
+     * Get the number of columns spanned in the table (Issue: If the columns are misaligned, the handling method has problems)
      *
-     * @param table    表格
-     * @param startRow 开始行
-     * @param colIndex 查找列
-     * @return 跨行数目，如果为0表示没有跨行
+     * @param table    XWPFTable
+     * @param startRow start row index
+     * @param colIndex col index
+     * @return span col number，0 indicates no cross row
      */
-    public static int getMergedRows(XWPFTable table, int startRow, int colIndex) {
+    public static int findMergedRows(XWPFTable table, int startRow, int colIndex) {
         int i = startRow + 1;
         int size = table.getRows().size();
         for (; i <= size; i++) {
@@ -192,50 +229,94 @@ public class WordTableUtils {
         return i - startRow;
     }
 
-    /**
-     * 删除单元格中的所有段落
-     *
-     * @param cell XWPFTableCell 单元格
-     */
-    public static void removeAllParagraphs(XWPFTableCell cell) {
-        List<XWPFParagraph> paragraphs = cell.getParagraphs();
-        int size = paragraphs.size();
-        for (int i = size - 1; i >= 0; i--) {
-            cell.removeParagraph(i);
-        }
+    public static int findRowIndex(XWPFTableCell tagCell) {
+        XWPFTableRow tagRow = tagCell.getTableRow();
+        return findRowIndex(tagRow);
+    }
+
+    public static int findRowIndex(XWPFTableRow row) {
+        List<XWPFTableRow> rows = row.getTable().getRows();
+        return rows.indexOf(row);
     }
 
     /**
-     * 移除单元格段落
+     * Retrieve the spanned row data, where restart=2 indicates the start of a span.
+     * continue=1 signifies the continuation of the spanned data, and the spanning ends when there is no more span information.
      *
-     * @param cell      {@link XWPFTableCell cell}
-     * @param paragraph {@link XWPFParagraph paragraph}
+     * @param cell
+     * @return Integer | null则表示没有跨行
      */
-    public static void removeParagraph(XWPFTableCell cell, XWPFParagraph paragraph) {
-        if (!CollectionUtils.isEmpty(cell.getParagraphs())) {
-            cell.removeParagraph(cell.getParagraphs().indexOf(paragraph));
-        }
-    }
-
-    /**
-     * 移除段落指定的run
-     *
-     * @param paragraph {@link XWPFParagraph paragraph}
-     * @param run       {@link XWPFRun run}
-     */
-    public static void removeRun(XWPFParagraph paragraph, XWPFRun run) {
-        if (!CollectionUtils.isEmpty(paragraph.getRuns())) {
-            paragraph.removeRun(paragraph.getRuns().indexOf(run));
-        }
-    }
-
-
-    public static void removeAllRun(XWPFParagraph paragraph) {
-        if (paragraph != null && org.apache.commons.collections4.CollectionUtils.isNotEmpty(paragraph.getRuns())){
-            for (int i = paragraph.getRuns().size() - 1; i >= 0; i--) {
-                paragraph.removeRun(i);
+    public static Integer findVMerge(XWPFTableCell cell) {
+        // Get cell properties
+        CTTcPr tcPr = cell.getCTTc().getTcPr();
+        if (tcPr != null) {
+            // Get vertical merge properties
+            CTVMerge vMerge = tcPr.getVMerge();
+            if (vMerge != null) {
+                return vMerge.getVal().intValue();
             }
         }
+        return null;
+    }
+
+    /**
+     * Get the maximum actual number of columns in the table (including all spanned rows)
+     *
+     * @param table XWPFTable table
+     * @return int
+     */
+    public static int findMaxColIncludeSpanCol(XWPFTable table) {
+        int max = -1;
+        for (XWPFTableRow row : table.getRows()) {
+            List<XWPFTableCell> tableCells = row.getTableCells();
+            int temp = 0;
+            for (XWPFTableCell cell : tableCells) {
+                if (cell.getCTTc() == null) {
+                    temp += 1;
+                    continue;
+                }
+                CTTc ctTc = cell.getCTTc();
+                if (ctTc.getTcPr() == null) {
+                    temp += 1;
+                    continue;
+                }
+                if (ctTc.getTcPr().getGridSpan() == null) {
+                    temp += 1;
+                } else {
+                    temp += ctTc.getTcPr().getGridSpan().getVal().intValue();
+                }
+            }
+            if (temp > max) {
+                max = temp;
+            }
+        }
+        return max;
+    }
+
+
+    /**
+     * Get the maximum number of columns in the table
+     *
+     * @param table XWPFTable table
+     * @return int
+     */
+    public static int findMaxSpanColCount(XWPFTable table) {
+        int maxColCount = 0;
+        List<XWPFTableRow> rows = table.getRows();
+        for (XWPFTableRow row : rows) {
+            int colCount = row.getTableCells().size();
+            if (colCount > maxColCount) {
+                maxColCount = colCount;
+            }
+        }
+        return maxColCount;
+    }
+
+    @SuppressWarnings("unchecked")
+    public static void setTableRow(XWPFTable table, XWPFTableRow row, int pos) {
+        List<XWPFTableRow> rows = (List<XWPFTableRow>) ReflectionUtils.getValue("tableRows", table);
+        rows.set(pos, row);
+        table.getCTTbl().setTrArray(pos, row.getCtRow());
     }
 
 }

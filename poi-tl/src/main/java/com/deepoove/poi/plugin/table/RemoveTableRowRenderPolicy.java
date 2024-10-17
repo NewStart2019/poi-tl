@@ -9,9 +9,6 @@ import com.deepoove.poi.template.run.RunTemplate;
 import com.deepoove.poi.util.TableTools;
 import com.deepoove.poi.util.WordTableUtils;
 import org.apache.poi.xwpf.usermodel.*;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTc;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTcPr;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTVMerge;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -74,11 +71,11 @@ public class RemoveTableRowRenderPolicy implements RenderPolicy {
         for (int i = size - 1; i > 0; i--) {
             XWPFTableCell templateCell = tableRow.getCell(i);
             // 获取是否跨行
-            Integer vMerge = getVMerge(templateCell);
+            Integer vMerge = WordTableUtils.findVMerge(templateCell);
             if (vMerge != null && vMerge == 2) {
                 // 获取跨行数
-                int mergedRows = WordTableUtils.getMergedRows(table, rowIndex, i);
-                WordTableUtils.moveCellToNextRow(table, rowIndex, i);
+                int mergedRows = WordTableUtils.findMergedRows(table, rowIndex, i);
+                WordTableUtils.copyCellToNextRow(table, rowIndex, i);
                 if (mergedRows == 2) {
                     // 把跨列的标记取消掉
                     table.getRow(rowIndex + 1).getTableCells().get(i).getCTTc().getTcPr().unsetVMerge();
@@ -86,27 +83,6 @@ public class RemoveTableRowRenderPolicy implements RenderPolicy {
             }
         }
         tableRow.getTable().removeRow(rowIndex);
-    }
-
-    /**
-     * 获取跨行数据，restart=2 表示跨行的开始
-     * continue=1是跨行数据的持续，知道跨行信息不存在则结束跨行
-     *
-     * @param cell
-     * @return null则表示没有跨行
-     */
-    public Integer getVMerge(XWPFTableCell cell) {
-        // 获取单元格属性
-        CTTcPr tcPr = cell.getCTTc().getTcPr();
-        if (tcPr != null) {
-            // 获取垂直合并属性
-            CTVMerge vMerge = tcPr.getVMerge();
-            if (vMerge != null) {
-                // continue
-                return vMerge.getVal().intValue();
-            }
-        }
-        return null;
     }
 
 

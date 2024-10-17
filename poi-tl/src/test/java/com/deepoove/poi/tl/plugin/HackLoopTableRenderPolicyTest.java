@@ -31,7 +31,7 @@ public class HackLoopTableRenderPolicyTest {
         good.setTotalPrice(1600);
         good.setPicture(Pictures.ofLocal("src/test/resources/earth.png").size(24, 24).create());
         good.setTotal("1024");
-        for (int i = 0; i < 20; i++) {
+        for (int i = 0; i < 4; i++) {
             goods.add(good);
         }
         data.setGoods(goods);
@@ -59,8 +59,6 @@ public class HackLoopTableRenderPolicyTest {
     public void testPaymentHackExample() throws Exception {
         LoopRowTableRenderPolicy hackLoopTableRenderPolicy = new LoopRowTableRenderPolicy();
         LoopRowTableRenderPolicy hackLoopSameLineTableRenderPolicy = new LoopRowTableRenderPolicy(true);
-        data.goodsnumber = 8;
-        resource = "src/test/resources/template/render_existed_fill.docx";
         Configure config = Configure.builder().bind("goods", hackLoopTableRenderPolicy)
             .bind("labors", hackLoopTableRenderPolicy).bind("goods2", hackLoopSameLineTableRenderPolicy)
             .bind("labors2", hackLoopSameLineTableRenderPolicy).build();
@@ -92,19 +90,26 @@ public class HackLoopTableRenderPolicyTest {
     @Test
     public void testLoopExistedRow() throws Exception {
         LoopExistedRowTableRenderPolicy hackLoopTableRenderPolicy = new LoopExistedRowTableRenderPolicy(false, true);
-        LoopExistedAndFillRowTableRenderPolicy hackLoopTableRenderPolicy2 = new LoopExistedAndFillRowTableRenderPolicy(false, true);
-        LoopRowTableRenderPolicy oldHackLoopTableRenderPolicy = new LoopRowTableRenderPolicy();
         resource = "D:\\DingTalkAppData\\DingTalk\\download\\路基路面几何尺寸（宽度）试验检测报告.docx";
         resource = "src/test/resources/template/render_existed_fill.docx";
         Map<String, Object> stringObjectMap = init2();
         Configure config = Configure.builder()
-            .bind("goods", hackLoopTableRenderPolicy)
-            .bind("test", hackLoopTableRenderPolicy2)
-            // .bind("test", oldHackLoopTableRenderPolicy)
-//            .bind("labors", hackLoopTableRenderPolicy)
+            .bind("test", hackLoopTableRenderPolicy)
             .build();
         XWPFTemplate template = XWPFTemplate.compile(resource, config).render(stringObjectMap);
-        template.writeToFile("target/test.docx");
+        template.writeToFile("target/out_existed.docx");
+    }
+
+    @Test
+    public void testLoopExistedAndFillBlanRow() throws Exception {
+        LoopExistedAndFillRowTableRenderPolicy hackLoopTableRenderPolicy2 = new LoopExistedAndFillRowTableRenderPolicy(false, true);
+        resource = "src/test/resources/template/render_existed_fill.docx";
+        Map<String, Object> stringObjectMap = init2();
+        Configure config = Configure.builder()
+            .bind("test", hackLoopTableRenderPolicy2)
+            .build();
+        XWPFTemplate template = XWPFTemplate.compile(resource, config).render(stringObjectMap);
+        template.writeToFile("target/out_exiest_fill.docx");
     }
 
 }

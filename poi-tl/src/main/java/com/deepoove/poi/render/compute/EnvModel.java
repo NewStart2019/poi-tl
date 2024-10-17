@@ -40,7 +40,6 @@ public class EnvModel {
             root = new Object();
         } else {
             try {
-                // BeanUtils.populate(root, map);
                 TlBeanUtil beanUtil = new TlBeanUtil();
                 Map<String, Object> map = beanUtil.beanToMap(root, RenderData.class, 0);
                 env.putAll(map);

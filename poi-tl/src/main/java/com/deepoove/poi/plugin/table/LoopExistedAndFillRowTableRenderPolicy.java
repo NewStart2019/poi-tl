@@ -13,16 +13,9 @@ import com.deepoove.poi.resolver.TemplateResolver;
 import com.deepoove.poi.template.ElementTemplate;
 import com.deepoove.poi.template.MetaTemplate;
 import com.deepoove.poi.template.run.RunTemplate;
-import com.deepoove.poi.util.ReflectionUtils;
 import com.deepoove.poi.util.TableTools;
 import com.deepoove.poi.util.WordTableUtils;
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.poi.xwpf.usermodel.*;
-import org.apache.xmlbeans.XmlCursor;
-import org.apache.xmlbeans.XmlObject;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTPPr;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTRow;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTcPr;
 
 import java.util.Iterator;
 import java.util.List;
@@ -77,7 +70,7 @@ public class LoopExistedAndFillRowTableRenderPolicy implements RenderPolicy {
             XWPFTable table = tagCell.getTableRow().getTable();
             run.setText("", 0);
 
-            int templateRowIndex = getTemplateRowIndex(tagCell);
+            int templateRowIndex = this.getTemplateRowIndex(tagCell);
             int allRowNumber = table.getRows().size() - 1;
             int oldRowNumber = allRowNumber;
             TemplateResolver resolver = new TemplateResolver(template.getConfig().copy(prefix, suffix));
@@ -106,9 +99,9 @@ public class LoopExistedAndFillRowTableRenderPolicy implements RenderPolicy {
                             allRowNumber += 1;
                             table.insertNewTableRow(templateRowIndex + 1);
                         }
-                        this.copyLine(templateRow, table.getRow(templateRowIndex + 1), templateRowIndex + 1);
+                        WordTableUtils.copyLineContent(templateRow, table.getRow(templateRowIndex + 1), templateRowIndex + 1);
                     }
-                    this.copyLine(currentLine, templateRow, templateRowIndex);
+                    WordTableUtils.copyLineContent(currentLine, templateRow, templateRowIndex);
 
                     EnvIterator.makeEnv(globalEnv, ++index, hasNext);
                     Configure config = template.getConfig();
@@ -137,12 +130,12 @@ public class LoopExistedAndFillRowTableRenderPolicy implements RenderPolicy {
             if (templateRow != null) {
                 if (isSaveNextLine) {
                     XWPFTableRow row = table.getRow(templateRowIndex + 1);
-                    this.cleanRowTextContent(templateRow);
-                    this.copyLine(row, templateRow, templateRowIndex);
+                    WordTableUtils.cleanRowTextContent(templateRow);
+                    WordTableUtils.copyLineContent(row, templateRow, templateRowIndex);
                     // 判断有没有跨页
                     int remain = (allRowNumber + 1) % pageLine;
                     if ((allRowNumber + 1) <= pageLine) {
-                        this.cleanRowTextContent(row);
+                        WordTableUtils.cleanRowTextContent(row);
                         this.fillBlankRow(pageLine, remain, reduce, table, templateRowIndex + 1);
                     } else if (remain == 1) {
                         table.removeRow(templateRowIndex + 1);
@@ -156,7 +149,7 @@ public class LoopExistedAndFillRowTableRenderPolicy implements RenderPolicy {
                     }
                 } else {
                     if (newAdd == 0) {
-                        this.cleanRowTextContent(templateRow);
+                        WordTableUtils.cleanRowTextContent(templateRow);
                     } else {
                         table.removeRow(templateRowIndex);
                         templateRowIndex -= 1;
@@ -185,127 +178,22 @@ public class LoopExistedAndFillRowTableRenderPolicy implements RenderPolicy {
         int insertLine = pageLine - remain - reduce;
         if (insertLine > 0) {
             XWPFTableRow tempRow = table.insertNewTableRow(startIndex + 1);
-            tempRow = this.copyLine(table.getRow(startIndex), tempRow, startIndex + 1);
-            this.cleanRowTextContent(tempRow);
+            tempRow = WordTableUtils.copyLineContent(table.getRow(startIndex), tempRow, startIndex + 1);
+            WordTableUtils.cleanRowTextContent(tempRow);
             startIndex += 1;
         }
         for (int i = 1; i < insertLine; i++) {
             XWPFTableRow tempRow = table.insertNewTableRow(startIndex + 1);
-            this.copyLine(table.getRow(startIndex), tempRow, startIndex + 1);
+            WordTableUtils.copyLineContent(table.getRow(startIndex), tempRow, startIndex + 1);
             startIndex += 1;
         }
     }
 
-    /**
-     * Copy the content of the current line to the next line. If the next line is a newly added line,
-     * then directly copy the entire XML of the current line to the next line. Otherwise, just copy
-     * the content to the next line.
-     *
-     * @param currentLine      current line
-     * @param nextLine         next line
-     * @param templateRowIndex next line row index
-     */
-    private XWPFTableRow copyLine(XWPFTableRow currentLine, XWPFTableRow nextLine, int templateRowIndex) {
-        XWPFTable table = currentLine.getTable();
-        if (CollectionUtils.isEmpty(nextLine.getTableCells())) {
-            // 复制行
-            XmlCursor sourceCursor = currentLine.getCtRow().newCursor();
-            XmlObject object = sourceCursor.getObject();
-            XmlObject targetXmlObject = nextLine.getCtRow().newCursor().getObject();
-            targetXmlObject = targetXmlObject.set(object);
-            nextLine = new XWPFTableRow((CTRow) targetXmlObject, table);
-            setTableRow(table, nextLine, templateRowIndex);
-        } else {
-            List<XWPFTableCell> tableCells = currentLine.getTableCells();
-            int nextCellSize = nextLine.getTableCells().size() - 1;
-            for (int i = 0; i < tableCells.size(); i++) {
-                XWPFTableCell currentCell = tableCells.get(i);
-                boolean isNoHasCell = nextCellSize < i;
-                XWPFTableCell nextCell = isNoHasCell ? nextLine.addNewTableCell() : nextLine.getCell(i);
-                copyCellContent(currentCell, nextCell, isNoHasCell);
-            }
-            if (nextLine.getCtRow().isSetTrPr()) {
-                nextLine.getCtRow().unsetTrPr();
-                nextLine.getCtRow().setTrPr(currentLine.getCtRow().getTrPr());
-            }
-        }
-        return nextLine;
-    }
-
-    /**
-     * 复制跨列的单元格内容包括样式，由于跨列的数据只在第一一行有，所以不需要清除目标单元格的内容
-     *
-     * @param source source
-     * @param target target
-     */
-    public void copyCellContent(XWPFTableCell source, XWPFTableCell target, boolean isIncludeStyle) {
-        List<XWPFParagraph> paragraphs = source.getParagraphs();
-        CTPPr targetCtPPr = null;
-        XWPFParagraph firstParagraph = null;
-        if (CollectionUtils.isNotEmpty(target.getParagraphs())) {
-            firstParagraph = target.getParagraphs().get(0);
-            targetCtPPr = firstParagraph.getCTP().getPPr();
-        }
-        for (XWPFParagraph paragraph : source.getParagraphs()) {
-            XWPFParagraph newParagraph = target.addParagraph();
-            WordTableUtils.copyParagraph(paragraph, newParagraph);
-            if (targetCtPPr != null) {
-                // 复制段落样式
-                newParagraph.getCTP().setPPr(targetCtPPr);
-                newParagraph.setStyle(firstParagraph.getStyle());
-            }
-            if (isIncludeStyle) {
-                newParagraph.getCTP().unsetPPr();
-                newParagraph.getCTP().setPPr(paragraph.getCTP().getPPr());
-            }
-        }
-        if (isIncludeStyle) {
-            CTTcPr sourceTcPr = source.getCTTc().getTcPr();
-            if (sourceTcPr != null) {
-                target.getCTTc().setTcPr(source.getCTTc().getTcPr());
-            }
-        }
-        if (firstParagraph != null) {
-            WordTableUtils.removeParagraph(target, firstParagraph);
-        }
-    }
-
-    public void cleanRowTextContent(XWPFTable table, int rowIndex) {
-        cleanRowTextContent(table.getRow(rowIndex));
-    }
-
-    /**
-     * 清除一行的所有文本内容
-     *
-     * @param templateRow {@link XWPFTableRow templateRow}
-     */
-    public void cleanRowTextContent(XWPFTableRow templateRow) {
-        List<XWPFTableCell> tableCells = templateRow.getTableCells();
-        tableCells.forEach(cell -> {
-            if (CollectionUtils.isNotEmpty(cell.getParagraphs())) {
-                cell.getParagraphs().forEach(WordTableUtils::removeAllRun);
-            }
-        });
-    }
-
     private int getTemplateRowIndex(XWPFTableCell tagCell) {
         XWPFTableRow tagRow = tagCell.getTableRow();
-        return onSameLine ? getRowIndex(tagRow) : (getRowIndex(tagRow) + 1);
+        return onSameLine ? WordTableUtils.findRowIndex(tagRow) : (WordTableUtils.findRowIndex(tagRow) + 1);
     }
 
     protected void afterloop(XWPFTable table, Object data) {
     }
-
-    @SuppressWarnings("unchecked")
-    private void setTableRow(XWPFTable table, XWPFTableRow templateRow, int pos) {
-        List<XWPFTableRow> rows = (List<XWPFTableRow>) ReflectionUtils.getValue("tableRows", table);
-        rows.set(pos, templateRow);
-        table.getCTTbl().setTrArray(pos, templateRow.getCtRow());
-    }
-
-    private int getRowIndex(XWPFTableRow row) {
-        List<XWPFTableRow> rows = row.getTable().getRows();
-        return rows.indexOf(row);
-    }
-
 }

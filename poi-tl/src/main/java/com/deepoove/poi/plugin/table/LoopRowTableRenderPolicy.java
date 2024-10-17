@@ -15,17 +15,22 @@
  */
 package com.deepoove.poi.plugin.table;
 
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-
+import com.deepoove.poi.XWPFTemplate;
 import com.deepoove.poi.config.Configure;
+import com.deepoove.poi.exception.RenderException;
+import com.deepoove.poi.policy.RenderPolicy;
+import com.deepoove.poi.render.compute.EnvModel;
+import com.deepoove.poi.render.compute.RenderDataCompute;
 import com.deepoove.poi.render.compute.SpELRenderDataCompute;
-import org.apache.poi.xwpf.usermodel.XWPFParagraph;
-import org.apache.poi.xwpf.usermodel.XWPFRun;
-import org.apache.poi.xwpf.usermodel.XWPFTable;
-import org.apache.poi.xwpf.usermodel.XWPFTableCell;
-import org.apache.poi.xwpf.usermodel.XWPFTableRow;
+import com.deepoove.poi.render.processor.DocumentProcessor;
+import com.deepoove.poi.render.processor.EnvIterator;
+import com.deepoove.poi.resolver.TemplateResolver;
+import com.deepoove.poi.template.ElementTemplate;
+import com.deepoove.poi.template.MetaTemplate;
+import com.deepoove.poi.template.run.RunTemplate;
+import com.deepoove.poi.util.TableTools;
+import com.deepoove.poi.util.WordTableUtils;
+import org.apache.poi.xwpf.usermodel.*;
 import org.apache.xmlbeans.XmlCursor;
 import org.apache.xmlbeans.XmlObject;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTRow;
@@ -33,19 +38,9 @@ import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTcPr;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTVMerge;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.STMerge;
 
-import com.deepoove.poi.XWPFTemplate;
-import com.deepoove.poi.exception.RenderException;
-import com.deepoove.poi.policy.RenderPolicy;
-import com.deepoove.poi.render.compute.EnvModel;
-import com.deepoove.poi.render.compute.RenderDataCompute;
-import com.deepoove.poi.render.processor.DocumentProcessor;
-import com.deepoove.poi.render.processor.EnvIterator;
-import com.deepoove.poi.resolver.TemplateResolver;
-import com.deepoove.poi.template.ElementTemplate;
-import com.deepoove.poi.template.MetaTemplate;
-import com.deepoove.poi.template.run.RunTemplate;
-import com.deepoove.poi.util.ReflectionUtils;
-import com.deepoove.poi.util.TableTools;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Hack for loop table row
@@ -57,6 +52,7 @@ public class LoopRowTableRenderPolicy implements RenderPolicy {
     private String prefix;
     private String suffix;
     private boolean onSameLine;
+    private boolean isSaveNextLine;
 
     public LoopRowTableRenderPolicy() {
         this(false);
@@ -64,6 +60,13 @@ public class LoopRowTableRenderPolicy implements RenderPolicy {
 
     public LoopRowTableRenderPolicy(boolean onSameLine) {
         this("[", "]", onSameLine);
+    }
+
+    public LoopRowTableRenderPolicy(boolean onSameLine, boolean isSaveNextLine) {
+        this.prefix = "[";
+        this.suffix = "]";
+        this.onSameLine = onSameLine;
+        this.isSaveNextLine = isSaveNextLine;
     }
 
     public LoopRowTableRenderPolicy(String prefix, String suffix) {
@@ -83,13 +86,16 @@ public class LoopRowTableRenderPolicy implements RenderPolicy {
         try {
             if (!TableTools.isInsideTable(run)) {
                 throw new IllegalStateException(
-                        "The template tag " + runTemplate.getSource() + " must be inside a table");
+                    "The template tag " + runTemplate.getSource() + " must be inside a table");
             }
             XWPFTableCell tagCell = (XWPFTableCell) ((XWPFParagraph) run.getParent()).getBody();
             XWPFTable table = tagCell.getTableRow().getTable();
             run.setText("", 0);
 
+            int oldRowNumber = table.getRows().size();
+
             int templateRowIndex = getTemplateRowIndex(tagCell);
+            Map<String, Object> globalEnv = template.getEnvModel().getEnv();
             if (data instanceof Iterable) {
                 Iterator<?> iterator = ((Iterable<?>) data).iterator();
                 XWPFTableRow templateRow = table.getRow(templateRowIndex);
@@ -99,14 +105,13 @@ public class LoopRowTableRenderPolicy implements RenderPolicy {
                 boolean firstFlag = true;
                 int index = 0;
                 boolean hasNext = iterator.hasNext();
-                Map<String, Object> globalEnv = template.getEnvModel().getEnv();
                 while (hasNext) {
                     Object root = iterator.next();
                     hasNext = iterator.hasNext();
 
                     insertPosition = templateRowIndex++;
                     XWPFTableRow nextRow = table.insertNewTableRow(insertPosition);
-                    setTableRow(table, templateRow, insertPosition);
+                    WordTableUtils.setTableRow(table, templateRow, insertPosition);
 
                     // double set row
                     XmlCursor newCursor = templateRow.getCtRow().newCursor();
@@ -127,9 +132,9 @@ public class LoopRowTableRenderPolicy implements RenderPolicy {
                     } else {
                         firstFlag = false;
                     }
-                    setTableRow(table, nextRow, insertPosition);
+                    WordTableUtils.setTableRow(table, nextRow, insertPosition);
 
-                    EnvIterator.makeEnv(globalEnv,++index, hasNext);
+                    EnvIterator.makeEnv(globalEnv, ++index, hasNext);
                     Configure config = template.getConfig();
                     config.setRenderDataComputeFactory(model -> new SpELRenderDataCompute(model, false));
                     RenderDataCompute dataCompute = config.getRenderDataComputeFactory()
@@ -151,22 +156,10 @@ public class LoopRowTableRenderPolicy implements RenderPolicy {
 
     private int getTemplateRowIndex(XWPFTableCell tagCell) {
         XWPFTableRow tagRow = tagCell.getTableRow();
-        return onSameLine ? getRowIndex(tagRow) : (getRowIndex(tagRow) + 1);
+        return onSameLine ? WordTableUtils.findRowIndex(tagRow) : (WordTableUtils.findRowIndex(tagRow) + 1);
     }
 
     protected void afterloop(XWPFTable table, Object data) {
-    }
-
-    @SuppressWarnings("unchecked")
-    private void setTableRow(XWPFTable table, XWPFTableRow templateRow, int pos) {
-        List<XWPFTableRow> rows = (List<XWPFTableRow>) ReflectionUtils.getValue("tableRows", table);
-        rows.set(pos, templateRow);
-        table.getCTTbl().setTrArray(pos, templateRow.getCtRow());
-    }
-
-    private int getRowIndex(XWPFTableRow row) {
-        List<XWPFTableRow> rows = row.getTable().getRows();
-        return rows.indexOf(row);
     }
 
 }
