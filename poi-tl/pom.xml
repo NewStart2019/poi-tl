@@ -11,7 +11,7 @@
 
 	<groupId>com.deepoove</groupId>
 	<artifactId>poi-tl</artifactId>
-	<version>1.12.5.9</version>
+	<version>1.12.6</version>
 	<packaging>jar</packaging>
 
 	<name>poi-tl</name>
@@ -71,17 +71,6 @@
 			<artifactId>commons-lang3</artifactId>
             <version>3.12.0</version> <!-- 使用最新版本或至少 3.4 版本 -->
 		</dependency>
-        <dependency>
-            <groupId>commons-beanutils</groupId>
-            <artifactId>commons-beanutils</artifactId>
-            <version>1.9.4</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>commons-logging</groupId>
-                    <artifactId>commons-logging</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
         <dependency>
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi-ooxml</artifactId>
@@ -159,6 +148,12 @@
 			<version>5.6.0</version>
 			<scope>test</scope>
 		</dependency>
+
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>2.18.0</version>
+        </dependency>
     </dependencies>
 
 	<profiles>

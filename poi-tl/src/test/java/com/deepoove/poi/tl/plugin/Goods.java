@@ -11,6 +11,8 @@ public class Goods {
     private int price;
     private int totalPrice;
     private String total;
+    private PictureRenderData picture;
+
 
     public String getTotal() {
         return total;
@@ -19,8 +21,6 @@ public class Goods {
     public void setTotal(String total) {
         this.total = total;
     }
-
-    private PictureRenderData picture;
 
     public int getCount() {
         return count;

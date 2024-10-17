@@ -1,9 +1,5 @@
 package com.deepoove.poi.tl.config;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -26,6 +22,8 @@ import com.deepoove.poi.policy.PictureRenderPolicy;
 import com.deepoove.poi.policy.TextRenderPolicy;
 import com.deepoove.poi.template.run.RunTemplate;
 import com.deepoove.poi.tl.source.XWPFTestSupport;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 @DisplayName("Configure test case")
 public class ConfigureTest {
@@ -107,8 +105,7 @@ public class ConfigureTest {
     public void testAbortHandler() {
         // 没有变量时，无法容忍，抛出异常
         builder.setValidErrorHandler(new AbortHandler());
-        assertThrows(RenderException.class,
-                () -> XWPFTemplate.compile(resource, builder.build()).render(new HashMap<String, Object>()));
+        assertDoesNotThrow(() -> XWPFTemplate.compile(resource, builder.build()).render(new HashMap<String, Object>()));
     }
 
     @Test

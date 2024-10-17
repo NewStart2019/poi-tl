@@ -15,6 +15,8 @@ public class PaymentHackData {
     private List<Labor> labors;
     private List<Labor> labors2;
 
+    public Integer goodsnumber;
+
     public List<Goods> getGoods2() {
         return goods2;
     }

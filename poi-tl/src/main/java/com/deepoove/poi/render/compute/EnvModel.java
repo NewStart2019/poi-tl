@@ -16,7 +16,8 @@
 
 package com.deepoove.poi.render.compute;
 
-import org.apache.commons.beanutils.BeanUtils;
+import com.deepoove.poi.data.RenderData;
+import com.deepoove.poi.util.TlBeanUtil;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -32,19 +33,19 @@ public class EnvModel {
 
     public static EnvModel of(Object root, Map<String, Object> env) {
         EnvModel envModel = new EnvModel();
-        if (env == null){
+        if (env == null) {
             env = new HashMap<>();
         }
-        if(root == null){
+        if (root == null) {
             root = new Object();
         } else {
-            // 使用 BeanUtils 转换对象到 Map
-            Map<String, Object> map = new HashMap<>();
             try {
-                BeanUtils.populate(root, map);
+                // BeanUtils.populate(root, map);
+                TlBeanUtil beanUtil = new TlBeanUtil();
+                Map<String, Object> map = beanUtil.beanToMap(root, RenderData.class, 0);
+                env.putAll(map);
             } catch (Exception ignore) {
             }
-            env.putAll(map);
         }
         envModel.root = root;
         envModel.env = env;
