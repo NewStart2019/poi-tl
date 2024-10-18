@@ -5,6 +5,7 @@ import com.deepoove.poi.config.Configure;
 import com.deepoove.poi.data.Pictures;
 import com.deepoove.poi.plugin.table.LoopExistedAndFillRowTableRenderPolicy;
 import com.deepoove.poi.plugin.table.LoopExistedRowTableRenderPolicy;
+import com.deepoove.poi.plugin.table.LoopRowTableAndFillRenderPolicy;
 import com.deepoove.poi.plugin.table.LoopRowTableRenderPolicy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -111,5 +112,25 @@ public class HackLoopTableRenderPolicyTest {
         XWPFTemplate template = XWPFTemplate.compile(resource, config).render(stringObjectMap);
         template.writeToFile("target/out_exiest_fill.docx");
     }
+
+    @Test
+    public void testLoopFillRow() throws Exception {
+        LoopRowTableAndFillRenderPolicy hackLoopTableRenderPolicy2 = new LoopRowTableAndFillRenderPolicy(false, true);
+        resource = "src/test/resources/template/render_insert_fill.docx";
+        Map<String, Object> stringObjectMap = init2();
+        stringObjectMap.put("testnumber", 29);
+        stringObjectMap.put("testreduce", 0);
+        stringObjectMap.put("testmode", 2);
+        stringObjectMap.put("testheader", 1);
+        stringObjectMap.put("testfooter", 4);
+        stringObjectMap.put("blank_desc", "以下空白");
+        Configure config = Configure.builder()
+            .bind("test", hackLoopTableRenderPolicy2)
+            .build();
+        XWPFTemplate template = XWPFTemplate.compile(resource, config).render(stringObjectMap);
+        template.writeToFile("target/out_insert_fill.docx");
+    }
+
+
 
 }

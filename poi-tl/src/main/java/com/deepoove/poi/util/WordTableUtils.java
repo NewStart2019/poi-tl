@@ -1,15 +1,17 @@
 package com.deepoove.poi.util;
 
+import com.deepoove.poi.xwpf.Page;
 import org.apache.poi.xwpf.usermodel.*;
 import org.apache.xmlbeans.XmlCursor;
 import org.apache.xmlbeans.XmlObject;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.*;
 import org.springframework.util.CollectionUtils;
 
+import java.math.BigInteger;
 import java.util.List;
 
 /**
- * copy → clean → remove → find → set
+ * copy → clean → remove → find → set → merge
  */
 @SuppressWarnings("unused")
 public class WordTableUtils {
@@ -239,6 +241,18 @@ public class WordTableUtils {
         return rows.indexOf(row);
     }
 
+    public static int findRowHeight(XWPFTableRow row) {
+        return row.getHeight();
+    }
+
+    public static String findCellWidth(XWPFTableCell cell) {
+        CTTcPr tcPr = cell.getCTTc().getTcPr();
+        if (tcPr != null && tcPr.isSetTcW()) {
+            return tcPr.getTcW().getW().toString();
+        }
+        return "0";
+    }
+
     /**
      * Retrieve the spanned row data, where restart=2 indicates the start of a span.
      * continue=1 signifies the continuation of the spanned data, and the spanning ends when there is no more span information.
@@ -312,6 +326,20 @@ public class WordTableUtils {
         return maxColCount;
     }
 
+    public static void setTableWidthA4(XWPFTable table) {
+        setTableWidth(table, Page.A4_NORMAL);
+    }
+
+    public static void setTableWidth(XWPFTable table, Page page) {
+        CTTbl ctTbl = table.getCTTbl();
+        CTTblPr tblPr = (ctTbl.getTblPr() != null) ? ctTbl.getTblPr() : ctTbl.addNewTblPr();
+        CTTblWidth tblWidth = tblPr.addNewTblW();
+        // tblWidth.setW(BigInteger.valueOf(5000));  // set 50%（5000 表示 50.00%）
+        // tblWidth.setW(BigInteger.valueOf(10000));  // set 50%（5000 表示 100.00%）
+        tblWidth.setW(page.contentWidth()); // Word unit is wips
+        tblWidth.setType(STTblWidth.DXA);
+    }
+
     @SuppressWarnings("unchecked")
     public static void setTableRow(XWPFTable table, XWPFTableRow row, int pos) {
         List<XWPFTableRow> rows = (List<XWPFTableRow>) ReflectionUtils.getValue("tableRows", table);
@@ -319,4 +347,263 @@ public class WordTableUtils {
         table.getCTTbl().setTrArray(pos, row.getCtRow());
     }
 
+
+    // The row itself does not have a direct width attribute
+    @Deprecated
+    public static void setTableRowWidth(XWPFTableRow row, int width) {
+        throw new RuntimeException("The row itself does not have a direct width attribute");
+    }
+
+    /**
+     * <p>Set row height</p>
+     * Twips explanation:
+     * Twip is a unit used in Microsoft Word, where 1 Twip equals 1/20 pound. Therefore,
+     * 500 Twips is equivalent to 25 pounds (500 ÷ 20=25).
+     *
+     * @param row         {@link XWPFTableRow row}
+     * @param heightTwips height in twips
+     * @param type        {@link STHeightRule.Enum type} , default is {@link STHeightRule.Enum EXACT}
+     */
+    public static void setTableRowHeight(XWPFTableRow row, int heightTwips, STHeightRule.Enum type) {
+        CTRow ctRow = row.getCtRow();
+        CTTrPr ctTrPr = ctRow.isSetTrPr() ? ctRow.getTrPr() : ctRow.addNewTrPr();
+        CTHeight height = ctTrPr.addNewTrHeight();
+        height.setVal(BigInteger.valueOf(heightTwips));
+        if (type == null) {
+            type = STHeightRule.EXACT;
+        }
+        // 设置行高规则为固定行高
+        height.setHRule(type);  // EXCT 表示固定高度，不自动调整
+    }
+
+    public static void setTableCellWidth(XWPFTableCell cell, String width) {
+        CTTcPr tcPr = cell.getCTTc().isSetTcPr() ? cell.getCTTc().getTcPr() : cell.getCTTc().addNewTcPr();
+        CTTblWidth tblWidth = tcPr.isSetTcW() ? tcPr.getTcW() : tcPr.addNewTcW();
+        tblWidth.setType(STTblWidth.DXA);
+        tblWidth.setW(new BigInteger(width));
+    }
+
+    public static void setCellWidth(XWPFTableCell cell, int width) {
+        CTTblWidth tblWidth = CTTblWidth.Factory.newInstance();
+        tblWidth.setType(STTblWidth.DXA);
+        tblWidth.setW(BigInteger.valueOf(width));
+        CTTcPr tcPr = cell.getCTTc().isSetTcPr() ? cell.getCTTc().getTcPr() : cell.getCTTc().addNewTcPr();
+        tcPr.setTcW(tblWidth);
+    }
+
+    public static void setDiagonalBorder(XWPFTableCell cell) {
+        setDiagonalBorder(cell, STBorder.SINGLE);
+    }
+
+    /**
+     * <p>Set diagonal border (slash)</p>
+     * <p>Expand :</p>
+     * <p>1. Tr2bl: The diagonal border from the top right corner (tr) to the bottom left corner (bl) of the cell.</p>
+     * <p>2. Tl2br: The diagonal border from the top left corner (tl) to the bottom right corner (br) of the cell.</p>
+     *
+     * @param cell     {@link XWPFTableCell cell}
+     * @param stBorder {@link STBorder.Enum stBorder} line style
+     */
+    public static void setDiagonalBorder(XWPFTableCell cell, STBorder.Enum stBorder) {
+        if (cell == null) {
+            return;
+        }
+        CTTc ctTc = cell.getCTTc();
+        CTTcPr ctTcPr = ctTc.isSetTcPr() ? ctTc.getTcPr() : ctTc.addNewTcPr();
+        CTTcBorders ctTcBorders = ctTcPr.isSetTcBorders() ? ctTcPr.getTcBorders() : ctTcPr.addNewTcBorders();
+        if (!ctTcBorders.isSetTr2Bl()) {
+            ctTcBorders.addNewTr2Bl().setVal(stBorder);
+        }
+    }
+
+    public static void mergeCellsHorizontalFullLine(XWPFTableRow tableRow) {
+        if (tableRow == null) {
+            return;
+        }
+        mergeCellsHorizontal(tableRow.getTable(), 0, tableRow, 0, tableRow.getTableCells().size() - 1);
+    }
+
+    public static void mergeCellsHorizontalFullLine(XWPFTable table, int row) {
+        if (table == null) {
+            return;
+        }
+        int size = table.getRows().size();
+        if (size <= row) {
+            throw new RuntimeException("row index out of bounds");
+        }
+        XWPFTableRow tableRow = table.getRow(row);
+        size = tableRow.getTableCells().size();
+        mergeCellsHorizontal(table, row, tableRow, 0, size - 1);
+    }
+
+    /**
+     * <p>Merge cells with specified start and end position <b>indexes</b> in a row.</p>
+     * <p>The priority of the <b>tableRow</b> incoming row object is higher than the specified <b>row</b> index row</p>
+     *
+     * @param table    {@link XWPFTable table} table object
+     * @param row      row index
+     * @param tableRow {@link XWPFTableRow tableRow} row object
+     * @param fromCol  from column index
+     * @param toCol    to column index
+     */
+    public static void mergeCellsHorizontal(XWPFTable table, int row, XWPFTableRow tableRow, int fromCol, int toCol) {
+        if (table == null) {
+            return;
+        }
+        int size = table.getRows().size();
+        if (size <= row) {
+            throw new RuntimeException(row + " index out of bounds");
+        }
+        if (tableRow == null) {
+            tableRow = table.getRow(row);
+        }
+        if (tableRow == null) {
+            throw new RuntimeException(row + " not existed");
+        }
+        size = tableRow.getTableCells().size();
+        if (toCol < fromCol || fromCol < 0 || toCol >= size) {
+            throw new RuntimeException("col index out of bounds");
+        }
+        for (int colIndex = fromCol; colIndex <= toCol; colIndex++) {
+            XWPFTableCell cell = tableRow.getCell(colIndex);
+            if (cell == null) {
+                continue;
+            }
+            CTTc ctTc = cell.getCTTc();
+            CTTcPr ctTcPr = ctTc.isSetTcPr() ? ctTc.getTcPr() : ctTc.addNewTcPr();
+            CTHMerge cthMerge = ctTcPr.isSetHMerge() ? ctTcPr.getHMerge() : ctTcPr.addNewHMerge();
+            cthMerge.setVal(colIndex == fromCol ? STMerge.RESTART : STMerge.CONTINUE);
+        }
+    }
+
+
+    public static void unmergeCells(XWPFTableRow row, int startCellIndex, boolean isAddSpan) {
+        if (row == null) {
+            return;
+        }
+        XWPFTableCell cell = row.getCell(startCellIndex);
+        if (cell == null) {
+            return;
+        }
+        CTTcPr tcPr = cell.getCTTc().getTcPr();
+        if (tcPr == null) {
+            return;
+        }
+        if (tcPr.isSetHMerge()) {
+            tcPr.unsetHMerge();
+        }
+        if (tcPr.isSetGridSpan()) {
+            int gridSpanValue = tcPr.getGridSpan().getVal().intValue();
+            if (gridSpanValue > 1) {
+                tcPr.unsetGridSpan();
+                if (isAddSpan) {
+                    for (int i = 1; i < gridSpanValue; i++) {
+                        addCellAfter(row, startCellIndex);
+                    }
+                }
+            }
+        }
+
+        if (tcPr.isSetVMerge()) {
+            CTVMerge vMerge = tcPr.getVMerge();
+            if (vMerge != null) {
+                tcPr.unsetVMerge();
+            }
+        }
+    }
+
+    public static void unVMergeCells(XWPFTableRow row, int startCellIndex) {
+        if (row == null) {
+            return;
+        }
+        XWPFTableCell cell = row.getCell(startCellIndex);
+        if (cell == null) {
+            return;
+        }
+        CTTcPr tcPr = cell.getCTTc().getTcPr();
+        if (tcPr == null) {
+            return;
+        }
+        if (tcPr.isSetVMerge()) {
+            CTVMerge vMerge = tcPr.getVMerge();
+            if (vMerge != null) {
+                tcPr.unsetVMerge();
+            }
+        }
+    }
+
+    /**
+     * Merge a column into a single cell by specifying the start and end rows.
+     *
+     * @param table   {@link XWPFTable table} table object
+     * @param col     column index
+     * @param fromRow from column index
+     * @param toRow   to column index
+     */
+    public static void mergeCellsVertically(XWPFTable table, int col, int fromRow, int toRow) {
+        if (table == null) {
+            return;
+        }
+        for (int rowIndex = fromRow; rowIndex <= toRow; rowIndex++) {
+            XWPFTableRow row = table.getRow(rowIndex);
+            if (row == null) {
+                continue;
+            }
+            XWPFTableCell cell = row.getCell(col);
+            if (cell == null) {
+                continue;
+            }
+            CTTc ctTc = cell.getCTTc();
+            CTTcPr ctTcPr = ctTc.isSetTcPr() ? ctTc.getTcPr() : ctTc.addNewTcPr();
+            CTVMerge ctvMerge = ctTcPr.isSetVMerge() ? ctTcPr.getVMerge() : ctTcPr.addNewVMerge();
+            ctvMerge.setVal(rowIndex == fromRow ? STMerge.RESTART : STMerge.CONTINUE);
+        }
+    }
+
+    /**
+     * Merge multiple rows. Merge each row into a column, and then merge multiple rows. Finally, retain the original
+     * text content of the first row and first column
+     *
+     * @param table   {@link XWPFTable table}
+     * @param fromRow from row index
+     * @param toRow   to row index
+     */
+    public static void mergeMutipleLine(XWPFTable table, int fromRow, int toRow) {
+        if (table == null) {
+            return;
+        }
+        List<XWPFTableRow> rows = table.getRows();
+        if (rows.size() <= toRow || fromRow < 0 || fromRow > toRow) {
+            throw new RuntimeException(String.format("The input row index(%d,%d) is incorrect", fromRow, toRow));
+        }
+        for (int i = fromRow; i <= toRow; i++) {
+            XWPFTableRow row = rows.get(i);
+            mergeCellsHorizontal(table, i, row, 0, row.getTableCells().size() - 1);
+        }
+        mergeCellsVertically(table, 0, fromRow, toRow);
+    }
+
+    /**
+     * Add a new cell after a specified row cell
+     *
+     * @param row       a specified row
+     * @param cellIndex Add a new cell after this cell
+     */
+    public static void addCellAfter(XWPFTableRow row, int cellIndex) {
+        if (row == null) {
+            return;
+        }
+        XWPFTable table = row.getTable();
+        int rowSize = table.getRows().size();
+        int colSize = row.getTableCells().size();  // 当前行的单元格数
+        int curerntRowIndex = findRowIndex(row);
+
+        XWPFTableCell newCell = row.addNewTableCell();
+
+        for (int i = colSize; i > cellIndex + 1; i--) {
+            XWPFTableCell tempCell = row.getCell(i - 1);
+            row.getCtRow().setTcArray(i, row.getCtRow().getTcArray(i - 1));
+            row.getCtRow().setTcArray(i - 1, tempCell.getCTTc());
+        }
+    }
 }
