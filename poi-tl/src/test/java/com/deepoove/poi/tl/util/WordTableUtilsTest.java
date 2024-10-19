@@ -68,22 +68,18 @@ class WordTableUtilsTest {
     @Test
     void testMergeMutipleLineIncludeVMerge() throws Exception {
         // 创建一个新的 Word 文档
-        String file = "target/out_insert_fill.docx";
+        String file = "src/test/resources/template/iterable_payment.docx";
         FileInputStream fileInputStream = new FileInputStream(file);
         XWPFDocument document = new XWPFDocument(fileInputStream);
-        XWPFTable table = document.getTables().get(0);
+        XWPFTable table = document.getTables().get(1);
 
-        WordTableUtils.mergeMutipleLine(table, 3,6);
-        XWPFTableCell cellRow00 = table.getRow(3).getCell(0);
-        WordTableUtils.setCellWidth(cellRow00, table.getWidth());
+        WordTableUtils.mergeMutipleLine(table, 3,4);
         out_file = "target/out_merged_table.docx";
         // 保存文档
         try (FileOutputStream out = new FileOutputStream(out_file)) {
             document.write(out);
         }
-
         document.close();
-        System.out.println("表格已拆分合并的单元格并保存为 UnmergedTable.docx。");
     }
 
     @Test

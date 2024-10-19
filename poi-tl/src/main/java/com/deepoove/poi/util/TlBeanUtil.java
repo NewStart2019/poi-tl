@@ -43,8 +43,12 @@ public class TlBeanUtil {
      */
     public <T> Map<String, Object> beanToMap(Object obj, Class<T> noTransferClass, int depth) {
         Map<String, Object> map = new HashMap<>();
-        int MAX_DEPTH = 10;
-        if (obj == null || depth > MAX_DEPTH) {
+        // int MAX_DEPTH = 10;
+        if (obj == null) {
+            return map;
+        }
+        if (obj instanceof String || TlBeanUtil.isPrimitive(obj)) {
+            log.error(String.format("raw data type %s not supported transfer:", obj.getClass()));
             return map;
         }
         if (cache.containsKey(obj)) {
@@ -166,7 +170,8 @@ public class TlBeanUtil {
     private <T> List<Object> collectionToMap(Collection<?> collection, Class<T> noTransferClass, int depth) {
         List<Object> list = new ArrayList<>();
         for (Object item : collection) {
-            if (noTransferClass.isInstance(item)) {
+            if (noTransferClass.isInstance(item) || item instanceof String || isPrimitive(item)
+                || item instanceof Method) {
                 list.add(item);
             } else {
                 list.add(beanToMap(item, noTransferClass, depth + 1));
@@ -177,11 +182,16 @@ public class TlBeanUtil {
 
     private <T> List<Object> arrayToMap(Object[] array, Class<T> noTransferClass, int depth) {
         List<Object> list = new ArrayList<>();
-        for (Object item : array) {
-            if (noTransferClass.isInstance(item)) {
-                list.add(item);
-            } else {
-                list.add(beanToMap(item, noTransferClass, depth + 1));
+        if (array == null || array.length == 0) {
+            return list;
+        }
+        Object item = array[0];
+        if (noTransferClass.isInstance(item) || item instanceof String || isPrimitive(item)
+            || item instanceof Method) {
+            list = Arrays.asList(array);
+        } else {
+            for (Object temp : array) {
+                list.add(beanToMap(temp, noTransferClass, depth + 1));
             }
         }
         return list;

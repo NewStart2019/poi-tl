@@ -41,8 +41,10 @@ public class EnvModel {
         } else {
             try {
                 TlBeanUtil beanUtil = new TlBeanUtil();
-                Map<String, Object> map = beanUtil.beanToMap(root, RenderData.class, 0);
-                env.putAll(map);
+                if (!(root instanceof String || TlBeanUtil.isPrimitive(root))){
+                    Map<String, Object> map = beanUtil.beanToMap(root, RenderData.class, 0);
+                    env.putAll(map);
+                }
             } catch (Exception ignore) {
             }
         }
