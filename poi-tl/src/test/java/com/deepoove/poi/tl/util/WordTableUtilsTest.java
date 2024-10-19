@@ -1,10 +1,7 @@
 package com.deepoove.poi.tl.util;
 
 import com.deepoove.poi.util.WordTableUtils;
-import org.apache.poi.xwpf.usermodel.XWPFDocument;
-import org.apache.poi.xwpf.usermodel.XWPFTable;
-import org.apache.poi.xwpf.usermodel.XWPFTableCell;
-import org.apache.poi.xwpf.usermodel.XWPFTableRow;
+import org.apache.poi.xwpf.usermodel.*;
 import org.junit.jupiter.api.Test;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTDecimalNumber;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTc;
@@ -14,6 +11,8 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class WordTableUtilsTest {
 
@@ -87,4 +86,24 @@ class WordTableUtilsTest {
         System.out.println("表格已拆分合并的单元格并保存为 UnmergedTable.docx。");
     }
 
+    @Test
+    void testCopyTable() throws Exception {
+        // 创建一个新的 Word 文档
+        String file = "src/test/resources/template/render_document.docx";
+        FileInputStream fileInputStream = new FileInputStream(file);
+        XWPFDocument document = new XWPFDocument(fileInputStream);
+        XWPFTable table = document.getTables().get(0);
+        XWPFTable newTable = WordTableUtils.copyTable(document, table);
+
+        out_file = "target/test.docx";
+        // 保存文档
+        try (FileOutputStream out = new FileOutputStream(out_file)) {
+            document.write(out);
+        }
+
+        document.close();
+
+        XWPFDocument document2 = new XWPFDocument(new FileInputStream(out_file));
+        assertEquals(2, document2.getTables().size());
+    }
 }

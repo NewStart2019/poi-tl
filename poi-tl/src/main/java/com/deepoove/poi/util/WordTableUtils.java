@@ -16,6 +16,14 @@ import java.util.List;
 @SuppressWarnings("unused")
 public class WordTableUtils {
 
+    public static XWPFTable copyTable(XWPFDocument doc, XWPFTable sourceTable) {
+        // doc.getPosOfTable：What is obtained is the position of the table in the body
+        // int tableIndex = doc.getPosOfTable(sourceTable);
+        int tableIndex = doc.getTables().indexOf(sourceTable);
+        CTTbl newTbl = doc.getDocument().getBody().insertNewTbl(tableIndex + 1);
+        newTbl.set(sourceTable.getCTTbl());
+        return new XWPFTable(newTbl, doc);
+    }
 
     /**
      * Copy the content of the current line to the next line. If the next line is a newly added line,
