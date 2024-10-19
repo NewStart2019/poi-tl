@@ -167,14 +167,15 @@ public class WordTableUtils {
     }
 
     public static void cleanCellContent(XWPFTableCell cell) {
-        cell.removeParagraph(0);
+        removeAllParagraphs(cell);
     }
 
     public static void removeAllParagraphs(XWPFTableCell cell) {
-        List<XWPFParagraph> paragraphs = cell.getParagraphs();
-        int size = paragraphs.size();
-        for (int i = size - 1; i >= 0; i--) {
-            cell.removeParagraph(i);
+        if (cell == null) {
+            return;
+        }
+        while (!cell.getParagraphs().isEmpty()) {
+            cell.removeParagraph(0);
         }
     }
 
@@ -199,14 +200,48 @@ public class WordTableUtils {
     }
 
     /**
-     * Get the number of columns spanned in the table (Issue: If the columns are misaligned, the handling method has problems)
+     * Get the sum of all GridSpan in the longest row
+     *
+     * @param table {@link XWPFTable table}
+     * @return int
+     */
+    public static int getTableMaxLineAllGridSpan(XWPFTable table) {
+        if (table == null) {
+            return 0;
+        }
+
+        int all = 0;
+
+        // 遍历每一行
+        for (XWPFTableRow row : table.getRows()) {
+            all = 0;
+            // 遍历每一列
+            for (XWPFTableCell cell : row.getTableCells()) {
+                CTTc ctTc = cell.getCTTc();
+                CTTcPr tcPr = ctTc.isSetTcPr() ? ctTc.getTcPr() : ctTc.addNewTcPr();
+
+                // 检查是否设置了 gridSpan
+                if (tcPr.isSetGridSpan()) {
+                    CTDecimalNumber gridSpan = tcPr.getGridSpan();
+                    int currentGridSpan = gridSpan.getVal().intValue();
+                    all += currentGridSpan;
+                } else {
+                    all++;
+                }
+            }
+        }
+        return all;
+    }
+
+    /**
+     * obtain the count of vertically merged rows (Issue: If the columns are misaligned, the handling method has problems)
      *
      * @param table    XWPFTable
      * @param startRow start row index
      * @param colIndex col index
      * @return span col number，0 indicates no cross row
      */
-    public static int findMergedRows(XWPFTable table, int startRow, int colIndex) {
+    public static int findVerticalMergedRows(XWPFTable table, int startRow, int colIndex) {
         int i = startRow + 1;
         int size = table.getRows().size();
         for (; i <= size; i++) {
@@ -450,36 +485,60 @@ public class WordTableUtils {
         if (table == null) {
             return;
         }
-        int size = table.getRows().size();
-        if (size <= row) {
-            throw new RuntimeException(row + " index out of bounds");
+
+        List<XWPFTableRow> xwpfRow = table.getRows();
+        int rowCount = xwpfRow.size();
+
+        if (row < 0 || row >= rowCount) {
+            throw new IllegalArgumentException(row + " index out of bounds");
         }
         if (tableRow == null) {
             tableRow = table.getRow(row);
         }
         if (tableRow == null) {
-            throw new RuntimeException(row + " not existed");
+            throw new IllegalArgumentException(row + " not existed");
         }
-        size = tableRow.getTableCells().size();
-        if (toCol < fromCol || fromCol < 0 || toCol >= size) {
-            throw new RuntimeException("col index out of bounds");
+
+        List<XWPFTableCell> cells = tableRow.getTableCells();
+        int cellCount = cells.size();
+
+        if (toCol < fromCol || fromCol < 0 || toCol >= cellCount) {
+            throw new IllegalArgumentException("col index out of bounds");
         }
-        for (int colIndex = fromCol; colIndex <= toCol; colIndex++) {
+
+        int tableMaxLineAllGridSpan = getTableMaxLineAllGridSpan(table);
+        XWPFTableCell startCell = tableRow.getCell(fromCol);
+        CTTc startCTTc = startCell.getCTTc();
+        CTTcPr startTcPr = startCTTc.isSetTcPr() ? startCTTc.getTcPr() : startCTTc.addNewTcPr();
+        if (startTcPr.isSetVMerge()) {
+            startTcPr.unsetVMerge();
+        }
+
+        CTHMerge hMerge = startTcPr.isSetHMerge() ? startTcPr.getHMerge() : startTcPr.addNewHMerge();
+        hMerge.setVal(STMerge.RESTART);
+        // set gridSpan element
+        CTDecimalNumber gridSpan = startTcPr.isSetGridSpan() ? startTcPr.getGridSpan() : startTcPr.addNewGridSpan();
+        gridSpan.setVal(BigInteger.valueOf(tableMaxLineAllGridSpan));
+
+        for (int colIndex = fromCol + 1; colIndex <= toCol; colIndex++) {
             XWPFTableCell cell = tableRow.getCell(colIndex);
-            if (cell == null) {
-                continue;
-            }
             CTTc ctTc = cell.getCTTc();
-            CTTcPr ctTcPr = ctTc.isSetTcPr() ? ctTc.getTcPr() : ctTc.addNewTcPr();
-            CTHMerge cthMerge = ctTcPr.isSetHMerge() ? ctTcPr.getHMerge() : ctTcPr.addNewHMerge();
-            cthMerge.setVal(colIndex == fromCol ? STMerge.RESTART : STMerge.CONTINUE);
+            CTTcPr tcPr = ctTc.isSetTcPr() ? ctTc.getTcPr() : ctTc.addNewTcPr();
+            if (tcPr.isSetVMerge()) {
+                startTcPr.unsetVMerge();
+            }
+            CTHMerge continueHMerge = tcPr.isSetHMerge() ? tcPr.getHMerge() : tcPr.addNewHMerge();
+            continueHMerge.setVal(STMerge.CONTINUE);
+            cleanCellContent(cell);
         }
     }
-
 
     public static void unmergeCells(XWPFTableRow row, int startCellIndex, boolean isAddSpan) {
         if (row == null) {
             return;
+        }
+        if (startCellIndex < 0 || startCellIndex >= row.getTableCells().size()) {
+            throw new IndexOutOfBoundsException("Invalid startCellIndex: " + startCellIndex);
         }
         XWPFTableCell cell = row.getCell(startCellIndex);
         if (cell == null) {
@@ -492,22 +551,24 @@ public class WordTableUtils {
         if (tcPr.isSetHMerge()) {
             tcPr.unsetHMerge();
         }
-        if (tcPr.isSetGridSpan()) {
-            int gridSpanValue = tcPr.getGridSpan().getVal().intValue();
-            if (gridSpanValue > 1) {
-                tcPr.unsetGridSpan();
-                if (isAddSpan) {
-                    for (int i = 1; i < gridSpanValue; i++) {
-                        addCellAfter(row, startCellIndex);
-                    }
-                }
-            }
-        }
-
         if (tcPr.isSetVMerge()) {
             CTVMerge vMerge = tcPr.getVMerge();
             if (vMerge != null) {
                 tcPr.unsetVMerge();
+            }
+        }
+        if (tcPr.isSetGridSpan()) {
+            CTDecimalNumber gridSpan = tcPr.getGridSpan();
+            if (gridSpan != null && gridSpan.getVal() != null) {
+                int gridSpanValue = gridSpan.getVal().intValue();
+                if (gridSpanValue > 1) {
+                    tcPr.unsetGridSpan();
+                    if (isAddSpan) {
+                        for (int i = 1; i < gridSpanValue; i++) {
+                            addCellAfter(row, startCellIndex);
+                        }
+                    }
+                }
             }
         }
     }
@@ -541,7 +602,7 @@ public class WordTableUtils {
      * @param toRow   to column index
      */
     public static void mergeCellsVertically(XWPFTable table, int col, int fromRow, int toRow) {
-        if (table == null) {
+        if (table == null || fromRow < 0 || toRow >= table.getRows().size() || col < 0) {
             return;
         }
         for (int rowIndex = fromRow; rowIndex <= toRow; rowIndex++) {
@@ -561,8 +622,10 @@ public class WordTableUtils {
     }
 
     /**
-     * Merge multiple rows. Merge each row into a column, and then merge multiple rows. Finally, retain the original
-     * text content of the first row and first column
+     * <p>Merge multiple rows. Merge each row into a column, and then merge multiple rows. Finally, retain the original
+     * text content of the first row and first column </p>
+     * <p>This merge does not actually merge the parallel numbers into one row and one column,
+     * but is displayed as one row</p>
      *
      * @param table   {@link XWPFTable table}
      * @param fromRow from row index

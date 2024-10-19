@@ -131,6 +131,4 @@ public class HackLoopTableRenderPolicyTest {
         template.writeToFile("target/out_insert_fill.docx");
     }
 
-
-
 }

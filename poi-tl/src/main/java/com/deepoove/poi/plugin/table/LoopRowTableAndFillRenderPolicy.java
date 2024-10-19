@@ -126,7 +126,6 @@ public class LoopRowTableAndFillRenderPolicy implements RenderPolicy {
                 }
             }
 
-            int allRowNumber = table.getRows().size();
             // Default template to fill a full page of the table
             int pageLine = oldRowNumber;
             // Fill to reduce the number of rows
@@ -173,11 +172,11 @@ public class LoopRowTableAndFillRenderPolicy implements RenderPolicy {
                 }
                 // Fill blank lines with a reverse slash
                 if (mode != 1) {
-                    // WordTableUtils.mergeMutipleLine(table, templateRowIndex, templateRowIndex + insertLine);
-                    // // Set diagonal border
-                    // XWPFTableCell cellRow00 = table.getRow(templateRowIndex).getCell(0);
-                    // WordTableUtils.setDiagonalBorder(cellRow00);
-                    // WordTableUtils.setCellWidth(cellRow00, table.getWidth());
+                     WordTableUtils.mergeMutipleLine(table, templateRowIndex, templateRowIndex + insertLine);
+                     // Set diagonal border
+                     XWPFTableCell cellRow00 = table.getRow(templateRowIndex).getCell(0);
+                     WordTableUtils.setDiagonalBorder(cellRow00);
+                     WordTableUtils.setCellWidth(cellRow00, table.getWidth());
                 }
             } else {
                 table.removeRow(templateRowIndex);

@@ -6,10 +6,14 @@ import org.apache.poi.xwpf.usermodel.XWPFTable;
 import org.apache.poi.xwpf.usermodel.XWPFTableCell;
 import org.apache.poi.xwpf.usermodel.XWPFTableRow;
 import org.junit.jupiter.api.Test;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTDecimalNumber;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTc;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTcPr;
 
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.math.BigInteger;
 
 class WordTableUtilsTest {
 
@@ -63,19 +67,17 @@ class WordTableUtilsTest {
     }
 
     @Test
-    void test() throws Exception {
+    void testMergeMutipleLineIncludeVMerge() throws Exception {
         // 创建一个新的 Word 文档
         String file = "target/out_insert_fill.docx";
         FileInputStream fileInputStream = new FileInputStream(file);
         XWPFDocument document = new XWPFDocument(fileInputStream);
         XWPFTable table = document.getTables().get(0);
-        // XWPFTable table = getXwpfTable(document);
 
-        // 拆分第一行的单元格
-        WordTableUtils.unmergeCells(table.getRow(0), 1, true);
-        WordTableUtils.unmergeCells(table.getRow(1), 3, true);
-        out_file = "target/out_unmerged_table.docx";
-
+        WordTableUtils.mergeMutipleLine(table, 3,6);
+        XWPFTableCell cellRow00 = table.getRow(3).getCell(0);
+        WordTableUtils.setCellWidth(cellRow00, table.getWidth());
+        out_file = "target/out_merged_table.docx";
         // 保存文档
         try (FileOutputStream out = new FileOutputStream(out_file)) {
             document.write(out);

@@ -74,7 +74,7 @@ public class RemoveTableRowRenderPolicy implements RenderPolicy {
             Integer vMerge = WordTableUtils.findVMerge(templateCell);
             if (vMerge != null && vMerge == 2) {
                 // 获取跨行数
-                int mergedRows = WordTableUtils.findMergedRows(table, rowIndex, i);
+                int mergedRows = WordTableUtils.findVerticalMergedRows(table, rowIndex, i);
                 WordTableUtils.copyCellToNextRow(table, rowIndex, i);
                 if (mergedRows == 2) {
                     // 把跨列的标记取消掉
