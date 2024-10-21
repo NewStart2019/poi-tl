@@ -3,10 +3,7 @@ package com.deepoove.poi.tl.plugin;
 import com.deepoove.poi.XWPFTemplate;
 import com.deepoove.poi.config.Configure;
 import com.deepoove.poi.data.Pictures;
-import com.deepoove.poi.plugin.table.LoopExistedAndFillRowTableRenderPolicy;
-import com.deepoove.poi.plugin.table.LoopExistedRowTableRenderPolicy;
-import com.deepoove.poi.plugin.table.LoopRowTableAndFillRenderPolicy;
-import com.deepoove.poi.plugin.table.LoopRowTableRenderPolicy;
+import com.deepoove.poi.plugin.table.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -67,14 +64,14 @@ public class HackLoopTableRenderPolicyTest {
         template.writeToFile("target/out_table_render_row_span.docx");
     }
 
-    public Map<String, Object> init2() {
+    public Map<String, Object> init2(int number) {
         Map<String, Object> test = new HashMap<>();
         test.put("companyName", "测试公司");
         List<Map<String, Object>> data = new ArrayList<>();
         test.put("test", data);
         test.put("testnumber", 29);
         test.put("testreduce", 0);
-        for (int i = 1; i <= 65; i++) {
+        for (int i = 1; i <= number; i++) {
             Map<String, Object> e1 = new HashMap<>();
             data.add(e1);
             e1.put("xh", i);
@@ -93,7 +90,7 @@ public class HackLoopTableRenderPolicyTest {
         LoopExistedRowTableRenderPolicy hackLoopTableRenderPolicy = new LoopExistedRowTableRenderPolicy(false, true);
         resource = "D:\\DingTalkAppData\\DingTalk\\download\\路基路面几何尺寸（宽度）试验检测报告.docx";
         resource = "src/test/resources/template/render_existed_fill.docx";
-        Map<String, Object> stringObjectMap = init2();
+        Map<String, Object> stringObjectMap = init2(65);
         Configure config = Configure.builder()
             .bind("test", hackLoopTableRenderPolicy)
             .build();
@@ -105,7 +102,7 @@ public class HackLoopTableRenderPolicyTest {
     public void testLoopExistedAndFillBlanRow() throws Exception {
         LoopExistedAndFillRowTableRenderPolicy hackLoopTableRenderPolicy2 = new LoopExistedAndFillRowTableRenderPolicy(false, true);
         resource = "src/test/resources/template/render_existed_fill.docx";
-        Map<String, Object> stringObjectMap = init2();
+        Map<String, Object> stringObjectMap = init2(65);
         Configure config = Configure.builder()
             .bind("test", hackLoopTableRenderPolicy2)
             .build();
@@ -117,7 +114,7 @@ public class HackLoopTableRenderPolicyTest {
     public void testLoopFillRow() throws Exception {
         LoopRowTableAndFillRenderPolicy hackLoopTableRenderPolicy2 = new LoopRowTableAndFillRenderPolicy(false, true);
         resource = "src/test/resources/template/render_insert_fill.docx";
-        Map<String, Object> stringObjectMap = init2();
+        Map<String, Object> stringObjectMap = init2(65);
         stringObjectMap.put("testnumber", 29);
         stringObjectMap.put("testreduce", 0);
         stringObjectMap.put("testmode", 2);
@@ -129,6 +126,22 @@ public class HackLoopTableRenderPolicyTest {
             .build();
         XWPFTemplate template = XWPFTemplate.compile(resource, config).render(stringObjectMap);
         template.writeToFile("target/out_insert_fill.docx");
+    }
+
+    @Test
+    public void testLoopTableRow() throws Exception {
+        LoopFullTableInsertFillRenderPolicy hackLoopTableRenderPolicy2 = new LoopFullTableInsertFillRenderPolicy(false);
+        resource = "src/test/resources/template/render_insert_fill.docx";
+        Map<String, Object> stringObjectMap = init2(24);
+        stringObjectMap.put("testnumber", 24);
+        stringObjectMap.put("testmode", 1);
+        // stringObjectMap.put("testremove_next_line", 4);
+        stringObjectMap.put("blank_desc", "以下空白");
+        Configure config = Configure.builder()
+            .bind("test", hackLoopTableRenderPolicy2)
+            .build();
+        XWPFTemplate template = XWPFTemplate.compile(resource, config).render(stringObjectMap);
+        template.writeToFile("target/out_loop_table.docx");
     }
 
 }

@@ -15,25 +15,6 @@
  */
 package com.deepoove.poi;
 
-import java.io.Closeable;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-
-import com.deepoove.poi.render.compute.EnvModel;
-import org.apache.poi.openxml4j.exceptions.OLE2NotOfficeXmlFileException;
-import org.apache.poi.xwpf.usermodel.XWPFDocument;
-import org.apache.poi.xwpf.usermodel.XWPFRun;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.deepoove.poi.config.Configure;
 import com.deepoove.poi.data.DocumentRenderData;
 import com.deepoove.poi.data.style.Style;
@@ -41,12 +22,25 @@ import com.deepoove.poi.exception.ResolverException;
 import com.deepoove.poi.policy.DocumentRenderPolicy;
 import com.deepoove.poi.render.DefaultRender;
 import com.deepoove.poi.render.Render;
+import com.deepoove.poi.render.compute.EnvModel;
+import com.deepoove.poi.render.processor.DocumentProcessor;
+import com.deepoove.poi.render.processor.Visitor;
 import com.deepoove.poi.resolver.Resolver;
 import com.deepoove.poi.resolver.TemplateResolver;
 import com.deepoove.poi.template.MetaTemplate;
 import com.deepoove.poi.util.PoitlIOUtils;
 import com.deepoove.poi.util.StyleUtils;
 import com.deepoove.poi.xwpf.NiceXWPFDocument;
+import org.apache.poi.openxml4j.exceptions.OLE2NotOfficeXmlFileException;
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
+import org.apache.poi.xwpf.usermodel.XWPFRun;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 /**
  * The facade of word(docx) template
@@ -68,6 +62,7 @@ public class XWPFTemplate implements Closeable {
     private Render renderer;
     private List<MetaTemplate> eleTemplates;
     private EnvModel envModel;
+    private boolean isRendered = false;
 
     private XWPFTemplate() {
     }
@@ -276,6 +271,24 @@ public class XWPFTemplate implements Closeable {
     }
 
     /**
+     * reload the template itself
+     * <p>Tips:</p>
+     * <p>Re rendering can only be called after rendering the file</p>
+     */
+    public void reloadSelf() {
+        if (this.isRendered) {
+            this.eleTemplates = this.resolver.resolveDocument(doc);
+            Visitor processor = this.renderer.getProcessor();
+            if (processor instanceof DocumentProcessor) {
+                ((DocumentProcessor) processor).process(this.eleTemplates);
+            }
+        } else {
+            logger.warn("You must render the template before calling for re rendering, and cannot directly call for re rendering");
+        }
+
+    }
+
+    /**
      * close the document
      *
      * @throws IOException
@@ -329,7 +342,17 @@ public class XWPFTemplate implements Closeable {
         return envModel;
     }
 
-    public void setEnvModel(EnvModel envModel) {
+    public XWPFTemplate setEnvModel(EnvModel envModel) {
         this.envModel = envModel;
+        return this;
+    }
+
+    public boolean isRendered() {
+        return isRendered;
+    }
+
+    public XWPFTemplate setRendered(boolean rendered) {
+        isRendered = rendered;
+        return this;
     }
 }

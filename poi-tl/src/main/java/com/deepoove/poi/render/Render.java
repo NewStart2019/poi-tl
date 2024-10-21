@@ -16,10 +16,11 @@
 package com.deepoove.poi.render;
 
 import com.deepoove.poi.XWPFTemplate;
+import com.deepoove.poi.render.processor.Visitor;
 
 /**
  * The interface of render
- * 
+ *
  * @author Sayi
  *
  */
@@ -27,4 +28,5 @@ public interface Render {
 
     void render(XWPFTemplate template, Object root);
 
+    Visitor getProcessor();
 }

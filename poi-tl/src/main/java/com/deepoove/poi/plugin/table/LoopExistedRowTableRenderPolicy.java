@@ -146,7 +146,7 @@ public class LoopExistedRowTableRenderPolicy implements RenderPolicy {
                         WordTableUtils.copyLineContent(row, templateRow, templateRowIndex);
                         table.removeRow(templateRowIndex + 1);
                     } else {
-                        table.removeRow(templateRowIndex + 1);
+                        table.removeRow(templateRowIndex);
                         table.removeRow(templateRowIndex);
                     }
                 } else {

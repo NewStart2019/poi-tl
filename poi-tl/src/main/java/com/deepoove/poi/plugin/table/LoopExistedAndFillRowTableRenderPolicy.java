@@ -140,7 +140,7 @@ public class LoopExistedAndFillRowTableRenderPolicy implements RenderPolicy {
                     } else if (remain == 1) {
                         table.removeRow(templateRowIndex + 1);
                     } else if (remain == 2) {
-                        table.removeRow(templateRowIndex + 1);
+                        table.removeRow(templateRowIndex);
                         table.removeRow(templateRowIndex);
                     } else {
                         table.removeRow(templateRowIndex + 1);

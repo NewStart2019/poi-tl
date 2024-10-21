@@ -1,5 +1,6 @@
 package com.deepoove.poi.util;
 
+import com.deepoove.poi.xwpf.NiceXWPFDocument;
 import com.deepoove.poi.xwpf.Page;
 import org.apache.poi.xwpf.usermodel.*;
 import org.apache.xmlbeans.XmlCursor;
@@ -16,26 +17,44 @@ import java.util.List;
 @SuppressWarnings("unused")
 public class WordTableUtils {
 
+    /**
+     * Copy a new table from the original document and place it after the original table.
+     *
+     * @param doc         {@link XWPFDocument doc}
+     * @param sourceTable {@link XWPFTable sourceTable}
+     * @return {@link XWPFTable}
+     */
     public static XWPFTable copyTable(XWPFDocument doc, XWPFTable sourceTable) {
         // doc.getPosOfTable：What is obtained is the position of the table in the body
         // int tableIndex = doc.getPosOfTable(sourceTable);
+        if (doc == null || sourceTable == null) {
+            throw new RuntimeException("The parameters passed in cannot be empty!");
+        }
         int tableIndex = doc.getTables().indexOf(sourceTable);
         CTTbl newTbl = doc.getDocument().getBody().insertNewTbl(tableIndex + 1);
         newTbl.set(sourceTable.getCTTbl());
-        return new XWPFTable(newTbl, doc);
+        XWPFTable table = new XWPFTable(newTbl, doc);
+        doc.insertTable(tableIndex + 1, table);
+        return table;
     }
 
     /**
      * Copy the content of the current line to the next line. If the next line is a newly added line,
      * then directly copy the entire XML of the current line to the next line. Otherwise, just copy
      * the content to the next line.
+     * <p><b>Tips</b> </p>
+     * <p>Cross table copying of the same file has not been tested, please use with caution</p>
+     * <p>Cross table replication of different files has not been tested, please use with caution</p>
      *
      * @param currentLine      current line
      * @param nextLine         next line
      * @param templateRowIndex next line row index
      */
     public static XWPFTableRow copyLineContent(XWPFTableRow currentLine, XWPFTableRow nextLine, int templateRowIndex) {
-        XWPFTable table = currentLine.getTable();
+        if (currentLine == null || nextLine == null) {
+            return nextLine;
+        }
+        XWPFTable table = nextLine.getTable();
         if (org.apache.commons.collections4.CollectionUtils.isEmpty(nextLine.getTableCells())) {
             // 复制行
             XmlCursor sourceCursor = currentLine.getCtRow().newCursor();
@@ -92,11 +111,11 @@ public class WordTableUtils {
         if (isIncludeStyle) {
             CTTcPr sourceTcPr = source.getCTTc().getTcPr();
             if (sourceTcPr != null) {
-                target.getCTTc().setTcPr(source.getCTTc().getTcPr());
+                target.getCTTc().setTcPr(sourceTcPr);
             }
         }
         if (firstParagraph != null) {
-            WordTableUtils.removeParagraph(target, firstParagraph);
+            WordTableUtils.removeParagraphOfCell(target, firstParagraph);
         }
     }
 
@@ -108,7 +127,7 @@ public class WordTableUtils {
      * @param target target
      */
     public static void copyVerticallyCellContent(XWPFTableCell source, XWPFTableCell target) {
-        removeAllParagraphs(target);
+        removeAllParagraphsOfCell(target);
         for (XWPFParagraph paragraph : source.getParagraphs()) {
             XWPFParagraph newParagraph = target.addParagraph();
             copyParagraphContent(paragraph, newParagraph);
@@ -175,10 +194,28 @@ public class WordTableUtils {
     }
 
     public static void cleanCellContent(XWPFTableCell cell) {
-        removeAllParagraphs(cell);
+        removeAllParagraphsOfCell(cell);
     }
 
-    public static void removeAllParagraphs(XWPFTableCell cell) {
+    public static void removeEmptyParagraph(XWPFParagraph paragraph) {
+        if (paragraph == null) {
+            return;
+        }
+        if (!paragraph.getRuns().isEmpty()) {
+            return;
+        }
+        IBody body = paragraph.getBody();
+        if (body instanceof XWPFDocument) {
+            XWPFDocument document = (XWPFDocument) body;
+            int posOfTable = document.getPosOfParagraph(paragraph);
+            document.removeBodyElement(posOfTable);
+        } else if (body instanceof XWPFTableCell) {
+            XWPFTableCell cell = (XWPFTableCell) body;
+            cell.removeParagraph(cell.getParagraphs().indexOf(paragraph));
+        }
+    }
+
+    public static void removeAllParagraphsOfCell(XWPFTableCell cell) {
         if (cell == null) {
             return;
         }
@@ -187,7 +224,7 @@ public class WordTableUtils {
         }
     }
 
-    public static void removeParagraph(XWPFTableCell cell, XWPFParagraph paragraph) {
+    public static void removeParagraphOfCell(XWPFTableCell cell, XWPFParagraph paragraph) {
         if (!CollectionUtils.isEmpty(cell.getParagraphs())) {
             cell.removeParagraph(cell.getParagraphs().indexOf(paragraph));
         }
@@ -459,6 +496,12 @@ public class WordTableUtils {
         }
     }
 
+    public static void setPageBreak(XWPFDocument document) {
+        XWPFParagraph pageBreakPara = document.createParagraph();
+        XWPFRun pageBreakRun = pageBreakPara.createRun();
+        pageBreakRun.addBreak(BreakType.PAGE);
+    }
+
     public static void mergeCellsHorizontalFullLine(XWPFTableRow tableRow) {
         if (tableRow == null) {
             return;
@@ -533,7 +576,7 @@ public class WordTableUtils {
             CTTc ctTc = cell.getCTTc();
             CTTcPr tcPr = ctTc.isSetTcPr() ? ctTc.getTcPr() : ctTc.addNewTcPr();
             if (tcPr.isSetVMerge()) {
-                startTcPr.unsetVMerge();
+                tcPr.unsetVMerge();
             }
             CTHMerge continueHMerge = tcPr.isSetHMerge() ? tcPr.getHMerge() : tcPr.addNewHMerge();
             continueHMerge.setVal(STMerge.CONTINUE);

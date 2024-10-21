@@ -85,7 +85,7 @@ class WordTableUtilsTest {
     @Test
     void testCopyTable() throws Exception {
         // 创建一个新的 Word 文档
-        String file = "src/test/resources/template/render_document.docx";
+        String file = "src/test/resources/template/render_insert_fill.docx";
         FileInputStream fileInputStream = new FileInputStream(file);
         XWPFDocument document = new XWPFDocument(fileInputStream);
         XWPFTable table = document.getTables().get(0);

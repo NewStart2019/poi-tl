@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
+import com.deepoove.poi.render.processor.Visitor;
 import org.apache.commons.lang3.time.StopWatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,6 +47,8 @@ public class DefaultRender implements Render {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DefaultRender.class);
 
+    private DocumentProcessor documentProcessor;
+
     public DefaultRender() {
     }
 
@@ -61,6 +64,7 @@ public class DefaultRender implements Render {
         try {
 
             watch.start();
+            template.setRendered(true);
             renderTemplate(template, renderDataCompute);
             renderInclude(template, renderDataCompute);
 
@@ -73,13 +77,17 @@ public class DefaultRender implements Render {
         LOGGER.info("Successfully Render template in {} millis", TimeUnit.NANOSECONDS.toMillis(watch.getNanoTime()));
     }
 
+    public Visitor getProcessor() {
+        return this.documentProcessor;
+    }
+
     private void renderTemplate(XWPFTemplate template, RenderDataCompute renderDataCompute) {
         // log
         new LogProcessor().process(template.getElementTemplates());
 
         // render
-        DocumentProcessor documentRender = new DocumentProcessor(template, template.getResolver(), renderDataCompute);
-        documentRender.process(template.getElementTemplates());
+        this.documentProcessor = new DocumentProcessor(template, template.getResolver(), renderDataCompute);
+        this.documentProcessor.process(template.getElementTemplates());
     }
 
     private void renderInclude(XWPFTemplate template, RenderDataCompute renderDataCompute) throws IOException {
