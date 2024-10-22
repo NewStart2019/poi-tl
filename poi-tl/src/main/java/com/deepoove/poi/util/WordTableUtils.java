@@ -99,7 +99,6 @@ public class WordTableUtils {
             XWPFParagraph newParagraph = target.addParagraph();
             WordTableUtils.copyParagraphContent(paragraph, newParagraph);
             if (targetCtPPr != null) {
-                // 复制段落样式
                 newParagraph.getCTP().setPPr(targetCtPPr);
                 newParagraph.setStyle(firstParagraph.getStyle());
             }
