@@ -159,8 +159,8 @@ public class LoopRowTableAllRenderPolicyTest {
         test.put("companyName", "测试公司");
         List<Map<String, Object>> data = new ArrayList<>();
         test.put("test", data);
-        test.put("testnumber", 29);
-        test.put("testreduce", 0);
+        test.put("test_number", 29);
+        test.put("test_reduce", 0);
 
         for(int f = 0 ; f< first; f++) {
             Map<String, Object> fMap = new HashMap<>();
@@ -187,7 +187,7 @@ public class LoopRowTableAllRenderPolicyTest {
     @Test
     public void testLoopSubTableRow() throws Exception {
         resource = "src/test/resources/template/render_insert_fill.docx";
-        Map<String, Object> stringObjectMap = init3(1, 50);
+        Map<String, Object> stringObjectMap = init3(3, 50);
         stringObjectMap.put("test_number", 24);
         stringObjectMap.put("test_mode", 2);
         stringObjectMap.put("test_rendermode", 5);

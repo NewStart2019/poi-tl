@@ -116,7 +116,7 @@ public class LoopFullTableInsertFillRenderPolicy implements RenderPolicy {
                     }
                     table = nextTable;
                     if (currentTableIndex < tableCount) {
-                        WordTableUtils.setPageBreak(xwpfDocument);
+                        WordTableUtils.setPageBreak(xwpfDocument, table);
                         nextTable = WordTableUtils.copyTable(template.getXWPFDocument(), table);
                         currentTableIndex++;
                     }

@@ -103,16 +103,17 @@ public class LoopIncludeSubTableRenderPolicy implements RenderPolicy {
                 Object root = iterator.next();
                 hasNext = iterator.hasNext();
 
-                if (root instanceof Map){
+                if (root instanceof Map) {
                     Map<?, ?> temp = (Map<?, ?>) root;
-                    if(temp.containsKey("subs")){
+                    ((Map<?, ?>) root).forEach((k, v) -> {
+                        if (k instanceof String) {
+                            globalEnv.put((String) k, v);
+                        }
+                    });
+                    if (temp.containsKey("subs")) {
                         Object o = temp.get("subs");
-                        if (o instanceof Collection){
-                            int dataCount = 0;
-                            for (Object ignore : (Iterable<?>) o) {
-                                dataCount++;
-                            }
-
+                        if (o instanceof Collection) {
+                            int dataCount = ((Collection<?>) o).size();
                             int index = 0;
                             XWPFTable currentTable = null;
                             int tempTemplateRowIndex = 0;
@@ -123,7 +124,7 @@ public class LoopIncludeSubTableRenderPolicy implements RenderPolicy {
 
                             Iterator<?> subIterator = ((Collection<?>) o).iterator();
                             boolean hasSubNext = subIterator.hasNext();
-                            while (hasSubNext){
+                            while (hasSubNext) {
                                 Object sub = subIterator.next();
                                 hasSubNext = subIterator.hasNext();
 
@@ -135,17 +136,17 @@ public class LoopIncludeSubTableRenderPolicy implements RenderPolicy {
                                             currentTable.removeRow(tempTemplateRowIndex);
                                         }
                                     }
-                                    if (currentTableIndex < tableCount) {
-                                        if(index != 0) {
+                                    if (currentTableIndex <= tableCount) {
+                                        if (index != 0) {
                                             for (int i = tempTemplateRowIndex; i < currentTable.getRows().size(); i++) {
-                                                List<XWPFTableCell> cells = currentTable.getRow(templateRowIndex).getTableCells();
+                                                List<XWPFTableCell> cells = currentTable.getRow(i).getTableCells();
                                                 RenderDataCompute finalDataCompute = dataCompute;
                                                 cells.forEach(cell -> {
                                                     List<MetaTemplate> templates = resolver.resolveBodyElements(cell.getBodyElements());
                                                     new DocumentProcessor(template, resolver, finalDataCompute).process(templates);
                                                 });
                                             }
-                                            WordTableUtils.setPageBreak(xwpfDocument);
+                                            // WordTableUtils.setPageBreak(xwpfDocument);
                                         }
                                         currentTable = WordTableUtils.copyTable(xwpfDocument, table, true);
                                         currentTableIndex++;
@@ -208,8 +209,8 @@ public class LoopIncludeSubTableRenderPolicy implements RenderPolicy {
                                 WordTableUtils.setCellWidth(cellRow00, currentTable.getWidth());
                             }
 
-                            for (int i = tempTemplateRowIndex; i < currentTable.getRows().size(); i++) {
-                                List<XWPFTableCell> cells = currentTable.getRow(templateRowIndex).getTableCells();
+                            for (int i = tempTemplateRowIndex + insertLine; i < currentTable.getRows().size(); i++) {
+                                List<XWPFTableCell> cells = currentTable.getRow(i).getTableCells();
                                 RenderDataCompute finalDataCompute = dataCompute;
                                 cells.forEach(cell -> {
                                     List<MetaTemplate> templates = resolver.resolveBodyElements(cell.getBodyElements());
@@ -221,6 +222,7 @@ public class LoopIncludeSubTableRenderPolicy implements RenderPolicy {
                 }
             }
             WordTableUtils.removeTable(xwpfDocument, table);
+            template.reloadSelf();
         } catch (Exception e) {
             throw new RenderException("HackLoopTable for " + eleTemplate + " error: " + e.getMessage(), e);
         }
