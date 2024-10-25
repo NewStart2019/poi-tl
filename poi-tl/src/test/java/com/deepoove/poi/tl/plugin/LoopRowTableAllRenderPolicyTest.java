@@ -110,7 +110,7 @@ public class LoopRowTableAllRenderPolicyTest {
         LoopExistedAndFillRowTableRenderPolicy hackLoopTableRenderPolicy2 = new LoopExistedAndFillRowTableRenderPolicy(false, true);
         resource = "src/test/resources/template/render_existed_fill.docx";
         Map<String, Object> stringObjectMap = init2(65);
-        stringObjectMap.put("testrendermode", 2);
+        stringObjectMap.put("test_rendermode", 2);
         Configure config = Configure.builder()
             .bind("test", hackLoopTableRenderPolicy2)
             .build();
@@ -142,9 +142,9 @@ public class LoopRowTableAllRenderPolicyTest {
         LoopFullTableInsertFillRenderPolicy hackLoopTableRenderPolicy2 = new LoopFullTableInsertFillRenderPolicy(false);
         resource = "src/test/resources/template/render_insert_fill.docx";
         Map<String, Object> stringObjectMap = init2(50);
-        stringObjectMap.put("testnumber", 24);
-        stringObjectMap.put("testmode", 2);
-        stringObjectMap.put("testrendermode", 4);
+        stringObjectMap.put("test_number", 24);
+        stringObjectMap.put("test_mode", 2);
+        stringObjectMap.put("test_rendermode", 4);
         // stringObjectMap.put("testremove_next_line", 4);
         stringObjectMap.put("blank_desc", "以下空白");
         Configure config = Configure.builder()
@@ -152,6 +152,52 @@ public class LoopRowTableAllRenderPolicyTest {
             .build();
         XWPFTemplate template = XWPFTemplate.compile(resource, config).render(stringObjectMap);
         template.writeToFile("target/out_loop_table.docx");
+    }
+
+    public Map<String, Object> init3(int first, int second) {
+        Map<String, Object> test = new HashMap<>();
+        test.put("companyName", "测试公司");
+        List<Map<String, Object>> data = new ArrayList<>();
+        test.put("test", data);
+        test.put("testnumber", 29);
+        test.put("testreduce", 0);
+
+        for(int f = 0 ; f< first; f++) {
+            Map<String, Object> fMap = new HashMap<>();
+            data.add(fMap);
+            fMap.put("conclusion", "你自己弄吧" + f);
+            List<Map<String, Object>> subs = new ArrayList<>();
+            fMap.put("subs", subs);
+            for (int i = 1; i <= second; i++) {
+                Map<String, Object> e1 = new HashMap<>();
+                subs.add(e1);
+                e1.put("xh", i);
+                e1.put("qywz", "测试位置" + i);
+                e1.put("rq", "技术指标" + i);
+                e1.put("jcjg", "检测结果" + i);
+                e1.put("jgpd", "结果判定" + i);
+                e1.put("a", 10);
+                e1.put("b", 20);
+            }
+        }
+        return test;
+    }
+
+
+    @Test
+    public void testLoopSubTableRow() throws Exception {
+        resource = "src/test/resources/template/render_insert_fill.docx";
+        Map<String, Object> stringObjectMap = init3(1, 50);
+        stringObjectMap.put("test_number", 24);
+        stringObjectMap.put("test_mode", 2);
+        stringObjectMap.put("test_rendermode", 5);
+        // stringObjectMap.put("testremove_next_line", 4);
+        stringObjectMap.put("blank_desc", "以下空白");
+        Configure config = Configure.builder()
+            .bind("test", policy)
+            .build();
+        XWPFTemplate template = XWPFTemplate.compile(resource, config).render(stringObjectMap);
+        template.writeToFile("target/out_loop_sub_table.docx");
     }
 
 }

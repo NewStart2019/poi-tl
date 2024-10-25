@@ -47,7 +47,7 @@ public class LoopRowTableAllRenderPolicy implements RenderPolicy {
         int rendermode = 0;
         try {
             Map<String, Object> globalEnv = template.getEnvModel().getEnv();
-            Object r = globalEnv.get(eleTemplate.getTagName() + "rendermode");
+            Object r = globalEnv.get(eleTemplate.getTagName() + "_rendermode");
             rendermode = r != null ? Integer.parseInt(r.toString()) : rendermode;
         } catch (NumberFormatException ignore) {
         }
@@ -63,6 +63,9 @@ public class LoopRowTableAllRenderPolicy implements RenderPolicy {
                 break;
             case 4:
                 new LoopFullTableInsertFillRenderPolicy(this.prefix, this.suffix, this.onSameLine).render(eleTemplate, data, template);
+                break;
+            case 5:
+                new LoopIncludeSubTableRenderPolicy(this.prefix, this.suffix, this.onSameLine).render(eleTemplate, data, template);
                 break;
             default:
                 new LoopRowTableRenderPolicy(this.prefix, this.suffix, this.onSameLine).render(eleTemplate, data, template);

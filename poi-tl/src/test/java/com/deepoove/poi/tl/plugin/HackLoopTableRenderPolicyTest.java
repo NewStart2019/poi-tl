@@ -69,8 +69,8 @@ public class HackLoopTableRenderPolicyTest {
         test.put("companyName", "测试公司");
         List<Map<String, Object>> data = new ArrayList<>();
         test.put("test", data);
-        test.put("testnumber", 29);
-        test.put("testreduce", 0);
+        test.put("test_number", 29);
+        test.put("test_reduce", 0);
         for (int i = 1; i <= number; i++) {
             Map<String, Object> e1 = new HashMap<>();
             data.add(e1);
@@ -115,11 +115,11 @@ public class HackLoopTableRenderPolicyTest {
         LoopRowTableAndFillRenderPolicy hackLoopTableRenderPolicy2 = new LoopRowTableAndFillRenderPolicy(false, true);
         resource = "src/test/resources/template/render_insert_fill.docx";
         Map<String, Object> stringObjectMap = init2(65);
-        stringObjectMap.put("testnumber", 29);
-        stringObjectMap.put("testreduce", 0);
-        stringObjectMap.put("testmode", 2);
-        stringObjectMap.put("testheader", 1);
-        stringObjectMap.put("testfooter", 4);
+        stringObjectMap.put("test_number", 29);
+        stringObjectMap.put("test_reduce", 0);
+        stringObjectMap.put("test_mode", 2);
+        stringObjectMap.put("test_header", 1);
+        stringObjectMap.put("test_footer", 4);
         stringObjectMap.put("blank_desc", "以下空白");
         Configure config = Configure.builder()
             .bind("test", hackLoopTableRenderPolicy2)
@@ -133,8 +133,8 @@ public class HackLoopTableRenderPolicyTest {
         LoopFullTableInsertFillRenderPolicy hackLoopTableRenderPolicy2 = new LoopFullTableInsertFillRenderPolicy(false);
         resource = "src/test/resources/template/render_insert_fill.docx";
         Map<String, Object> stringObjectMap = init2(24);
-        stringObjectMap.put("testnumber", 24);
-        stringObjectMap.put("testmode", 1);
+        stringObjectMap.put("test_number", 24);
+        stringObjectMap.put("test_mode", 1);
         // stringObjectMap.put("testremove_next_line", 4);
         stringObjectMap.put("blank_desc", "以下空白");
         Configure config = Configure.builder()

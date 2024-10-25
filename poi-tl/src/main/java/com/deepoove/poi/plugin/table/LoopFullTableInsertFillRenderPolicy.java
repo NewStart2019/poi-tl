@@ -74,7 +74,7 @@ public class LoopFullTableInsertFillRenderPolicy implements RenderPolicy {
             int pageLine = 0;
             int reduce = 0;
             boolean isRemoveNextLine = false;
-            Object n = globalEnv.get(eleTemplate.getTagName() + "number");
+            Object n = globalEnv.get(eleTemplate.getTagName() + "_number");
             int mode = 1;
             try {
                 if (n == null) {
@@ -83,11 +83,11 @@ public class LoopFullTableInsertFillRenderPolicy implements RenderPolicy {
                 } else {
                     pageLine = Integer.parseInt(n.toString());
                 }
-                Object o = globalEnv.get(eleTemplate.getTagName() + "mode");
+                Object o = globalEnv.get(eleTemplate.getTagName() + "_mode");
                 mode = o != null ? Integer.parseInt(o.toString()) : mode;
-                Object r = globalEnv.get(eleTemplate.getTagName() + "reduce");
+                Object r = globalEnv.get(eleTemplate.getTagName() + "_reduce");
                 reduce = r != null ? Integer.parseInt(r.toString()) : reduce;
-                Object rnl = globalEnv.get(eleTemplate.getTagName() + "remove_next_line");
+                Object rnl = globalEnv.get(eleTemplate.getTagName() + "_remove_next_line");
                 isRemoveNextLine = rnl != null;
             } catch (NumberFormatException ignore) {
             }

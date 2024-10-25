@@ -132,18 +132,18 @@ public class LoopRowTableAndFillRenderPolicy implements RenderPolicy {
             int reduce = 0;
             int tableHeaderLine = 0;
             int tableFooterLine = 0;
-            Object n = globalEnv.get(eleTemplate.getTagName() + "number");
+            Object n = globalEnv.get(eleTemplate.getTagName() + "_number");
             boolean isSaveNextLine = true;
             int mode = 1;
             try {
                 pageLine = Integer.parseInt(n.toString());
-                Object r = globalEnv.get(eleTemplate.getTagName() + "reduce");
+                Object r = globalEnv.get(eleTemplate.getTagName() + "_reduce");
                 reduce = r != null ? Integer.parseInt(r.toString()) : reduce;
-                Object h = globalEnv.get(eleTemplate.getTagName() + "header");
+                Object h = globalEnv.get(eleTemplate.getTagName() + "_header");
                 tableHeaderLine = h != null ? Integer.parseInt(h.toString()) : tableHeaderLine;
-                Object f = globalEnv.get(eleTemplate.getTagName() + "footer");
+                Object f = globalEnv.get(eleTemplate.getTagName() + "_footer");
                 tableFooterLine = f != null ? Integer.parseInt(f.toString()) : tableFooterLine;
-                Object o = globalEnv.get(eleTemplate.getTagName() + "mode");
+                Object o = globalEnv.get(eleTemplate.getTagName() + "_mode");
                 mode = o != null ? Integer.parseInt(o.toString()) : mode;
             } catch (NumberFormatException ignore) {
             }

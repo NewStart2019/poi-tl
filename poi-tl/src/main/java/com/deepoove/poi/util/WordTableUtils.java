@@ -1,6 +1,5 @@
 package com.deepoove.poi.util;
 
-import com.deepoove.poi.xwpf.NiceXWPFDocument;
 import com.deepoove.poi.xwpf.Page;
 import org.apache.poi.xwpf.usermodel.*;
 import org.apache.xmlbeans.XmlCursor;
@@ -17,24 +16,33 @@ import java.util.List;
 @SuppressWarnings("unused")
 public class WordTableUtils {
 
+    public static XWPFTable copyTable(XWPFDocument doc, XWPFTable sourceTable) {
+        return copyTable(doc, sourceTable, false);
+    }
+
     /**
-     * Copy a new table from the original document and place it after the original table.
+     * <p>Copy a new table from the original document and place it after the original table.</p>
+     * <p>If isTail is True, the new table will be placed at the end of the document.</p>
      *
      * @param doc         {@link XWPFDocument doc}
      * @param sourceTable {@link XWPFTable sourceTable}
      * @return {@link XWPFTable}
      */
-    public static XWPFTable copyTable(XWPFDocument doc, XWPFTable sourceTable) {
-        // doc.getPosOfTable：What is obtained is the position of the table in the body
-        // int tableIndex = doc.getPosOfTable(sourceTable);
+    public static XWPFTable copyTable(XWPFDocument doc, XWPFTable sourceTable, boolean isTail) {
         if (doc == null || sourceTable == null) {
             throw new RuntimeException("The parameters passed in cannot be empty!");
         }
-        int tableIndex = doc.getTables().indexOf(sourceTable);
+        // doc.getPosOfTable：What is obtained is the position of the table in the body
+        int tableIndex = doc.getPosOfTable(sourceTable);
+        // int tableIndex = doc.getTables().indexOf(sourceTable);
         CTTbl newTbl = doc.getDocument().getBody().insertNewTbl(tableIndex + 1);
         newTbl.set(sourceTable.getCTTbl());
         XWPFTable table = new XWPFTable(newTbl, doc);
-        doc.insertTable(tableIndex + 1, table);
+        int insertPosiotion = tableIndex;
+        if (isTail){
+            insertPosiotion =doc.getPosOfTable( doc.getTables().get(doc.getTables().size() - 1));
+        }
+        doc.insertTable(insertPosiotion + 1, table);
         return table;
     }
 
@@ -194,6 +202,17 @@ public class WordTableUtils {
 
     public static void cleanCellContent(XWPFTableCell cell) {
         removeAllParagraphsOfCell(cell);
+    }
+
+    public static void removeTable(XWPFDocument document, XWPFTable table){
+        if (table == null || document == null){
+            return;
+        }
+        int posOfTable = document.getPosOfTable(table);
+        if (posOfTable < 0){
+            return;
+        }
+        document.removeBodyElement(document.getPosOfTable(table));
     }
 
     public static void removeEmptyParagraph(XWPFParagraph paragraph) {
