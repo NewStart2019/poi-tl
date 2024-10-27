@@ -35,13 +35,13 @@ public class WordTableUtils {
         // doc.getPosOfTable：What is obtained is the position of the table in the body
         // int tableIndex = doc.getPosOfTable(sourceTable);
         int tableIndex = doc.getTables().indexOf(sourceTable) + 1;
-        if (isTail){
+        if (isTail) {
             tableIndex = doc.getTables().size();
         }
         CTTbl newTbl = doc.getDocument().getBody().insertNewTbl(tableIndex);
         newTbl.set(sourceTable.getCTTbl());
         XWPFTable table = new XWPFTable(newTbl, doc);
-        doc.insertTable(tableIndex , table);
+        doc.insertTable(tableIndex, table);
         return table;
     }
 
@@ -520,22 +520,36 @@ public class WordTableUtils {
         // pageBreakRun.addBreak(BreakType.PAGE);
     }
 
-    public static void setPageBreak(XWPFDocument document, IBodyElement body){
-        if (document == null || body == null){
+    /**
+     * <p>XWPFParagraph.setPageBreak(true) sets a page break at the paragraph level. It will move the entire paragraph
+     * content to a new page</p>
+     * <p>XWPFRun.addBreak(BreakType.PAGE) inserts a page break in the text run (XWPFRun), which causes the page break
+     * to be inserted from the current text position and the subsequent content is moved to a new page</p>
+     *
+     * @param document {@link XWPFDocument document}
+     * @param body     {@link  IBodyElement body}
+     */
+    public static void setPageBreak(XWPFDocument document, IBodyElement body) {
+        if (document == null || body == null) {
             return;
         }
-        int pos = document.getBodyElements().indexOf(body);
-        if (pos < 0){
+        XmlObject xmlObject = null;
+        if (body.getElementType() == BodyElementType.PARAGRAPH) {
+            XWPFParagraph paragraph = (XWPFParagraph) body;
+            xmlObject = paragraph.getCTP();
+        } else if (body.getElementType() == BodyElementType.TABLE) {
+            XWPFTable table = (XWPFTable) body;
+            xmlObject = table.getCTTbl();
+        }
+        if (xmlObject == null) {
             return;
         }
-        // TODO 在指定位置插入新的段落
-        XWPFParagraph pageBreakPara = document.createParagraph();
+        XmlCursor xmlCursor = xmlObject.newCursor();
+        xmlCursor.toNextSibling();
+        XWPFParagraph pageBreakPara = document.insertNewParagraph(xmlCursor);
         pageBreakPara.setPageBreak(true);
-        // XWPFRun pageBreakRun = pageBreakPara.createRun();
-        // pageBreakRun.addBreak(BreakType.PAGE);
-        XmlObject xmlObject = (XmlObject) body;
-        XmlCursor bodyCursor = xmlObject.newCursor();
-        document.insertNewParagraph(bodyCursor);
+//        XWPFRun pageBreakRun = pageBreakPara.createRun();
+//        pageBreakRun.addBreak(BreakType.PAGE);
     }
 
     public static void mergeCellsHorizontalFullLine(XWPFTableRow tableRow) {

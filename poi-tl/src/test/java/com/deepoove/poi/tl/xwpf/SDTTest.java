@@ -1,11 +1,21 @@
 package com.deepoove.poi.tl.xwpf;
 
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.deepoove.poi.util.WordTableUtils;
 import org.apache.poi.ooxml.POIXMLProperties.CoreProperties;
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
+import org.apache.poi.xwpf.usermodel.XWPFParagraph;
+import org.apache.poi.xwpf.usermodel.XWPFRun;
+import org.apache.poi.xwpf.usermodel.XWPFSDT;
+import org.apache.xmlbeans.XmlCursor;
+import org.apache.xmlbeans.XmlObject;
 import org.junit.jupiter.api.Test;
 
 import com.deepoove.poi.XWPFTemplate;
@@ -47,8 +57,8 @@ public class SDTTest {
         };
 
         XWPFTemplate.compile("src/test/resources/template/template_sdt.docx")
-                .render(data)
-                .writeToFile("target/out_sdt_para.docx");
+            .render(data)
+            .writeToFile("target/out_sdt_para.docx");
 
     }
 
@@ -69,8 +79,8 @@ public class SDTTest {
         };
 
         XWPFTemplate.compile("src/test/resources/template/sdt.docx")
-                .render(data)
-                .writeToFile("target/out_sdt_block.docx");
+            .render(data)
+            .writeToFile("target/out_sdt_block.docx");
 
     }
 
@@ -106,6 +116,22 @@ public class SDTTest {
         ;
         template.writeToFile("target/out_sdt_cell.docx");
 
+    }
+
+    @Test
+    void testBreak() throws IOException {
+        try (FileInputStream fis = new FileInputStream("src/test/resources/template/insert_paragraph.docx");
+             XWPFDocument document = new XWPFDocument(fis)) {
+            WordTableUtils.setPageBreak(document,  document.getTables().get(0));
+
+            // 保存文档
+            try (FileOutputStream fos = new FileOutputStream("target/out_insert_paragraph.docx")) {
+                document.write(fos);
+            }
+            System.out.println("New paragraph inserted successfully!");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
 }
