@@ -188,7 +188,7 @@ public class LoopIncludeSubTableRenderPolicy implements RenderPolicy {
                             currentTable.removeRow(tempTemplateRowIndex);
                             int insertLine;
                             if (dataCount <= pageLine) {
-                                insertLine = pageLine - dataCount;
+                                insertLine = pageLine - dataCount - reduce;
                             } else if (dataCount % pageLine == 0) {
                                 insertLine = 0;
                             } else {
