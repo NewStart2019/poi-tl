@@ -136,7 +136,7 @@ public class LoopRowTableAndFillRenderPolicy implements RenderPolicy {
             boolean isSaveNextLine = true;
             int mode = 1;
             try {
-                pageLine = Integer.parseInt(n.toString());
+                pageLine = n == null ? pageLine : Integer.parseInt(n.toString());
                 Object r = globalEnv.get(eleTemplate.getTagName() + "_reduce");
                 reduce = r != null ? Integer.parseInt(r.toString()) : reduce;
                 Object h = globalEnv.get(eleTemplate.getTagName() + "_header");
@@ -172,11 +172,11 @@ public class LoopRowTableAndFillRenderPolicy implements RenderPolicy {
                 }
                 // Fill blank lines with a reverse slash
                 if (mode != 1) {
-                     WordTableUtils.mergeMutipleLine(table, templateRowIndex, templateRowIndex + insertLine);
-                     // Set diagonal border
-                     XWPFTableCell cellRow00 = table.getRow(templateRowIndex).getCell(0);
-                     WordTableUtils.setDiagonalBorder(cellRow00);
-                     WordTableUtils.setCellWidth(cellRow00, table.getWidth());
+                    WordTableUtils.mergeMutipleLine(table, templateRowIndex, templateRowIndex + insertLine);
+                    // Set diagonal border
+                    XWPFTableCell cellRow00 = table.getRow(templateRowIndex).getCell(0);
+                    WordTableUtils.setDiagonalBorder(cellRow00);
+                    WordTableUtils.setCellWidth(cellRow00, table.getWidth());
                 }
             } else {
                 table.removeRow(templateRowIndex);

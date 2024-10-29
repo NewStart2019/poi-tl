@@ -122,7 +122,8 @@ public class LoopExistedAndFillRowTableRenderPolicy implements RenderPolicy {
             int pageLine = oldRowNumber + 1;
             int reduce = 0;
             try {
-                pageLine = Integer.parseInt(globalEnv.get(eleTemplate.getTagName() + "_number").toString());
+                Object n = globalEnv.get(eleTemplate.getTagName() + "_number");
+                pageLine = n == null ? pageLine : Integer.parseInt(n.toString());
                 Object r = globalEnv.get(eleTemplate.getTagName() + "_reduce");
                 reduce = r != null ? Integer.parseInt(r.toString()) : 0;
             } catch (NumberFormatException ignore) {

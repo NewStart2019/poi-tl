@@ -76,8 +76,8 @@ public class LoopRowTableAllRenderPolicyTest {
         test.put("companyName", "测试公司");
         List<Map<String, Object>> data = new ArrayList<>();
         test.put("test", data);
-        test.put("testnumber", 29);
-        test.put("testreduce", 0);
+        test.put("test_number", 29);
+        test.put("test_reduce", 0);
         for (int i = 1; i <= number; i++) {
             Map<String, Object> e1 = new HashMap<>();
             data.add(e1);

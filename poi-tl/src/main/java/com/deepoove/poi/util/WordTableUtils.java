@@ -233,28 +233,16 @@ public class WordTableUtils {
         if (target == null || source == null) {
             return;
         }
-        IRunBody parent = target.getParent();
-        XWPFRun newRun;
-        if (parent instanceof XWPFParagraph) {
-            XWPFParagraph targetParent = (XWPFParagraph) parent;
-            newRun = targetParent.createRun();
-        } else if (parent instanceof XWPFStructuredDocumentTagContent) {
-            XWPFStructuredDocumentTagContent targetParent = (XWPFStructuredDocumentTagContent) parent;
-            newRun = targetParent.createRun();
-        } else {
-            logger.warn("XWPFRun's parent {} does not currently support processing", parent);
-            return;
-        }
         if (isIncludeStyle) {
             CTR sourceCTR = source.getCTR();
             if (sourceCTR.isSetRPr()) {
                 CTRPr sourceCTRPr = sourceCTR.getRPr();
                 CTRPr newCTRPr = CTRPr.Factory.newInstance();
                 copyCTRPr(sourceCTRPr, newCTRPr);
-                newRun.getCTR().setRPr(newCTRPr);
+                target.getCTR().setRPr(newCTRPr);
             }
         }
-        newRun.setText(source.text());
+        target.setText(source.text());
     }
 
     public static void copyCTRPr(CTRPr sourceCTRPr, CTRPr targetCTRPr) {
@@ -348,10 +336,6 @@ public class WordTableUtils {
             XWPFHeader parent = (XWPFHeader) body;
             parent.removeParagraph(paragraph);
         }
-    }
-
-    public static void removeBlankParagraph(XWPFDocument document) {
-        //
     }
 
     public static void removeAllParagraphsOfCell(XWPFTableCell cell) {

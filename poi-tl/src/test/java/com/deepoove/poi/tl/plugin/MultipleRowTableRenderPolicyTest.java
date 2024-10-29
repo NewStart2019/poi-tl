@@ -33,7 +33,7 @@ public class MultipleRowTableRenderPolicyTest {
         builder.bind("reports", new MultipleRowTableRenderPolicy());
         XWPFTemplate xt = XWPFTemplate.compile("src/test/resources/template/render-multiple-row.docx", builder.build())
                 .render(params);
-        xt.writeToFile("out_render-multiple-row.docx");
+        xt.writeToFile("target/out_render-multiple-row.docx");
     }
 
     static class Report {
