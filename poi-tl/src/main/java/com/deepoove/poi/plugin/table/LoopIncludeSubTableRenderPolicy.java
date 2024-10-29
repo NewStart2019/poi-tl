@@ -201,7 +201,7 @@ public class LoopIncludeSubTableRenderPolicy implements RenderPolicy {
                                 endRow--;
                             }
                             // Default blank line filling, fill blank lines with a reverse slash by mode equal 2
-                            if (mode != 1 && insertLine != 0) {
+                            if (mode != 1 && insertLine > 0) {
                                 WordTableUtils.mergeMutipleLine(currentTable, tempTemplateRowIndex, endRow);
                                 // Set diagonal border
                                 XWPFTableCell cellRow00 = currentTable.getRow(tempTemplateRowIndex).getCell(0);
