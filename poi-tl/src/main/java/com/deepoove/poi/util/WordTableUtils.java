@@ -3,7 +3,6 @@ package com.deepoove.poi.util;
 import com.deepoove.poi.xwpf.Page;
 import com.deepoove.poi.xwpf.XWPFStructuredDocumentTagContent;
 import com.deepoove.poi.xwpf.XWPFTextboxContent;
-import com.sun.istack.internal.NotNull;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.util.Units;
 import org.apache.poi.xwpf.usermodel.*;
@@ -107,7 +106,7 @@ public class WordTableUtils {
      * @param target         {@link XWPFTableCell target}
      * @param isIncludeStyle true: include style, false: not include style
      */
-    public static void copyCellContent(@NotNull XWPFTableCell source, @NotNull XWPFTableCell target, boolean isIncludeStyle) {
+    public static void copyCellContent(XWPFTableCell source, XWPFTableCell target, boolean isIncludeStyle) {
         if (source == null || target == null) {
             return;
         }
@@ -215,8 +214,7 @@ public class WordTableUtils {
                     CTPicture ctPicture = picture.getCTPicture();
                     // Adds a picture to the document.
                     String blipId = destDoc.addPictureData(pictureBytes, pictureFormat);
-                    XWPFPicture newPicture = newRun.addPicture(new ByteArrayInputStream(pictureBytes), pictureFormat,
-                        picData.getFileName(), Units.toEMU(picture.getWidth()), Units.toEMU(picture.getDepth()));
+                    XWPFPicture newPicture = newRun.addPicture(new ByteArrayInputStream(pictureBytes), pictureFormat, picData.getFileName(), Units.toEMU(picture.getWidth()), Units.toEMU(picture.getDepth()));
                     CTPicture newCTPicture = newPicture.getCTPicture();
                     newCTPicture.set(ctPicture);
                     // Connect image data to the a:blip element
@@ -353,7 +351,7 @@ public class WordTableUtils {
     }
 
     public static void removeBlankParagraph(XWPFDocument document) {
-        // 
+        //
     }
 
     public static void removeAllParagraphsOfCell(XWPFTableCell cell) {
