@@ -1,16 +1,13 @@
 package com.deepoove.poi.tl.util;
 
 import com.deepoove.poi.util.WordTableUtils;
+import org.apache.poi.wp.usermodel.HeaderFooterType;
 import org.apache.poi.xwpf.usermodel.*;
 import org.junit.jupiter.api.Test;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTDecimalNumber;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTc;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTcPr;
 
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.math.BigInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -18,6 +15,75 @@ class WordTableUtilsTest {
 
     String out_file = "target/table_utils.docx";
 
+    @Test
+    void testParagraphCopy() throws Exception {
+        String template = "src/test/resources/util/copy_template.docx";
+        String template2 = "target/out_copy_template_copys.docx";
+        try (FileInputStream fileInputStream = new FileInputStream(template);
+             XWPFDocument document = new XWPFDocument(fileInputStream);
+             XWPFDocument document2 = new XWPFDocument()) {
+            XWPFTable table1 = document.getTables().get(0);
+            XWPFParagraph oldParagraph = document.getParagraphs().get(1);
+
+            // 测试带样式和不带样式复制段落
+            WordTableUtils.copyParagraph(oldParagraph,
+                document.createParagraph(), false);
+            WordTableUtils.copyParagraph(oldParagraph,
+                document.createParagraph(), true);
+            // 从XWPFDocument段落复制到 单元格段落中
+            WordTableUtils.copyParagraph(oldParagraph,
+                table1.getRow(1).getCell(1).addParagraph(), true);
+
+            // 复制到页眉中去
+            XWPFHeader header = document2.createHeader(HeaderFooterType.FIRST);
+            XWPFParagraph paragraph = header.createParagraph();
+            WordTableUtils.copyParagraph(oldParagraph, paragraph, true);
+
+            // 测试是否支持跨表格复制段落
+            WordTableUtils.copyParagraph(oldParagraph,
+                document2.createParagraph(), true);
+            XWPFTable table = document2.createTable(1, 1);
+            WordTableUtils.setTableWidthA4(table);
+            WordTableUtils.copyParagraph(oldParagraph, table.getRow(0).getCell(0).addParagraph(), true);
+
+            XWPFTable table2 = document.getTables().get(0);
+
+            // 测试同一个表格中单元格复制， 是否包括样式
+            WordTableUtils.copyCellContent(table1.getRow(0).getCell(0),
+                table1.getRow(1).getCell(2), false);
+
+            XWPFParagraph pictureParagraph = document.getParagraphs().get(2);
+            WordTableUtils.copyParagraph(pictureParagraph, document2.createParagraph(), true);
+
+            out_file = "target/out_copy_template.docx";
+            // 保存文档
+            try (FileOutputStream out = new FileOutputStream(out_file);
+                 FileOutputStream out2 = new FileOutputStream(template2)) {
+                document.write(out);
+                document2.write(out2);
+            }
+        }
+    }
+
+    @Test
+    void testCellCopy() throws Exception {
+        String template = "src/test/resources/util/copy_template.docx";
+        String template2 = "target/out_copy_template_copys.docx";
+        try (FileInputStream fileInputStream = new FileInputStream(template);
+             XWPFDocument document = new XWPFDocument(fileInputStream);
+             XWPFDocument document2 = new XWPFDocument()) {
+            XWPFTable table1 = document.getTables().get(0);
+
+
+            out_file = "target/out_copy_cell_template.docx";
+            // 保存文档
+            try (FileOutputStream out = new FileOutputStream(out_file);
+                 FileOutputStream out2 = new FileOutputStream(template2)) {
+                document.write(out);
+                document2.write(out2);
+            }
+        }
+    }
 
     @Test
     void mergeRowAndWriteSlash() throws IOException {
@@ -73,7 +139,7 @@ class WordTableUtilsTest {
         XWPFDocument document = new XWPFDocument(fileInputStream);
         XWPFTable table = document.getTables().get(1);
 
-        WordTableUtils.mergeMutipleLine(table, 3,4);
+        WordTableUtils.mergeMutipleLine(table, 3, 4);
         out_file = "target/out_merged_table.docx";
         // 保存文档
         try (FileOutputStream out = new FileOutputStream(out_file)) {

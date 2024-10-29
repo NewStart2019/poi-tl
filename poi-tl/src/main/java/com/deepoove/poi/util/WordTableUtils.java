@@ -1,12 +1,22 @@
 package com.deepoove.poi.util;
 
 import com.deepoove.poi.xwpf.Page;
+import com.deepoove.poi.xwpf.XWPFStructuredDocumentTagContent;
+import com.deepoove.poi.xwpf.XWPFTextboxContent;
+import com.sun.istack.internal.NotNull;
+import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
+import org.apache.poi.util.Units;
 import org.apache.poi.xwpf.usermodel.*;
 import org.apache.xmlbeans.XmlCursor;
 import org.apache.xmlbeans.XmlObject;
+import org.openxmlformats.schemas.drawingml.x2006.picture.CTPicture;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.math.BigInteger;
 import java.util.List;
 
@@ -15,6 +25,8 @@ import java.util.List;
  */
 @SuppressWarnings("unused")
 public class WordTableUtils {
+
+    private static final Logger logger = LoggerFactory.getLogger(WordTableUtils.class);
 
     public static XWPFTable copyTable(XWPFDocument doc, XWPFTable sourceTable) {
         return copyTable(doc, sourceTable, false);
@@ -91,11 +103,19 @@ public class WordTableUtils {
      * Copy the content of a cell that spans multiple columns, including its style. Since the data spanning columns
      * is only present in the first row, there's no need to clear the content of the target cells
      *
-     * @param source source
-     * @param target target
+     * @param source         {@link XWPFTableCell source}
+     * @param target         {@link XWPFTableCell target}
+     * @param isIncludeStyle true: include style, false: not include style
      */
-    public static void copyCellContent(XWPFTableCell source, XWPFTableCell target, boolean isIncludeStyle) {
+    public static void copyCellContent(@NotNull XWPFTableCell source, @NotNull XWPFTableCell target, boolean isIncludeStyle) {
+        if (source == null || target == null) {
+            return;
+        }
         List<XWPFParagraph> paragraphs = source.getParagraphs();
+        if (CollectionUtils.isEmpty(paragraphs)) {
+            cleanCellContent(target);
+            return;
+        }
         CTPPr targetCtPPr = null;
         XWPFParagraph firstParagraph = null;
         if (org.apache.commons.collections4.CollectionUtils.isNotEmpty(target.getParagraphs())) {
@@ -104,7 +124,7 @@ public class WordTableUtils {
         }
         for (XWPFParagraph paragraph : source.getParagraphs()) {
             XWPFParagraph newParagraph = target.addParagraph();
-            WordTableUtils.copyParagraphContent(paragraph, newParagraph);
+            WordTableUtils.copyParagraph(paragraph, newParagraph, isIncludeStyle);
             if (targetCtPPr != null) {
                 newParagraph.getCTP().setPPr(targetCtPPr);
                 newParagraph.setStyle(firstParagraph.getStyle());
@@ -136,7 +156,7 @@ public class WordTableUtils {
         removeAllParagraphsOfCell(target);
         for (XWPFParagraph paragraph : source.getParagraphs()) {
             XWPFParagraph newParagraph = target.addParagraph();
-            copyParagraphContent(paragraph, newParagraph);
+            copyParagraph(paragraph, newParagraph, true);
         }
         target.getCTTc().setTcPr(source.getCTTc().getTcPr());
     }
@@ -159,15 +179,84 @@ public class WordTableUtils {
         cleanCellContent(currentCell);
     }
 
+    // copy paragraph content withouw style
     public static void copyParagraphContent(XWPFParagraph source, XWPFParagraph target) {
+        copyParagraph(source, target, false);
+    }
+
+    /**
+     * <p>Copy paragraph. The <b>same</b> document can be copied into any paragraph, and paragraphs
+     * can also be copied <b>across</b> documents</p>
+     * <p><b>Picture</b> paragraphs can also be copied!</p>
+     *
+     * @param source         {@link XWPFParagraph source}
+     * @param target         {@link XWPFParagraph target}
+     * @param isIncludeStyle true: include style, false: not include style
+     * @see org.apache.poi.common.usermodel.PictureType
+     */
+    public static void copyParagraph(XWPFParagraph source, XWPFParagraph target, boolean isIncludeStyle) {
+        if (target == null || source == null) {
+            return;
+        }
+        cleanParagraphContent(target);
+        if (CollectionUtils.isEmpty(source.getRuns())) {
+            return;
+        }
+        XWPFDocument destDoc = target.getDocument();
         for (XWPFRun run : source.getRuns()) {
             XWPFRun newRun = target.createRun();
-            CTRPr sourceCTRPr = run.getCTR().getRPr();
-            CTRPr newCTRPr = CTRPr.Factory.newInstance();
-            copyCTRPr(sourceCTRPr, newCTRPr);
-            newRun.getCTR().setRPr(newCTRPr);
-            newRun.setText(run.text());
+            // picture deal
+            int id = 1;
+            for (XWPFPicture picture : run.getEmbeddedPictures()) {
+                try {
+                    XWPFPictureData picData = picture.getPictureData();
+                    byte[] pictureBytes = picData.getData();
+                    int pictureFormat = picData.getPictureType();
+                    CTPicture ctPicture = picture.getCTPicture();
+                    // Adds a picture to the document.
+                    String blipId = destDoc.addPictureData(pictureBytes, pictureFormat);
+                    XWPFPicture newPicture = newRun.addPicture(new ByteArrayInputStream(pictureBytes), pictureFormat,
+                        picData.getFileName(), Units.toEMU(picture.getWidth()), Units.toEMU(picture.getDepth()));
+                    CTPicture newCTPicture = newPicture.getCTPicture();
+                    newCTPicture.set(ctPicture);
+                    // Connect image data to the a:blip element
+                    newCTPicture.getBlipFill().getBlip().setEmbed(blipId);
+                } catch (InvalidFormatException | IOException ignore) {
+                }
+            }
+            copyRun(run, newRun, isIncludeStyle);
         }
+        if (isIncludeStyle) {
+            target.getCTP().setPPr(source.getCTPPr());
+        }
+    }
+
+    public static void copyRun(XWPFRun source, XWPFRun target, boolean isIncludeStyle) {
+        if (target == null || source == null) {
+            return;
+        }
+        IRunBody parent = target.getParent();
+        XWPFRun newRun;
+        if (parent instanceof XWPFParagraph) {
+            XWPFParagraph targetParent = (XWPFParagraph) parent;
+            newRun = targetParent.createRun();
+        } else if (parent instanceof XWPFStructuredDocumentTagContent) {
+            XWPFStructuredDocumentTagContent targetParent = (XWPFStructuredDocumentTagContent) parent;
+            newRun = targetParent.createRun();
+        } else {
+            logger.warn(String.format("XWPFRun's parent %s does not currently support processing", parent));
+            return;
+        }
+        if (isIncludeStyle) {
+            CTR sourceCTR = source.getCTR();
+            if (sourceCTR.isSetRPr()) {
+                CTRPr sourceCTRPr = sourceCTR.getRPr();
+                CTRPr newCTRPr = CTRPr.Factory.newInstance();
+                copyCTRPr(sourceCTRPr, newCTRPr);
+                newRun.getCTR().setRPr(newCTRPr);
+            }
+        }
+        newRun.setText(source.text());
     }
 
     public static void copyCTRPr(CTRPr sourceCTRPr, CTRPr targetCTRPr) {
@@ -203,6 +292,20 @@ public class WordTableUtils {
         removeAllParagraphsOfCell(cell);
     }
 
+    /**
+     * Clear the content of XWPFParagraph
+     *
+     * @param paragraph {@link XWPFParagraph paragraph}
+     */
+    public static void cleanParagraphContent(XWPFParagraph paragraph) {
+        if (paragraph == null) {
+            return;
+        }
+        for (int i = paragraph.getRuns().size() - 1; i >= 0; i--) {
+            paragraph.removeRun(i);
+        }
+    }
+
     public static void removeTable(XWPFDocument document, XWPFTable table) {
         if (table == null || document == null) {
             return;
@@ -214,7 +317,12 @@ public class WordTableUtils {
         document.removeBodyElement(document.getPosOfTable(table));
     }
 
-    public static void removeEmptyParagraph(XWPFParagraph paragraph) {
+    /**
+     * Remove paragraph self
+     *
+     * @param paragraph {@link XWPFParagraph paragraph}
+     */
+    public static void removeParagraph(XWPFParagraph paragraph) {
         if (paragraph == null) {
             return;
         }
@@ -229,6 +337,18 @@ public class WordTableUtils {
         } else if (body instanceof XWPFTableCell) {
             XWPFTableCell cell = (XWPFTableCell) body;
             cell.removeParagraph(cell.getParagraphs().indexOf(paragraph));
+        } else if (body instanceof XWPFStructuredDocumentTagContent) {
+            XWPFStructuredDocumentTagContent parent = (XWPFStructuredDocumentTagContent) body;
+            parent.removeParagraph(paragraph);
+        } else if (body instanceof XWPFComment) {
+            XWPFComment parent = (XWPFComment) body;
+            parent.removeParagraph(paragraph);
+        } else if (body instanceof XWPFTextboxContent) {
+            XWPFTextboxContent parent = (XWPFTextboxContent) body;
+            parent.removeParagraph(paragraph);
+        } else if (body instanceof XWPFHeaderFooter) {
+            XWPFHeader parent = (XWPFHeader) body;
+            parent.removeParagraph(paragraph);
         }
     }
 

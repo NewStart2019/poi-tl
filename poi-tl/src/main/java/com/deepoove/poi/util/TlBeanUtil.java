@@ -62,7 +62,7 @@ public class TlBeanUtil {
         }
         try {
             if (obj instanceof Map) {
-                ((Map) obj).forEach((k, v) -> {
+                ((Map<?,?>) obj).forEach((k, v) -> {
                     try {
                         if (k instanceof String) {
                             this.dealProperty((String) k, v, noTransferClass, map, depth);

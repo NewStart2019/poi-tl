@@ -195,7 +195,7 @@ public class LoopFullTableInsertFillRenderPolicy implements RenderPolicy {
             IBodyElement iBodyElement = xwpfDocument.getBodyElements().get(posOfTable + 1);
             if (iBodyElement instanceof XWPFParagraph) {
                 XWPFParagraph paragraph = (XWPFParagraph) iBodyElement;
-                WordTableUtils.removeEmptyParagraph(paragraph);
+                WordTableUtils.removeParagraph(paragraph);
             }
         }
         return xwpfDocument;
