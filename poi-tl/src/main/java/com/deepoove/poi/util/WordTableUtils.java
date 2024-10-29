@@ -244,7 +244,7 @@ public class WordTableUtils {
             XWPFStructuredDocumentTagContent targetParent = (XWPFStructuredDocumentTagContent) parent;
             newRun = targetParent.createRun();
         } else {
-            logger.warn(String.format("XWPFRun's parent %s does not currently support processing", parent));
+            logger.warn("XWPFRun's parent {} does not currently support processing", parent);
             return;
         }
         if (isIncludeStyle) {
@@ -350,6 +350,10 @@ public class WordTableUtils {
             XWPFHeader parent = (XWPFHeader) body;
             parent.removeParagraph(paragraph);
         }
+    }
+
+    public static void removeBlankParagraph(XWPFDocument document) {
+        // 
     }
 
     public static void removeAllParagraphsOfCell(XWPFTableCell cell) {
@@ -474,7 +478,7 @@ public class WordTableUtils {
      * Retrieve the spanned row data, where restart=2 indicates the start of a span.
      * continue=1 signifies the continuation of the spanned data, and the spanning ends when there is no more span information.
      *
-     * @param cell
+     * @param cell {@link XWPFTableCell cell}
      * @return Integer | null则表示没有跨行
      */
     public static Integer findVMerge(XWPFTableCell cell) {
@@ -589,8 +593,8 @@ public class WordTableUtils {
         if (type == null) {
             type = STHeightRule.EXACT;
         }
-        // 设置行高规则为固定行高
-        height.setHRule(type);  // EXCT 表示固定高度，不自动调整
+        // Set the row height rule to a fixed row height
+        height.setHRule(type);  // EXCT: indicates a fixed height
     }
 
     public static void setTableCellWidth(XWPFTableCell cell, String width) {
@@ -879,7 +883,7 @@ public class WordTableUtils {
         }
         XWPFTable table = row.getTable();
         int rowSize = table.getRows().size();
-        int colSize = row.getTableCells().size();  // 当前行的单元格数
+        int colSize = row.getTableCells().size();
         int curerntRowIndex = findRowIndex(row);
 
         XWPFTableCell newCell = row.addNewTableCell();

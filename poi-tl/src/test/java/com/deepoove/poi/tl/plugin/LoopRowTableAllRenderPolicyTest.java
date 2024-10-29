@@ -145,6 +145,7 @@ public class LoopRowTableAllRenderPolicyTest {
         stringObjectMap.put("test_number", 24);
         stringObjectMap.put("test_mode", 2);
         stringObjectMap.put("test_rendermode", 4);
+        // stringObjectMap.put("test_reduce", 1);
         // stringObjectMap.put("testremove_next_line", 4);
         stringObjectMap.put("blank_desc", "以下空白");
         Configure config = Configure.builder()
