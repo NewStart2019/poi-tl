@@ -200,8 +200,10 @@ public class LoopCopyHeaderRowRenderPolicy implements RenderPolicy {
                 WordTableUtils.setCellWidth(cellRow00, table.getWidth());
             }
             afterloop(table, data);
+            if(table != nextTable){
+                WordTableUtils.removeTable(xwpfDocument, nextTable);
+            }
 
-            WordTableUtils.removeTable(xwpfDocument, nextTable);
             template.reloadSelf();
         } catch (Exception e) {
             throw new RenderException("HackLoopTable for " + eleTemplate + " error: " + e.getMessage(), e);
