@@ -57,6 +57,21 @@ public class WordTableUtils {
     }
 
     /**
+     * <p>Copy the table style of the source table to the target table.</p>
+     *
+     * @param sourceTable {@link  XWPFTable sourceTable}
+     * @param targetTable {@link  XWPFTable targetTable}
+     */
+    public static void copyTableTblPr(XWPFTable sourceTable, XWPFTable targetTable) {
+        if (sourceTable == null || targetTable == null) {
+            return;
+        }
+        CTTblPr sourceTblPr = sourceTable.getCTTbl().getTblPr();
+        CTTblPr targetTblPr = targetTable.getCTTbl().getTblPr();
+        targetTblPr.set(sourceTblPr);
+    }
+
+    /**
      * Copy the content of the current line to the next line. If the next line is a newly added line,
      * then directly copy the entire XML of the current line to the next line. Otherwise, just copy
      * the content to the next line.
@@ -96,6 +111,44 @@ public class WordTableUtils {
             }
         }
         return nextLine;
+    }
+
+    public static void copyCell(XWPFTableCell source, XWPFTableCell target, boolean isIncludeStyle) {
+        if (source == null || target == null) {
+            return;
+        }
+        List<XWPFParagraph> paragraphs = source.getParagraphs();
+        if (CollectionUtils.isEmpty(paragraphs)) {
+            cleanCellContent(target);
+            return;
+        }
+        CTPPr targetCtPPr = null;
+        XWPFParagraph firstParagraph = null;
+        if (org.apache.commons.collections4.CollectionUtils.isNotEmpty(target.getParagraphs())) {
+            firstParagraph = target.getParagraphs().get(0);
+            targetCtPPr = firstParagraph.getCTP().getPPr();
+        }
+        for (XWPFParagraph paragraph : source.getParagraphs()) {
+            XWPFParagraph newParagraph = target.addParagraph();
+            WordTableUtils.copyParagraph(paragraph, newParagraph, isIncludeStyle);
+            if (targetCtPPr != null) {
+                newParagraph.getCTP().setPPr(targetCtPPr);
+                newParagraph.setStyle(firstParagraph.getStyle());
+            }
+            if (isIncludeStyle) {
+                newParagraph.getCTP().unsetPPr();
+                newParagraph.getCTP().setPPr(paragraph.getCTP().getPPr());
+            }
+        }
+        if (isIncludeStyle) {
+            CTTcPr sourceTcPr = source.getCTTc().getTcPr();
+            if (sourceTcPr != null) {
+                target.getCTTc().setTcPr(sourceTcPr);
+            }
+        }
+        if (firstParagraph != null) {
+            WordTableUtils.removeParagraphOfCell(target, firstParagraph);
+        }
     }
 
     /**
@@ -202,6 +255,8 @@ public class WordTableUtils {
             return;
         }
         XWPFDocument destDoc = target.getDocument();
+        XWPFDocument sourceDoc = source.getDocument();
+        boolean isSameDoc = sourceDoc == destDoc;
         for (XWPFRun run : source.getRuns()) {
             XWPFRun newRun = target.createRun();
             // picture deal
@@ -213,10 +268,14 @@ public class WordTableUtils {
                     int pictureFormat = picData.getPictureType();
                     CTPicture ctPicture = picture.getCTPicture();
                     // Adds a picture to the document.
-                    String blipId = destDoc.addPictureData(pictureBytes, pictureFormat);
-                    XWPFPicture newPicture = newRun.addPicture(new ByteArrayInputStream(pictureBytes), pictureFormat, picData.getFileName(), Units.toEMU(picture.getWidth()), Units.toEMU(picture.getDepth()));
+                    String blipId = isSameDoc ? ctPicture.getBlipFill().getBlip().getEmbed() :
+                        destDoc.addPictureData(pictureBytes, pictureFormat);
+                    XWPFPicture newPicture = newRun.addPicture(new ByteArrayInputStream(pictureBytes), pictureFormat,
+                        picData.getFileName(), Units.toEMU(picture.getWidth()), Units.toEMU(picture.getDepth()));
                     CTPicture newCTPicture = newPicture.getCTPicture();
-                    newCTPicture.set(ctPicture);
+                    if (isIncludeStyle) {
+                        newCTPicture.set(ctPicture);
+                    }
                     // Connect image data to the a:blip element
                     newCTPicture.getBlipFill().getBlip().setEmbed(blipId);
                 } catch (InvalidFormatException | IOException ignore) {
@@ -303,6 +362,28 @@ public class WordTableUtils {
         document.removeBodyElement(document.getPosOfTable(table));
     }
 
+    public static void removeRow(XWPFTable table, int rowIndex) {
+        XWPFTableRow row = table.getRow(rowIndex);
+        if (row == null) {
+            logger.warn("rowIndex is out of range");
+            return;
+        }
+        removeRow(row);
+    }
+
+    public static void removeRow(XWPFTableRow row) {
+        if (row == null) {
+            return;
+        }
+        XWPFTable table = row.getTable();
+        int rowIndex = table.getRows().indexOf(row);
+        table.removeRow(rowIndex);
+    }
+
+    public static void removeLastRow(XWPFTable table) {
+        removeRow(table, table.getRows().size() - 1);
+    }
+
     /**
      * Remove paragraph self
      *
@@ -377,26 +458,32 @@ public class WordTableUtils {
         if (table == null) {
             return 0;
         }
-
+        CTTblGrid tblGrid = table.getCTTbl().getTblGrid();
         int all = 0;
+        if (tblGrid == null) {
+            // 遍历每一行
+            for (XWPFTableRow row : table.getRows()) {
+                // 遍历每一列
+                int temp = 0;
+                for (XWPFTableCell cell : row.getTableCells()) {
+                    CTTc ctTc = cell.getCTTc();
+                    CTTcPr tcPr = ctTc.isSetTcPr() ? ctTc.getTcPr() : ctTc.addNewTcPr();
 
-        // 遍历每一行
-        for (XWPFTableRow row : table.getRows()) {
-            all = 0;
-            // 遍历每一列
-            for (XWPFTableCell cell : row.getTableCells()) {
-                CTTc ctTc = cell.getCTTc();
-                CTTcPr tcPr = ctTc.isSetTcPr() ? ctTc.getTcPr() : ctTc.addNewTcPr();
-
-                // 检查是否设置了 gridSpan
-                if (tcPr.isSetGridSpan()) {
-                    CTDecimalNumber gridSpan = tcPr.getGridSpan();
-                    int currentGridSpan = gridSpan.getVal().intValue();
-                    all += currentGridSpan;
-                } else {
-                    all++;
+                    // 检查是否设置了 gridSpan
+                    if (tcPr.isSetGridSpan()) {
+                        CTDecimalNumber gridSpan = tcPr.getGridSpan();
+                        int currentGridSpan = gridSpan.getVal().intValue();
+                        temp += currentGridSpan;
+                    } else {
+                        temp++;
+                    }
+                }
+                if (temp > all) {
+                    all = temp;
                 }
             }
+        } else {
+            all = tblGrid.getGridColList().size();
         }
         return all;
     }
@@ -404,7 +491,7 @@ public class WordTableUtils {
     /**
      * obtain the count of vertically merged rows (Issue: If the columns are misaligned, the handling method has problems)
      *
-     * @param table    XWPFTable
+     * @param table    {@link XWPFTable table}
      * @param startRow start row index
      * @param colIndex col index
      * @return span col number，0 indicates no cross row
@@ -432,6 +519,13 @@ public class WordTableUtils {
             }
         }
         return i - startRow;
+    }
+
+    public static int findVerticalMergedRows(XWPFTable table, XWPFTableCell cell) {
+        XWPFTableRow tableRow = cell.getTableRow();
+        int rowIndex = findRowIndex(tableRow);
+        int colIndex = tableRow.getTableCells().indexOf(cell);
+        return findVerticalMergedRows(table, rowIndex, colIndex);
     }
 
     public static int findRowIndex(XWPFTableCell tagCell) {
@@ -527,6 +621,10 @@ public class WordTableUtils {
             }
         }
         return maxColCount;
+    }
+
+    public static void setTablePosition(XWPFDocument doc, XWPFTable targetTable, int tableIndex) {
+        doc.insertTable(tableIndex, targetTable);
     }
 
     public static void setTableWidthA4(XWPFTable table) {
@@ -844,7 +942,8 @@ public class WordTableUtils {
         }
         List<XWPFTableRow> rows = table.getRows();
         if (rows.size() <= toRow || fromRow < 0 || fromRow > toRow) {
-            throw new RuntimeException(String.format("The input row index(%d,%d) is incorrect", fromRow, toRow));
+            throw new RuntimeException(String.format("Total number of row is %d,The input row index(%d,%d) is incorrect",
+                rows.size(), fromRow, toRow));
         }
         for (int i = fromRow; i <= toRow; i++) {
             XWPFTableRow row = rows.get(i);

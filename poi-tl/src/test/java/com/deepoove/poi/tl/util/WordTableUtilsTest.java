@@ -4,12 +4,15 @@ import com.deepoove.poi.util.WordTableUtils;
 import org.apache.poi.wp.usermodel.HeaderFooterType;
 import org.apache.poi.xwpf.usermodel.*;
 import org.junit.jupiter.api.Test;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.*;
 
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class WordTableUtilsTest {
 
@@ -48,10 +51,6 @@ class WordTableUtilsTest {
 
             XWPFTable table2 = document.getTables().get(0);
 
-            // 测试同一个表格中单元格复制， 是否包括样式
-            WordTableUtils.copyCellContent(table1.getRow(0).getCell(0),
-                table1.getRow(1).getCell(2), false);
-
             XWPFParagraph pictureParagraph = document.getParagraphs().get(2);
             WordTableUtils.copyParagraph(pictureParagraph, document2.createParagraph(), true);
 
@@ -68,14 +67,25 @@ class WordTableUtilsTest {
     @Test
     void testCellCopy() throws Exception {
         String template = "src/test/resources/util/copy_template.docx";
-        String template2 = "target/out_copy_template_copys.docx";
+        String template2 = "target/out_copy_cell_copys.docx";
         try (FileInputStream fileInputStream = new FileInputStream(template);
              XWPFDocument document = new XWPFDocument(fileInputStream);
              XWPFDocument document2 = new XWPFDocument()) {
             XWPFTable table1 = document.getTables().get(0);
+            XWPFTableCell table1Cell = table1.getRow(0).getCell(0);
+            XWPFTable table2 = document.getTables().get(1);
+            XWPFTableCell table2Cell = table2.getRow(0).getCell(0);
+            XWPFTableCell table2Cell2 = table2.getRow(1).getCell(2);
+            WordTableUtils.copyCell(table1Cell, table2Cell, false);
+            WordTableUtils.copyCell(table1Cell, table2Cell2, true);
 
+            // 跨文档
+            XWPFTable table = document2.createTable(2, 1);
+            WordTableUtils.setTableWidthA4(table);
+            WordTableUtils.copyCell(table1Cell, table.getRow(0).getCell(0), false);
+            WordTableUtils.copyCell(table1Cell, table.getRow(1).getCell(0), true);
 
-            out_file = "target/out_copy_cell_template.docx";
+            out_file = "target/out_copy_cell.docx";
             // 保存文档
             try (FileOutputStream out = new FileOutputStream(out_file);
                  FileOutputStream out2 = new FileOutputStream(template2)) {
@@ -167,5 +177,30 @@ class WordTableUtilsTest {
 
         XWPFDocument document2 = new XWPFDocument(new FileInputStream(out_file));
         assertEquals(2, document2.getTables().size());
+    }
+
+    @Test
+    void testCopyTableRow() throws Exception {
+        String file = "src/test/resources/template/render_insert_fill.docx";
+
+        try (FileInputStream fileInputStream = new FileInputStream(file);
+             XWPFDocument document = new XWPFDocument(fileInputStream)) {
+            XWPFTable table = document.getTables().get(0);
+            // 创建的表格默认有1行1列
+            XWPFTable table2 = document.createTable();
+            WordTableUtils.copyLineContent(table.getRow(0), table2.insertNewTableRow(0), 0);
+            WordTableUtils.copyLineContent(table.getRow(1), table2.insertNewTableRow(1), 1);
+            WordTableUtils.removeLastRow(table2);
+            WordTableUtils.copyTableTblPr(table, table2);
+            table2.getCTTbl().getTblGrid();
+            // 断言跨列属性是否复制过来
+            assertTrue(table2.getRow(1).getCell(2).getCTTc().getTcPr().isSetVMerge());
+            assertTrue(table2.getRow(1).getCell(3).getCTTc().getTcPr().isSetVMerge());
+            out_file = "target/copy_line_test.docx";
+            // 保存文档
+            try (FileOutputStream out = new FileOutputStream(out_file)) {
+                document.write(out);
+            }
+        }
     }
 }

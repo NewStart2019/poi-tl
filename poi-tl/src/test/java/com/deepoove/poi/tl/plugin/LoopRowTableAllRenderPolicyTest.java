@@ -163,7 +163,7 @@ public class LoopRowTableAllRenderPolicyTest {
         test.put("test_number", 29);
         test.put("test_reduce", 0);
 
-        for(int f = 0 ; f< first; f++) {
+        for (int f = 0; f < first; f++) {
             Map<String, Object> fMap = new HashMap<>();
             data.add(fMap);
             fMap.put("conclusion", "你自己弄吧" + f);
@@ -192,13 +192,30 @@ public class LoopRowTableAllRenderPolicyTest {
         stringObjectMap.put("test_number", 24);
         stringObjectMap.put("test_mode", 2);
         stringObjectMap.put("test_rendermode", 5);
-        // stringObjectMap.put("testremove_next_line", 4);
+        // stringObjectMap.put("test_remove_next_line", 4);
         stringObjectMap.put("blank_desc", "以下空白");
         Configure config = Configure.builder()
             .bind("test", policy)
             .build();
         XWPFTemplate template = XWPFTemplate.compile(resource, config).render(stringObjectMap);
         template.writeToFile("target/out_loop_sub_table.docx");
+    }
+
+    @Test
+    public void testLoopCopyHeaderRowRenderPolicy() throws Exception {
+        resource = "src/test/resources/template/render_insert_fill_2.docx";
+        Map<String, Object> stringObjectMap = init2(50);
+        stringObjectMap.put("test_first_number", 25);
+        stringObjectMap.put("test_number", 28);
+        stringObjectMap.put("test_mode", 2);
+        stringObjectMap.put("test_rendermode", 6);
+        stringObjectMap.put("test_remove_next_line", 4);
+        stringObjectMap.put("blank_desc", "以下空白");
+        Configure config = Configure.builder()
+            .bind("test", policy)
+            .build();
+        XWPFTemplate template = XWPFTemplate.compile(resource, config).render(stringObjectMap);
+        template.writeToFile("target/out_loop_copy_header.docx");
     }
 
 }
