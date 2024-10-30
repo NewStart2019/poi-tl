@@ -126,7 +126,7 @@ public class LoopCopyHeaderRowRenderPolicy implements RenderPolicy {
                     }
                     // 存在下一页，创建表格
                     table = nextTable;
-                    if (currentPage < allPage) {
+                    if (currentPage <= allPage) {
                         if (index < firstPageLine) {
                             // WordTableUtils.setPageBreak(xwpfDocument);
                             nextTable = xwpfDocument.createTable();
@@ -150,6 +150,9 @@ public class LoopCopyHeaderRowRenderPolicy implements RenderPolicy {
                 }
 
                 insertPosition = templateRowIndex++;
+                if (currentPage == allPage){
+                    System.out.println("currentPage");
+                }
                 XWPFTableRow currentRow = table.getRow(insertPosition);
                 if (!firstFlag) {
                     // update VMerge cells for non-first row
@@ -178,8 +181,23 @@ public class LoopCopyHeaderRowRenderPolicy implements RenderPolicy {
                 });
             }
 
-            table.removeRow(templateRowIndex);
-            templateRowIndex--;
+            if (firstPage) {
+                table.removeRow(templateRowIndex);
+                if (isRemoveNextLine) {
+                    if (templateRowIndex < table.getRows().size() - 1) {
+                        table.removeRow(templateRowIndex);
+                        templateRowIndex--;
+                    }
+                }
+            } else {
+                table.removeRow(templateRowIndex);
+                if (isRemoveNextLine) {
+                    if (templateRowIndex < table.getRows().size() - 1) {
+                        table.removeRow(templateRowIndex);
+                    }
+                }
+                templateRowIndex = table.getRows().size() - 1;
+            }
             int insertLine;
             if (firstPage) {
                 insertLine = firstPageLine - dataCount - reduce;
@@ -200,7 +218,7 @@ public class LoopCopyHeaderRowRenderPolicy implements RenderPolicy {
                 WordTableUtils.setCellWidth(cellRow00, table.getWidth());
             }
             afterloop(table, data);
-            if(table != nextTable){
+            if (table != nextTable) {
                 WordTableUtils.removeTable(xwpfDocument, nextTable);
             }
 

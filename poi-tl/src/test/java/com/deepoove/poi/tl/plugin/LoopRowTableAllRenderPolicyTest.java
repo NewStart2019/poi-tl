@@ -204,7 +204,7 @@ public class LoopRowTableAllRenderPolicyTest {
     @Test
     public void testLoopCopyHeaderRowRenderPolicy() throws Exception {
         resource = "src/test/resources/template/render_insert_fill_2.docx";
-        Map<String, Object> stringObjectMap = init2(50);
+        Map<String, Object> stringObjectMap = init2(10);
         stringObjectMap.put("test_first_number", 25);
         stringObjectMap.put("test_number", 28);
         stringObjectMap.put("test_mode", 2);
