@@ -70,7 +70,8 @@ public class LoopExistedAndFillRowTableRenderPolicy implements RenderPolicy {
             XWPFTable table = tagCell.getTableRow().getTable();
             run.setText("", 0);
 
-            int templateRowIndex = this.getTemplateRowIndex(tagCell);
+            int headerNumber = WordTableUtils.findCellVMergeNumber(tagCell);
+            int templateRowIndex = this.getTemplateRowIndex(tagCell) + headerNumber - 1;
             int allRowNumber = table.getRows().size() - 1;
             int oldRowNumber = allRowNumber;
             TemplateResolver resolver = new TemplateResolver(template.getConfig().copy(prefix, suffix));

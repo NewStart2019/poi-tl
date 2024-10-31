@@ -551,6 +551,22 @@ public class WordTableUtils {
     }
 
     /**
+     * Get the <b>cross row</b> count of a cell
+     *
+     * @param cell {@link XWPFTableCell cell}
+     * @return int. If cell is null, return 0.
+     */
+    public static int findCellVMergeNumber(XWPFTableCell cell) {
+        if (cell == null) {
+            return 0;
+        }
+        XWPFDocument xwpfDocument = cell.getXWPFDocument();
+        XWPFTable table = cell.getTableRow().getTable();
+        int rowIndex = WordTableUtils.findRowIndex(cell);
+        return WordTableUtils.findVerticalMergedRows(table, cell);
+    }
+
+    /**
      * Retrieve the spanned row data, where restart=2 indicates the start of a span.
      * continue=1 signifies the continuation of the spanned data, and the spanning ends when there is no more span information.
      *

@@ -73,7 +73,8 @@ public class LoopRowTableAndFillRenderPolicy implements RenderPolicy {
 
             int oldRowNumber = table.getRows().size();
 
-            int templateRowIndex = getTemplateRowIndex(tagCell);
+            int headerNumber = WordTableUtils.findCellVMergeNumber(tagCell);
+            int templateRowIndex = getTemplateRowIndex(tagCell) + headerNumber - 1;
             Map<String, Object> globalEnv = template.getEnvModel().getEnv();
             // number of lines
             int index = 0;

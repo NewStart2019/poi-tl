@@ -64,9 +64,9 @@ public class SectionTableRenderPolicyTest {
     public void removeLine() throws Exception {
         String resource = "src/test/resources/template/grid_bu.docx";
         Map<String, Object> data = new HashMap<>();
-        data.put("r34", 0);
+        data.put("r34", 50);
         Configure config = Configure.builder()
-            .addPlugin('_', new RemoveTableRowRenderPolicy())
+            .addPlugin('_', new RemoveTableRowRenderPolicy("——"))
             .useSpringEL(false)
             .build();
         XWPFTemplate template = XWPFTemplate.compile(resource, config);

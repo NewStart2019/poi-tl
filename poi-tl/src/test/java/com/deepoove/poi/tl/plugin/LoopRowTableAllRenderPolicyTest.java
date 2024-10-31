@@ -3,7 +3,6 @@ package com.deepoove.poi.tl.plugin;
 import com.deepoove.poi.XWPFTemplate;
 import com.deepoove.poi.config.Configure;
 import com.deepoove.poi.data.Pictures;
-import com.deepoove.poi.plugin.table.LoopExistedAndFillRowTableRenderPolicy;
 import com.deepoove.poi.plugin.table.LoopFullTableInsertFillRenderPolicy;
 import com.deepoove.poi.plugin.table.LoopRowTableAllRenderPolicy;
 import com.deepoove.poi.plugin.table.LoopRowTableRenderPolicy;
@@ -59,7 +58,6 @@ public class LoopRowTableAllRenderPolicyTest {
 
     @Test
     public void testDefaultLoopTablePolicyExample() throws Exception {
-        LoopRowTableRenderPolicy hackLoopTableRenderPolicy = new LoopRowTableRenderPolicy();
         LoopRowTableRenderPolicy hackLoopSameLineTableRenderPolicy = new LoopRowTableRenderPolicy(true);
         Configure config = Configure.builder()
             .bind("goods", policy)
@@ -97,7 +95,7 @@ public class LoopRowTableAllRenderPolicyTest {
         LoopRowTableAllRenderPolicy loopRowTableAllRenderPolicy = new LoopRowTableAllRenderPolicy(false, true);
         resource = "src/test/resources/template/render_existed_fill.docx";
         Map<String, Object> stringObjectMap = init2(65);
-        stringObjectMap.put("testrendermode", 1);
+        stringObjectMap.put("test_rendermode", 1);
         Configure config = Configure.builder()
             .bind("test", loopRowTableAllRenderPolicy)
             .build();
@@ -107,12 +105,12 @@ public class LoopRowTableAllRenderPolicyTest {
 
     @Test
     public void testLoopExistedAndFillBlanRow() throws Exception {
-        LoopExistedAndFillRowTableRenderPolicy hackLoopTableRenderPolicy2 = new LoopExistedAndFillRowTableRenderPolicy(false, true);
         resource = "src/test/resources/template/render_existed_fill.docx";
         Map<String, Object> stringObjectMap = init2(65);
         stringObjectMap.put("test_rendermode", 2);
+        policy.setSaveNextLine(true);
         Configure config = Configure.builder()
-            .bind("test", hackLoopTableRenderPolicy2)
+            .bind("test", policy)
             .build();
         XWPFTemplate template = XWPFTemplate.compile(resource, config).render(stringObjectMap);
         template.writeToFile("target/out_exiest_fill.docx");
@@ -122,14 +120,15 @@ public class LoopRowTableAllRenderPolicyTest {
     public void testLoopFillRow() throws Exception {
         policy = new LoopRowTableAllRenderPolicy(false, true);
         resource = "src/test/resources/template/render_insert_fill.docx";
+        resource = "src/test/resources/template/render_insert_fill_2.docx";
         Map<String, Object> stringObjectMap = init2(65);
-        stringObjectMap.put("testnumber", 29);
-        stringObjectMap.put("testreduce", 0);
-        stringObjectMap.put("testmode", 2);
-        stringObjectMap.put("testheader", 1);
-        stringObjectMap.put("testfooter", 4);
+        stringObjectMap.put("test_number", 29);
+        stringObjectMap.put("test_reduce", 0);
+        stringObjectMap.put("test_mode", 2);
+        stringObjectMap.put("test_header", 3);
+        stringObjectMap.put("test_footer", 4);
         stringObjectMap.put("blank_desc", "以下空白");
-        stringObjectMap.put("testrendermode", 3);
+        stringObjectMap.put("test_rendermode", 3);
         Configure config = Configure.builder()
             .bind("test", policy)
             .build();
@@ -203,10 +202,11 @@ public class LoopRowTableAllRenderPolicyTest {
 
     @Test
     public void testLoopCopyHeaderRowRenderPolicy() throws Exception {
+        // 测试支持多行表头和单行表头
         resource = "src/test/resources/template/render_insert_fill_2.docx";
-        Map<String, Object> stringObjectMap = init2(10);
-        stringObjectMap.put("test_first_number", 25);
-        stringObjectMap.put("test_number", 28);
+        Map<String, Object> stringObjectMap = init2(50);
+        stringObjectMap.put("test_first_number", 23);
+        stringObjectMap.put("test_number", 26);
         stringObjectMap.put("test_mode", 2);
         stringObjectMap.put("test_rendermode", 6);
         stringObjectMap.put("test_remove_next_line", 4);

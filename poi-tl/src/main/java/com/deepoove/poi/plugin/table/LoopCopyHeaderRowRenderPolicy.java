@@ -59,7 +59,8 @@ public class LoopCopyHeaderRowRenderPolicy implements RenderPolicy {
                 throw new IllegalStateException("The template tag " + runTemplate.getSource() + " must be inside a table");
             }
             XWPFTableCell tagCell = (XWPFTableCell) ((XWPFParagraph) run.getParent()).getBody();
-            int templateRowIndex = getTemplateRowIndex(tagCell);
+            int headerNumber = WordTableUtils.findCellVMergeNumber(tagCell);
+            int templateRowIndex = this.getTemplateRowIndex(tagCell) + headerNumber - 1;
             XWPFTable table = tagCell.getTableRow().getTable();
             run.setText("", 0);
 
@@ -99,7 +100,7 @@ public class LoopCopyHeaderRowRenderPolicy implements RenderPolicy {
             config.setRenderDataComputeFactory(model -> new SpELRenderDataCompute(model, false));
             RenderDataCompute dataCompute = null;
 
-            TemplateResolver resolver = new TemplateResolver(template.getConfig().copy(prefix, suffix));
+            TemplateResolver resolver = new TemplateResolver(template.getConfig().copy("", suffix));
             // Delete blank XWPFParagraph after the table
             NiceXWPFDocument xwpfDocument = removeEmptParagraph(template, table);
             Iterator<?> iterator = ((Iterable<?>) data).iterator();
@@ -131,7 +132,6 @@ public class LoopCopyHeaderRowRenderPolicy implements RenderPolicy {
                             // WordTableUtils.setPageBreak(xwpfDocument);
                             nextTable = xwpfDocument.createTable();
                             int rowIndex = WordTableUtils.findRowIndex(tagCell);
-                            int headerNumber = WordTableUtils.findVerticalMergedRows(table, tagCell);
                             templateRowIndex2 = headerNumber;
                             int temp = 0;
                             for (int i = rowIndex; i <= rowIndex + headerNumber; i++) {
@@ -150,7 +150,7 @@ public class LoopCopyHeaderRowRenderPolicy implements RenderPolicy {
                 }
 
                 insertPosition = templateRowIndex++;
-                if (currentPage == allPage){
+                if (currentPage == allPage) {
                     System.out.println("currentPage");
                 }
                 XWPFTableRow currentRow = table.getRow(insertPosition);
@@ -191,11 +191,6 @@ public class LoopCopyHeaderRowRenderPolicy implements RenderPolicy {
                 }
             } else {
                 table.removeRow(templateRowIndex);
-                if (isRemoveNextLine) {
-                    if (templateRowIndex < table.getRows().size() - 1) {
-                        table.removeRow(templateRowIndex);
-                    }
-                }
                 templateRowIndex = table.getRows().size() - 1;
             }
             int insertLine;

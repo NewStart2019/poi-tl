@@ -74,4 +74,36 @@ public class LoopRowTableAllRenderPolicy implements RenderPolicy {
                 new LoopRowTableRenderPolicy(this.prefix, this.suffix, this.onSameLine).render(eleTemplate, data, template);
         }
     }
+
+    public String getPrefix() {
+        return prefix;
+    }
+
+    public void setPrefix(String prefix) {
+        this.prefix = prefix;
+    }
+
+    public String getSuffix() {
+        return suffix;
+    }
+
+    public void setSuffix(String suffix) {
+        this.suffix = suffix;
+    }
+
+    public boolean isOnSameLine() {
+        return onSameLine;
+    }
+
+    public void setOnSameLine(boolean onSameLine) {
+        this.onSameLine = onSameLine;
+    }
+
+    public boolean isSaveNextLine() {
+        return isSaveNextLine;
+    }
+
+    public void setSaveNextLine(boolean saveNextLine) {
+        isSaveNextLine = saveNextLine;
+    }
 }
