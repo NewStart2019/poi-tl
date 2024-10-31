@@ -100,7 +100,7 @@ public class LoopCopyHeaderRowRenderPolicy implements RenderPolicy {
             config.setRenderDataComputeFactory(model -> new SpELRenderDataCompute(model, false));
             RenderDataCompute dataCompute = null;
 
-            TemplateResolver resolver = new TemplateResolver(template.getConfig().copy("", suffix));
+            TemplateResolver resolver = new TemplateResolver(template.getConfig().copy(prefix, suffix));
             // Delete blank XWPFParagraph after the table
             NiceXWPFDocument xwpfDocument = removeEmptParagraph(template, table);
             Iterator<?> iterator = ((Iterable<?>) data).iterator();
@@ -150,9 +150,6 @@ public class LoopCopyHeaderRowRenderPolicy implements RenderPolicy {
                 }
 
                 insertPosition = templateRowIndex++;
-                if (currentPage == allPage) {
-                    System.out.println("currentPage");
-                }
                 XWPFTableRow currentRow = table.getRow(insertPosition);
                 if (!firstFlag) {
                     // update VMerge cells for non-first row

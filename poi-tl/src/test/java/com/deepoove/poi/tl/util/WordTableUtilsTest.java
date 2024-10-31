@@ -4,12 +4,10 @@ import com.deepoove.poi.util.WordTableUtils;
 import org.apache.poi.wp.usermodel.HeaderFooterType;
 import org.apache.poi.xwpf.usermodel.*;
 import org.junit.jupiter.api.Test;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.*;
 
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;

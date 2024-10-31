@@ -3,6 +3,7 @@ package com.deepoove.poi.util;
 import com.deepoove.poi.xwpf.Page;
 import com.deepoove.poi.xwpf.XWPFStructuredDocumentTagContent;
 import com.deepoove.poi.xwpf.XWPFTextboxContent;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.util.Units;
 import org.apache.poi.xwpf.usermodel.*;
@@ -12,7 +13,6 @@ import org.openxmlformats.schemas.drawingml.x2006.picture.CTPicture;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.util.CollectionUtils;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -88,7 +88,7 @@ public class WordTableUtils {
             return nextLine;
         }
         XWPFTable table = nextLine.getTable();
-        if (org.apache.commons.collections4.CollectionUtils.isEmpty(nextLine.getTableCells())) {
+        if (CollectionUtils.isEmpty(nextLine.getTableCells())) {
             // 复制行
             XmlCursor sourceCursor = currentLine.getCtRow().newCursor();
             XmlObject object = sourceCursor.getObject();
@@ -113,32 +113,26 @@ public class WordTableUtils {
         return nextLine;
     }
 
+    /**
+     * Copy cell data to another cell, and if the source cell does not have data, clear the target cell data.
+     * course,
+     *
+     * @param source         {@link XWPFTableCell source}
+     * @param target         {@link  XWPFTableCell target}
+     * @param isIncludeStyle boolean, whether to keep the style of the target cell
+     */
     public static void copyCell(XWPFTableCell source, XWPFTableCell target, boolean isIncludeStyle) {
         if (source == null || target == null) {
             return;
         }
         List<XWPFParagraph> paragraphs = source.getParagraphs();
+        cleanCellContent(target);
         if (CollectionUtils.isEmpty(paragraphs)) {
-            cleanCellContent(target);
             return;
         }
-        CTPPr targetCtPPr = null;
-        XWPFParagraph firstParagraph = null;
-        if (org.apache.commons.collections4.CollectionUtils.isNotEmpty(target.getParagraphs())) {
-            firstParagraph = target.getParagraphs().get(0);
-            targetCtPPr = firstParagraph.getCTP().getPPr();
-        }
-        for (XWPFParagraph paragraph : source.getParagraphs()) {
+        for (XWPFParagraph paragraph : paragraphs) {
             XWPFParagraph newParagraph = target.addParagraph();
             WordTableUtils.copyParagraph(paragraph, newParagraph, isIncludeStyle);
-            if (targetCtPPr != null) {
-                newParagraph.getCTP().setPPr(targetCtPPr);
-                newParagraph.setStyle(firstParagraph.getStyle());
-            }
-            if (isIncludeStyle) {
-                newParagraph.getCTP().unsetPPr();
-                newParagraph.getCTP().setPPr(paragraph.getCTP().getPPr());
-            }
         }
         if (isIncludeStyle) {
             CTTcPr sourceTcPr = source.getCTTc().getTcPr();
@@ -146,14 +140,11 @@ public class WordTableUtils {
                 target.getCTTc().setTcPr(sourceTcPr);
             }
         }
-        if (firstParagraph != null) {
-            WordTableUtils.removeParagraphOfCell(target, firstParagraph);
-        }
     }
 
     /**
-     * Copy the content of a cell that spans multiple columns, including its style. Since the data spanning columns
-     * is only present in the first row, there's no need to clear the content of the target cells
+     * Copy cell data to another cell, but keep the style of the target cell. The isIncludeStyle field is used to
+     * control whether to overwrite the source cell style
      *
      * @param source         {@link XWPFTableCell source}
      * @param target         {@link XWPFTableCell target}
@@ -163,14 +154,9 @@ public class WordTableUtils {
         if (source == null || target == null) {
             return;
         }
-        List<XWPFParagraph> paragraphs = source.getParagraphs();
-        if (CollectionUtils.isEmpty(paragraphs)) {
-            cleanCellContent(target);
-            return;
-        }
         CTPPr targetCtPPr = null;
         XWPFParagraph firstParagraph = null;
-        if (org.apache.commons.collections4.CollectionUtils.isNotEmpty(target.getParagraphs())) {
+        if (CollectionUtils.isNotEmpty(target.getParagraphs())) {
             firstParagraph = target.getParagraphs().get(0);
             targetCtPPr = firstParagraph.getCTP().getPPr();
         }
@@ -327,7 +313,7 @@ public class WordTableUtils {
     public static void cleanRowTextContent(XWPFTableRow templateRow) {
         List<XWPFTableCell> tableCells = templateRow.getTableCells();
         tableCells.forEach(cell -> {
-            if (org.apache.commons.collections4.CollectionUtils.isNotEmpty(cell.getParagraphs())) {
+            if (CollectionUtils.isNotEmpty(cell.getParagraphs())) {
                 cell.getParagraphs().forEach(WordTableUtils::removeAllRun);
             }
         });
@@ -441,7 +427,7 @@ public class WordTableUtils {
     }
 
     public static void removeAllRun(XWPFParagraph paragraph) {
-        if (paragraph != null && org.apache.commons.collections4.CollectionUtils.isNotEmpty(paragraph.getRuns())) {
+        if (paragraph != null && CollectionUtils.isNotEmpty(paragraph.getRuns())) {
             for (int i = paragraph.getRuns().size() - 1; i >= 0; i--) {
                 paragraph.removeRun(i);
             }
