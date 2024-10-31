@@ -65,8 +65,9 @@ public class SectionTableRenderPolicyTest {
         String resource = "src/test/resources/template/grid_bu.docx";
         Map<String, Object> data = new HashMap<>();
         data.put("r34", 50);
+        data.put("empty", null);
         Configure config = Configure.builder()
-            .addPlugin('_', new RemoveTableRowRenderPolicy("——"))
+            .addPlugin('$', new RemoveTableRowRenderPolicy("——"))
             .useSpringEL(false)
             .build();
         XWPFTemplate template = XWPFTemplate.compile(resource, config);
