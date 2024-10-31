@@ -56,7 +56,7 @@ public class RemoveTableRowRenderPolicy implements RenderPolicy {
             // compute 为空 或 表达式为true 时 删除本行
             if (compute == null || compute == defaultDeleteValue) {
                 removeTableCellNoSpan(tableRow, rowIndex);
-            } else if (compute instanceof Boolean && Boolean.TRUE.equals(compute)) {
+            } else if (compute instanceof Boolean && Boolean.FALSE.equals(compute)) {
                 removeTableCellNoSpan(tableRow, rowIndex);
             }
         } catch (Exception e) {
