@@ -183,7 +183,10 @@ public class LoopIncludeSubTableRenderPolicy implements RenderPolicy {
                                     List<MetaTemplate> templates = resolver.resolveBodyElements(cell.getBodyElements());
                                     new DocumentProcessor(template, resolver, finalDataCompute1).process(templates);
                                 });
+
+                                LoopCopyHeaderRowRenderPolicy.removeCurrentLineData(globalEnv, sub);
                             }
+                            LoopCopyHeaderRowRenderPolicy.removeCurrentLineData(globalEnv, root);
 
                             currentTable.removeRow(tempTemplateRowIndex);
                             int insertLine;

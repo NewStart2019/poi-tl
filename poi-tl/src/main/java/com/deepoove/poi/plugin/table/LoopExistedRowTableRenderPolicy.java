@@ -129,6 +129,8 @@ public class LoopExistedRowTableRenderPolicy implements RenderPolicy {
                         List<MetaTemplate> templates = resolver.resolveBodyElements(cell.getBodyElements());
                         new DocumentProcessor(template, resolver, dataCompute).process(templates);
                     });
+
+                    LoopCopyHeaderRowRenderPolicy.removeCurrentLineData(globalEnv, root);
                 }
             }
 

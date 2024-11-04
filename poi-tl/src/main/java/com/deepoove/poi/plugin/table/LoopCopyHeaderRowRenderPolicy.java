@@ -233,7 +233,7 @@ public class LoopCopyHeaderRowRenderPolicy implements RenderPolicy {
         return (dataCount - firstPageLine) / pageLine + ((dataCount - firstPageLine) % pageLine == 0 ? 0 : 1) + 1;
     }
 
-    private void removeCurrentLineData(Map<String, Object> globalEnv, Object root) {
+    public static void removeCurrentLineData(Map<String, Object> globalEnv, Object root) {
         TlBeanUtil beanUtil = new TlBeanUtil();
         if (root instanceof String || TlBeanUtil.isPrimitive(root)) {
             return;

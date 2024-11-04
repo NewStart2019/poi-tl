@@ -152,8 +152,9 @@ public class LoopFullTableInsertFillRenderPolicy implements RenderPolicy {
                 cells.forEach(cell -> {
                     List<MetaTemplate> templates = resolver.resolveBodyElements(cell.getBodyElements());
                     new DocumentProcessor(template, resolver, dataCompute).process(templates);
-
                 });
+
+                LoopCopyHeaderRowRenderPolicy.removeCurrentLineData(globalEnv, root);
             }
 
             table.removeRow(tempTemplateRowIndex);
