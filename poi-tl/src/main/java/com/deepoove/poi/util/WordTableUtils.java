@@ -743,11 +743,21 @@ public class WordTableUtils {
         }
     }
 
-    public static void setPageBreak(XWPFDocument document) {
+    /**
+     * <p>Insert a page break at the <b>end</b> of the paragraph</p>
+     *
+     * @param document   {@link XWPFDocument document}
+     * @param pageMethod Paging method, 1 is the entire paragraph paginated to the next page, not equal to 1 is
+     *                   the current paragraph content paginated to the next line, suitable for table pagination
+     */
+    public static void setPageBreakInLast(XWPFDocument document, int pageMethod) {
         XWPFParagraph pageBreakPara = document.createParagraph();
-        pageBreakPara.setPageBreak(true);
-        // XWPFRun pageBreakRun = pageBreakPara.createRun();
-        // pageBreakRun.addBreak(BreakType.PAGE);
+        if (pageMethod == 1) {
+            pageBreakPara.setPageBreak(true);
+        } else {
+            XWPFRun pageBreakRun = pageBreakPara.createRun();
+            pageBreakRun.addBreak(BreakType.PAGE);
+        }
     }
 
     /**
@@ -756,10 +766,12 @@ public class WordTableUtils {
      * <p>XWPFRun.addBreak(BreakType.PAGE) inserts a page break in the text run (XWPFRun), which causes the page break
      * to be inserted from the current text position and the subsequent content is moved to a new page</p>
      *
-     * @param document {@link XWPFDocument document}
-     * @param body     {@link  IBodyElement body}
+     * @param document   {@link XWPFDocument document}
+     * @param body       {@link  IBodyElement body}
+     * @param pageMethod Paging method, 1 is the entire paragraph paginated to the next page, not equal to 1 is
+     *                   the current paragraph content paginated to the next line, suitable for table pagination
      */
-    public static void setPageBreak(XWPFDocument document, IBodyElement body) {
+    public static void setPageBreak(XWPFDocument document, IBodyElement body, int pageMethod) {
         if (document == null || body == null) {
             return;
         }
@@ -777,9 +789,12 @@ public class WordTableUtils {
         XmlCursor xmlCursor = xmlObject.newCursor();
         xmlCursor.toNextSibling();
         XWPFParagraph pageBreakPara = document.insertNewParagraph(xmlCursor);
-        pageBreakPara.setPageBreak(true);
-//        XWPFRun pageBreakRun = pageBreakPara.createRun();
-//        pageBreakRun.addBreak(BreakType.PAGE);
+        if (pageMethod == 1) {
+            pageBreakPara.setPageBreak(true);
+        } else {
+            XWPFRun pageBreakRun = pageBreakPara.createRun();
+            pageBreakRun.addBreak(BreakType.PAGE);
+        }
     }
 
     public static void mergeCellsHorizontalFullLine(XWPFTableRow tableRow) {

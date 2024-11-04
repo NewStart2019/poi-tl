@@ -204,7 +204,8 @@ public class LoopRowTableAllRenderPolicyTest {
     public void testLoopCopyHeaderRowRenderPolicy() throws Exception {
         // 测试支持多行表头和单行表头
         resource = "src/test/resources/template/render_insert_fill_2.docx";
-        Map<String, Object> stringObjectMap = init2(50);
+        // Map<String, Object> stringObjectMap = init2(50);
+        Map<String, Object> stringObjectMap = init2(75);
         stringObjectMap.put("test_first_number", 23);
         stringObjectMap.put("test_number", 26);
         stringObjectMap.put("test_mode", 2);

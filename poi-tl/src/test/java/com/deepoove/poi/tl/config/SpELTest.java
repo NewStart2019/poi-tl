@@ -69,6 +69,7 @@ public class SpELTest {
     public void testSpELCompute() {
         // map
         assertEquals(spelForMap.compute("['name']"), "Sayi");
+        System.out.println("['name20192001'] == null 输出结果：" + spelForMap.compute("['name20192001'] == null"));
         assertEquals(spelForMap.compute("['data']['hello']"), "poi-tl");
         // map accessor
         assertEquals(spelForMap.compute("name"), "Sayi");

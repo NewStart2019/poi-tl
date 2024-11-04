@@ -26,6 +26,10 @@ public class SectionTableRenderPolicyTest {
         data.put("r1", 12);
         data.put("r2", 0);
         data.put("r34", 0);
+        data.put("A", false);
+        data.put("B", true);
+        // data.put("C", true);
+        // data.put("D", true);
         Configure config = Configure.builder()
                 .addPlugin('-', new SectionColumnTableRenderPolicy())
                 .bind("ifcol", new RemoveTableColumnRenderPolicy())
@@ -66,6 +70,12 @@ public class SectionTableRenderPolicyTest {
         Map<String, Object> data = new HashMap<>();
         data.put("r34", 50);
         data.put("empty", null);
+        data.put("rs1_show", true);
+        data.put("rs2_show", null);
+        data.put("rs4_show", null);
+        data.put("rs5_show", null);
+        data.put("rs6_show", null);
+        data.put("rs7_show", null);
         Configure config = Configure.builder()
             .addPlugin('$', new RemoveTableRowRenderPolicy("——"))
             .useSpringEL(false)
@@ -75,5 +85,10 @@ public class SectionTableRenderPolicyTest {
         template.render(data);
         template.writeToFile("target/out_grid_bu.docx");
 
+        resource = "src/test/resources/template/delete_row.docx";
+        XWPFTemplate template2 = XWPFTemplate.compile(resource, config);
+        initFieldByDocument(template2.getElementTemplates(), data, "——");
+        template2.render(data);
+        template2.writeToFile("target/out_remove_line.docx");
     }
 }

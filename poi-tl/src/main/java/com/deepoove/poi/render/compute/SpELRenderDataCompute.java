@@ -19,6 +19,8 @@ import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.expression.EvaluationContext;
 import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
@@ -26,12 +28,13 @@ import org.springframework.expression.spel.support.StandardEvaluationContext;
 
 /**
  * Spring expression language compute
- * 
+ *
  * @author Sayi
  * @since 1.5.0
  */
 public class SpELRenderDataCompute implements RenderDataCompute {
 
+    private static final Logger log = LoggerFactory.getLogger(SpELRenderDataCompute.class);
     private final ExpressionParser parser;
     private final EvaluationContext context;
     private EvaluationContext envContext;
@@ -67,7 +70,7 @@ public class SpELRenderDataCompute implements RenderDataCompute {
                         return val;
                     }
                 } catch (Exception e) {
-                    // ignore
+                    log.error("Spel calculate error: " + el + " in class:", e);
                 }
             }
             return parser.parseExpression(el).getValue(context);

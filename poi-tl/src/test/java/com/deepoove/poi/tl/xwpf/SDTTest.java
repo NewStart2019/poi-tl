@@ -122,7 +122,7 @@ public class SDTTest {
     void testBreak() throws IOException {
         try (FileInputStream fis = new FileInputStream("src/test/resources/template/insert_paragraph.docx");
              XWPFDocument document = new XWPFDocument(fis)) {
-            WordTableUtils.setPageBreak(document,  document.getTables().get(0));
+            WordTableUtils.setPageBreak(document,  document.getTables().get(0) ,1);
 
             // 保存文档
             try (FileOutputStream fos = new FileOutputStream("target/out_insert_paragraph.docx")) {

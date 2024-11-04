@@ -128,8 +128,10 @@ public class LoopCopyHeaderRowRenderPolicy implements RenderPolicy {
                     // 存在下一页，创建表格
                     table = nextTable;
                     if (currentPage <= allPage) {
-                        if (index < firstPageLine) {
-                            // WordTableUtils.setPageBreak(xwpfDocument);
+                        // if (currentPage < allPage){
+                        //     WordTableUtils.setPageBreak(xwpfDocument, table,2);
+                        // }
+                        if (firstPage) {
                             nextTable = xwpfDocument.createTable();
                             int rowIndex = WordTableUtils.findRowIndex(tagCell);
                             templateRowIndex2 = headerNumber;
@@ -224,7 +226,7 @@ public class LoopCopyHeaderRowRenderPolicy implements RenderPolicy {
         if (dataCount <= firstPageLine) {
             return 1;
         }
-        return (dataCount - firstPageLine) / pageLine + (dataCount - firstPageLine) % pageLine + 1;
+        return (dataCount - firstPageLine) / pageLine + ((dataCount - firstPageLine) % pageLine == 0 ? 0 : 1) + 1;
     }
 
     private static NiceXWPFDocument removeEmptParagraph(XWPFTemplate template, XWPFTable table) {
