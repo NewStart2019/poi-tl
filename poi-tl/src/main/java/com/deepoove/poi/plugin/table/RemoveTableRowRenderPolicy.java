@@ -75,13 +75,12 @@ public class RemoveTableRowRenderPolicy implements RenderPolicy {
     private void removeTableCellNoSpan(XWPFTableRow tableRow, int rowIndex) {
         int size = tableRow.getTableCells().size();
         XWPFTable table = tableRow.getTable();
-        // 判断是否有某一列跨行，如果有则合并单元格到下一行
-        boolean isHasMergedVertically = false;
-        for (int i = size - 1; i > 0; i--) {
+        for (int i = size - 1; i >= 0; i--) {
             XWPFTableCell templateCell = tableRow.getCell(i);
             // 获取是否跨行
-            Integer vMerge = WordTableUtils.findVMerge(templateCell);
-            if (vMerge != null && vMerge == 2) {
+            int vMerge = WordTableUtils.findVMerge(templateCell);
+            // restart
+            if (vMerge == 2) {
                 // 获取跨行数
                 int mergedRows = WordTableUtils.findVerticalMergedRows(table, rowIndex, i);
                 WordTableUtils.copyCellToNextRow(table, rowIndex, i);

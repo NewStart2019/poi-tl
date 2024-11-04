@@ -579,21 +579,25 @@ public class WordTableUtils {
     /**
      * Retrieve the spanned row data, where restart=2 indicates the start of a span.
      * continue=1 signifies the continuation of the spanned data, and the spanning ends when there is no more span information.
+     * <p>CTVMerge directly returns the corresponding 1 or 2 if there is a value, and returns 0 in other cases</p>
      *
      * @param cell {@link XWPFTableCell cell}
      * @return Integer | null则表示没有跨行
      */
-    public static Integer findVMerge(XWPFTableCell cell) {
+    public static int findVMerge(XWPFTableCell cell) {
         // Get cell properties
+        if (cell == null){
+            return 0;
+        }
         CTTcPr tcPr = cell.getCTTc().getTcPr();
         if (tcPr != null) {
             // Get vertical merge properties
             CTVMerge vMerge = tcPr.getVMerge();
-            if (vMerge != null) {
+            if (vMerge != null && vMerge.isSetVal()) {
                 return vMerge.getVal().intValue();
             }
         }
-        return null;
+        return 0;
     }
 
     /**

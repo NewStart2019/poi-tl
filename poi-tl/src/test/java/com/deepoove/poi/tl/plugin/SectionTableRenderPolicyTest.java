@@ -70,10 +70,10 @@ public class SectionTableRenderPolicyTest {
         Map<String, Object> data = new HashMap<>();
         data.put("r34", 50);
         data.put("empty", null);
-        data.put("rs1_show", true);
+        data.put("rs1_show", null);
         data.put("rs2_show", null);
-        data.put("rs4_show", null);
-        data.put("rs5_show", null);
+        data.put("rs4_show", true);
+        data.put("rs5_show", true);
         data.put("rs6_show", null);
         data.put("rs7_show", null);
         Configure config = Configure.builder()
