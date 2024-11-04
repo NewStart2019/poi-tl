@@ -2,6 +2,7 @@ package com.deepoove.poi.plugin.table;
 
 import com.deepoove.poi.XWPFTemplate;
 import com.deepoove.poi.config.Configure;
+import com.deepoove.poi.data.RenderData;
 import com.deepoove.poi.exception.RenderException;
 import com.deepoove.poi.policy.RenderPolicy;
 import com.deepoove.poi.render.compute.EnvModel;
@@ -14,6 +15,7 @@ import com.deepoove.poi.template.ElementTemplate;
 import com.deepoove.poi.template.MetaTemplate;
 import com.deepoove.poi.template.run.RunTemplate;
 import com.deepoove.poi.util.TableTools;
+import com.deepoove.poi.util.TlBeanUtil;
 import com.deepoove.poi.util.WordTableUtils;
 import com.deepoove.poi.xwpf.NiceXWPFDocument;
 import org.apache.poi.xwpf.usermodel.*;
@@ -178,6 +180,8 @@ public class LoopCopyHeaderRowRenderPolicy implements RenderPolicy {
                     List<MetaTemplate> templates = resolver.resolveBodyElements(cell.getBodyElements());
                     new DocumentProcessor(template, resolver, finalDataCompute1).process(templates);
                 });
+
+                this.removeCurrentLineData(globalEnv, root);
             }
 
             if (firstPage) {
@@ -227,6 +231,15 @@ public class LoopCopyHeaderRowRenderPolicy implements RenderPolicy {
             return 1;
         }
         return (dataCount - firstPageLine) / pageLine + ((dataCount - firstPageLine) % pageLine == 0 ? 0 : 1) + 1;
+    }
+
+    private void removeCurrentLineData(Map<String, Object> globalEnv, Object root) {
+        TlBeanUtil beanUtil = new TlBeanUtil();
+        if (root instanceof String || TlBeanUtil.isPrimitive(root)) {
+            return;
+        }
+        Map<String, Object> map = beanUtil.beanToMap(root, RenderData.class, 0);
+        map.forEach((key, value) -> globalEnv.remove(key));
     }
 
     private static NiceXWPFDocument removeEmptParagraph(XWPFTemplate template, XWPFTable table) {
