@@ -203,28 +203,26 @@ class WordTableUtilsTest {
     }
 
     @Test
-    void testCopyTableRow() throws Exception {
-        String file = "src/test/resources/template/render_insert_fill.docx";
-        file = "D:\\DingTalkAppData\\DingTalk\\download\\BGLP01004F 路基路面平整度（三米直尺法）试验检测报告.docx";
+    void testfindVMerge() throws Exception {
+        String file = "src/test/resources/util/get_vmerge.docx";
 
         try (FileInputStream fileInputStream = new FileInputStream(file);
              XWPFDocument document = new XWPFDocument(fileInputStream)) {
             XWPFTable table = document.getTables().get(0);
-            // 创建的表格默认有1行1列
-            XWPFTable table2 = document.createTable();
-            WordTableUtils.copyLineContent(table.getRow(0), table2.insertNewTableRow(0), 0);
-            WordTableUtils.copyLineContent(table.getRow(1), table2.insertNewTableRow(1), 1);
-            WordTableUtils.removeLastRow(table2);
-            WordTableUtils.copyTableTblPr(table, table2);
-            table2.getCTTbl().getTblGrid();
-            // 断言跨列属性是否复制过来
-            assertTrue(table2.getRow(1).getCell(2).getCTTc().getTcPr().isSetVMerge());
-            assertTrue(table2.getRow(1).getCell(3).getCTTc().getTcPr().isSetVMerge());
-            out_file = "target/copy_line_test.docx";
-            // 保存文档
-            try (FileOutputStream out = new FileOutputStream(out_file)) {
-                document.write(out);
-            }
+            int verticalMergedRows = WordTableUtils.findVerticalMergedRows(table, 7, 0);
+            assertEquals(2, verticalMergedRows);
+
+            XWPFTable table1 = document.getTables().get(1);
+            int verticalMergedRows2 = WordTableUtils.findVerticalMergedRows(table1, 0, 0);
+            assertEquals(3, verticalMergedRows2);
+        }
+
+        file = "src/test/resources/template/render_insert_fill_2.docx";
+        try (FileInputStream fileInputStream = new FileInputStream(file);
+             XWPFDocument document = new XWPFDocument(fileInputStream)) {
+            XWPFTable table = document.getTables().get(0);
+            int verticalMergedRows = WordTableUtils.findVerticalMergedRows(table, 0, 0);
+            assertEquals(3, verticalMergedRows);
         }
     }
 }

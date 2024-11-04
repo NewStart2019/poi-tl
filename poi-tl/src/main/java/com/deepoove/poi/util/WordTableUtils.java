@@ -499,7 +499,7 @@ public class WordTableUtils {
      * @return span col number，0 indicates no cross row
      */
     public static int findVerticalMergedRows(XWPFTable table, int startRow, int colIndex) {
-        if (table == null){
+        if (table == null) {
             return 1;
         }
         int i = startRow + 1;
@@ -521,13 +521,7 @@ public class WordTableUtils {
                 break;
             }
             CTVMerge vMerge = tcPr.getVMerge();
-            if (vMerge == null){
-                break;
-            }
-            if (!vMerge.isSetVal()){
-                break;
-            }
-            if (vMerge.getVal().intValue() != 1) {
+            if (vMerge == null) {
                 break;
             }
         }
@@ -535,7 +529,7 @@ public class WordTableUtils {
     }
 
     public static int findVerticalMergedRows(XWPFTable table, XWPFTableCell cell) {
-        if (cell == null || table == null){
+        if (cell == null || table == null) {
             return 1;
         }
         XWPFTableRow tableRow = cell.getTableRow();

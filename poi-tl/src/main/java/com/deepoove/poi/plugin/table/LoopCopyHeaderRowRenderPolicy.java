@@ -168,7 +168,7 @@ public class LoopCopyHeaderRowRenderPolicy implements RenderPolicy {
 
                 XWPFTableRow nextRow = table.insertNewTableRow(templateRowIndex);
                 nextRow = WordTableUtils.copyLineContent(currentRow, nextRow, templateRowIndex);
-                EnvIterator.makeEnv(globalEnv, index++, index < dataCount);
+                EnvIterator.makeEnv(globalEnv, ++index, index < dataCount);
                 dataCompute = config.getRenderDataComputeFactory().newCompute(EnvModel.of(root, globalEnv));
                 List<XWPFTableCell> cells = currentRow.getTableCells();
                 RenderDataCompute finalDataCompute1 = dataCompute;
