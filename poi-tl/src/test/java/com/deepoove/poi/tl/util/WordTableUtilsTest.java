@@ -94,6 +94,31 @@ class WordTableUtilsTest {
     }
 
     @Test
+    void testRowCopy() throws Exception {
+        String template = "src/test/resources/util/copy_template.docx";
+        String template2 = "target/out_copy_row_copys.docx";
+        try (FileInputStream fileInputStream = new FileInputStream(template);
+             XWPFDocument document = new XWPFDocument(fileInputStream);
+             XWPFDocument document2 = new XWPFDocument()) {
+            XWPFTable table1 = document.getTables().get(0);
+
+
+            // 跨文档
+            XWPFTable table = document2.createTable();
+            WordTableUtils.setTableWidthA4(table);
+            WordTableUtils.removeLastRow(table);
+
+            out_file = "target/out_copy_row.docx";
+            // 保存文档
+            try (FileOutputStream out = new FileOutputStream(out_file);
+                 FileOutputStream out2 = new FileOutputStream(template2)) {
+                document.write(out);
+                document2.write(out2);
+            }
+        }
+    }
+
+    @Test
     void mergeRowAndWriteSlash() throws IOException {
         // 创建一个新的 Word 文档
         XWPFDocument document = new XWPFDocument();
@@ -180,6 +205,7 @@ class WordTableUtilsTest {
     @Test
     void testCopyTableRow() throws Exception {
         String file = "src/test/resources/template/render_insert_fill.docx";
+        file = "D:\\DingTalkAppData\\DingTalk\\download\\BGLP01004F 路基路面平整度（三米直尺法）试验检测报告.docx";
 
         try (FileInputStream fileInputStream = new FileInputStream(file);
              XWPFDocument document = new XWPFDocument(fileInputStream)) {

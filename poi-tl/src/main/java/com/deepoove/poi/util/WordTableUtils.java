@@ -72,6 +72,22 @@ public class WordTableUtils {
     }
 
     /**
+     * <p>TODO Copy the content of the current line to the next line.</p>
+     *
+     * @param currentLine    {@link XWPFTableRow currentLine}
+     * @param nextLine       {@link  XWPFTableRow nextLine}
+     * @param isIncludeStyle boolean, whether to keep the style of the target cell
+     */
+    public static void copyLine(XWPFTableRow currentLine, XWPFTableRow nextLine, boolean isIncludeStyle) {
+        // if in the same document
+        XWPFTable sourceTable = currentLine.getTable();
+        XWPFTable targetTable = currentLine.getTable();
+
+        if (sourceTable == targetTable) {
+        }
+    }
+
+    /**
      * Copy the content of the current line to the next line. If the next line is a newly added line,
      * then directly copy the entire XML of the current line to the next line. Otherwise, just copy
      * the content to the next line.
@@ -483,24 +499,35 @@ public class WordTableUtils {
      * @return span col number，0 indicates no cross row
      */
     public static int findVerticalMergedRows(XWPFTable table, int startRow, int colIndex) {
+        if (table == null){
+            return 1;
+        }
         int i = startRow + 1;
         int size = table.getRows().size();
         for (; i <= size; i++) {
-            if (table.getRow(i).getTableCells().get(colIndex) == null) {
+            if (table.getRow(i).getCell(colIndex) == null) {
                 break;
             }
-            XWPFTableCell xwpfTableCell = table.getRow(i).getTableCells().get(colIndex);
-            if (xwpfTableCell.getCTTc() == null) {
+            XWPFTableCell xwpfTableCell = table.getRow(i).getCell(colIndex);
+            if (xwpfTableCell == null || xwpfTableCell.getCTTc() == null) {
                 break;
             }
             CTTc ctTc = xwpfTableCell.getCTTc();
-            if (ctTc.getTcPr() == null) {
+            if (!ctTc.isSetTcPr()) {
                 break;
             }
-            if (ctTc.getTcPr().getVMerge() == null) {
+            CTTcPr tcPr = ctTc.getTcPr();
+            if (!tcPr.isSetVMerge()) {
                 break;
             }
-            if (ctTc.getTcPr().getVMerge().getVal().intValue() != 1) {
+            CTVMerge vMerge = tcPr.getVMerge();
+            if (vMerge == null){
+                break;
+            }
+            if (!vMerge.isSetVal()){
+                break;
+            }
+            if (vMerge.getVal().intValue() != 1) {
                 break;
             }
         }
@@ -508,6 +535,9 @@ public class WordTableUtils {
     }
 
     public static int findVerticalMergedRows(XWPFTable table, XWPFTableCell cell) {
+        if (cell == null || table == null){
+            return 1;
+        }
         XWPFTableRow tableRow = cell.getTableRow();
         int rowIndex = findRowIndex(tableRow);
         int colIndex = tableRow.getTableCells().indexOf(cell);
