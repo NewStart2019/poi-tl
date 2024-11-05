@@ -205,9 +205,9 @@ public class LoopRowTableAllRenderPolicyTest {
         // 测试支持多行表头和单行表头
         resource = "src/test/resources/template/render_insert_fill_2.docx";
         // Map<String, Object> stringObjectMap = init2(50);
-        Map<String, Object> stringObjectMap = init2(75);
-        stringObjectMap.put("test_first_number", 23);
-        stringObjectMap.put("test_number", 26);
+        Map<String, Object> stringObjectMap = init2(54);
+        stringObjectMap.put("test_first_number", 24);
+        stringObjectMap.put("test_number", 30);
         stringObjectMap.put("test_mode", 2);
         stringObjectMap.put("test_rendermode", 6);
         stringObjectMap.put("test_remove_next_line", 4);

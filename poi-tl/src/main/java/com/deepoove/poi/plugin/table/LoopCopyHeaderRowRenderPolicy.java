@@ -16,11 +16,13 @@ import com.deepoove.poi.template.MetaTemplate;
 import com.deepoove.poi.template.run.RunTemplate;
 import com.deepoove.poi.util.TableTools;
 import com.deepoove.poi.util.TlBeanUtil;
+import com.deepoove.poi.util.UnitUtils;
 import com.deepoove.poi.util.WordTableUtils;
 import com.deepoove.poi.xwpf.NiceXWPFDocument;
 import org.apache.poi.xwpf.usermodel.*;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTcPr;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTVMerge;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.STHeightRule;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.STMerge;
 
 import java.util.Collection;
@@ -63,10 +65,11 @@ public class LoopCopyHeaderRowRenderPolicy implements RenderPolicy {
             XWPFTableCell tagCell = (XWPFTableCell) ((XWPFParagraph) run.getParent()).getBody();
             int headerNumber = WordTableUtils.findCellVMergeNumber(tagCell);
             int templateRowIndex = this.getTemplateRowIndex(tagCell) + headerNumber - 1;
+            int starRenderLocation = templateRowIndex;
             XWPFTable table = tagCell.getTableRow().getTable();
             run.setText("", 0);
 
-            int dataCount = 0;
+            int dataCount;
             if (data instanceof Collection) {
                 dataCount = ((Collection<?>) data).size();
             } else {
@@ -105,6 +108,7 @@ public class LoopCopyHeaderRowRenderPolicy implements RenderPolicy {
             TemplateResolver resolver = new TemplateResolver(template.getConfig().copy(prefix, suffix));
             // Delete blank XWPFParagraph after the table
             NiceXWPFDocument xwpfDocument = removeEmptParagraph(template, table);
+            WordTableUtils.removeLastBlankParagraph(xwpfDocument);
             Iterator<?> iterator = ((Iterable<?>) data).iterator();
             boolean hasNext = iterator.hasNext();
             int index = 0;
@@ -130,9 +134,6 @@ public class LoopCopyHeaderRowRenderPolicy implements RenderPolicy {
                     // 存在下一页，创建表格
                     table = nextTable;
                     if (currentPage <= allPage) {
-                        // if (currentPage < allPage){
-                        //     WordTableUtils.setPageBreak(xwpfDocument, table,2);
-                        // }
                         if (firstPage) {
                             nextTable = xwpfDocument.createTable();
                             int rowIndex = WordTableUtils.findRowIndex(tagCell);
@@ -181,7 +182,7 @@ public class LoopCopyHeaderRowRenderPolicy implements RenderPolicy {
                     new DocumentProcessor(template, resolver, finalDataCompute1).process(templates);
                 });
 
-                this.removeCurrentLineData(globalEnv, root);
+                removeCurrentLineData(globalEnv, root);
             }
 
             if (firstPage) {
@@ -205,7 +206,11 @@ public class LoopCopyHeaderRowRenderPolicy implements RenderPolicy {
                 insertLine = pageLine - (dataCount - firstPageLine) % pageLine - reduce;
             }
             this.fillBlankRow(insertLine, table, templateRowIndex);
-
+            if (firstPage) {
+                ruduceRowHeigth(table, starRenderLocation, starRenderLocation + firstPageLine - 1);
+            } else {
+                ruduceRowHeigth(table, headerNumber -1, -1);
+            }
 
             // Default blank line filling, fill blank lines with a reverse slash by mode equal 2
             if (mode != 1 && insertLine > 0) {
@@ -223,6 +228,39 @@ public class LoopCopyHeaderRowRenderPolicy implements RenderPolicy {
             template.reloadSelf();
         } catch (Exception e) {
             throw new RenderException("HackLoopTable for " + eleTemplate + " error: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * <p>Ruduce row height </p>
+     * <p>write a full page，remove the last line break symbol，The default font is SimSun 12 points.</p>
+     * <p>default font is Simsun</p>
+     *
+     * @param table      {@link XWPFTable table}
+     * @param startIndex start index
+     * @param endIndex   end index
+     */
+    public static void ruduceRowHeigth(XWPFTable table, int startIndex, int endIndex) {
+        if (endIndex == -1) {
+            endIndex = table.getRows().size() - 1;
+        }
+        int rowNumber = endIndex - startIndex + 1;
+        int tableMargin = WordTableUtils.findTableMargin(table, 2);
+        // 默认行距：如果不手动设置，XWPFParagraph的行距是单倍行距，具体数值取决于Word应用的默认设置
+        // 240：表示1倍行距
+        int sum = tableMargin + UnitUtils.point2Twips(24 + 24);
+        int perRowReduce = sum / rowNumber;
+        int remain = sum % rowNumber;
+        // perRowReduce += (remain == 0 ? 0 : 1);
+        for (int i = startIndex; i <= endIndex; i++) {
+            XWPFTableRow row = table.getRow(i);
+            int rowHeight = WordTableUtils.findRowHeight(row);
+            WordTableUtils.setTableRowHeight(row, rowHeight - perRowReduce, STHeightRule.EXACT);
+        }
+        for (int i = endIndex - remain + 1; i <= endIndex; i++) {
+            XWPFTableRow row = table.getRow(i);
+            int rowHeight = WordTableUtils.findRowHeight(row);
+            WordTableUtils.setTableRowHeight(row, rowHeight - 1, STHeightRule.EXACT);
         }
     }
 

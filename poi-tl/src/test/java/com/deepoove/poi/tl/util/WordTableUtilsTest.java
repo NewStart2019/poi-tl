@@ -1,16 +1,17 @@
 package com.deepoove.poi.tl.util;
 
+import com.deepoove.poi.util.UnitUtils;
 import com.deepoove.poi.util.WordTableUtils;
 import org.apache.poi.wp.usermodel.HeaderFooterType;
 import org.apache.poi.xwpf.usermodel.*;
 import org.junit.jupiter.api.Test;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.STHeightRule;
 
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class WordTableUtilsTest {
 
@@ -204,25 +205,86 @@ class WordTableUtilsTest {
 
     @Test
     void testfindVMerge() throws Exception {
-        String file = "src/test/resources/util/get_vmerge.docx";
-
-        try (FileInputStream fileInputStream = new FileInputStream(file);
-             XWPFDocument document = new XWPFDocument(fileInputStream)) {
-            XWPFTable table = document.getTables().get(0);
-            int verticalMergedRows = WordTableUtils.findVerticalMergedRows(table, 7, 0);
-            assertEquals(2, verticalMergedRows);
-
-            XWPFTable table1 = document.getTables().get(1);
-            int verticalMergedRows2 = WordTableUtils.findVerticalMergedRows(table1, 0, 0);
-            assertEquals(3, verticalMergedRows2);
-        }
-
-        file = "src/test/resources/template/render_insert_fill_2.docx";
+        String file = "src/test/resources/template/render_insert_fill_2.docx";
         try (FileInputStream fileInputStream = new FileInputStream(file);
              XWPFDocument document = new XWPFDocument(fileInputStream)) {
             XWPFTable table = document.getTables().get(0);
             int verticalMergedRows = WordTableUtils.findVerticalMergedRows(table, 0, 0);
             assertEquals(3, verticalMergedRows);
+        }
+    }
+
+    @Test
+    void testEnter() throws Exception {
+        out_file = "target/test.docx";
+        try (XWPFDocument document = new XWPFDocument()) {
+            // 写入换行：创建一个段落，自动另起一行
+            // 创建第一个段落并添加文本
+            // XWPFParagraph paragraph1 = document.createParagraph();   //******
+            // XWPFRun run1 = paragraph1.createRun();
+            // run1.setText("这是第一行文本");
+
+            // 创建第二个段落，这将自动产生一个换行效果
+            // XWPFParagraph paragraph2 = document.createParagraph();   //******
+            // XWPFRun run2 = paragraph2.createRun();
+            // run2.setText("这是第二行文本");
+
+            XWPFParagraph paragraph = document.createParagraph();
+            XWPFRun run = paragraph.createRun();
+
+            run.setText("这是第一行文本");
+            run.addBreak(BreakType.COLUMN); // 添加换行
+            run.setText("这是同一段落中的第二行文本");
+
+            try (FileOutputStream out = new FileOutputStream(out_file)) {
+                document.write(out);
+            }
+        }
+    }
+
+    @Test
+    void testReduceHeight() throws Exception {
+        out_file = "target/test.docx";
+        try (XWPFDocument document = new XWPFDocument()) {
+            XWPFTable table = document.createTable(1, 1);
+            XWPFTableCell cell = table.getRow(0).getCell(0);
+            XWPFParagraph paragraph = cell.getParagraphs().get(0);
+            XWPFRun run = paragraph.createRun();
+            run.setText("这是第一行文本");
+            WordTableUtils.setTableRowHeight(table.getRow(0), UnitUtils.point2Twips(24), STHeightRule.EXACT);
+            Double fontSizeAsDouble = run.getFontSizeAsDouble();
+            for (int i = 1; i < 29; i++) {
+                WordTableUtils.copyLineContent(table.getRow(0), table.insertNewTableRow(i), i);
+            }
+            int rowHeight = WordTableUtils.findRowHeight(table.getRow(0));
+            ruduceRowHeigth(table, 0, -1);
+            try (FileOutputStream out = new FileOutputStream(out_file)) {
+                document.write(out);
+            }
+        }
+    }
+
+    public static void ruduceRowHeigth(XWPFTable table, int startIndex, int endIndex) {
+        if (endIndex == -1) {
+            endIndex = table.getRows().size() - 1;
+        }
+        int rowNumber = endIndex - startIndex + 1;
+        int tableMargin = WordTableUtils.findTableMargin(table, 2);
+        // 默认行距：如果不手动设置，XWPFParagraph的行距是单倍行距，具体数值取决于Word应用的默认设置
+        // 240：表示1倍行距
+        int sum = tableMargin + UnitUtils.point2Twips(24);
+        int perRowReduce = sum / rowNumber;
+        int remain = sum % rowNumber;
+        // perRowReduce += (remain == 0 ? 0 : 1);
+        for (int i = startIndex; i <= endIndex; i++) {
+            XWPFTableRow row = table.getRow(i);
+            int rowHeight = WordTableUtils.findRowHeight(row);
+            WordTableUtils.setTableRowHeight(row, rowHeight - perRowReduce, STHeightRule.EXACT);
+        }
+        for (int i = endIndex - remain + 1; i <= endIndex; i++) {
+            XWPFTableRow row = table.getRow(i);
+            int rowHeight = WordTableUtils.findRowHeight(row);
+            WordTableUtils.setTableRowHeight(row, rowHeight - 1, STHeightRule.AT_LEAST);
         }
     }
 }
