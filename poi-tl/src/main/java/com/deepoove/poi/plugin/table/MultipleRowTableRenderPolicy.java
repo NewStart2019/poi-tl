@@ -7,6 +7,7 @@ import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.deepoove.poi.util.WordTableUtils;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.apache.poi.xwpf.usermodel.XWPFRun;
 import org.apache.poi.xwpf.usermodel.XWPFTable;
@@ -91,7 +92,7 @@ public class MultipleRowTableRenderPolicy implements RenderPolicy {
             run.setText("", 0);
             TemplateResolver resolver = new TemplateResolver(template.getConfig().copy(prefix, suffix));
             // 获取模板所在的起始行
-            int position = getRowIndex(tagCell.getTableRow());
+            int position = WordTableUtils.findRowIndex(tagCell.getTableRow());
             List<XWPFTableRow> tempRows = getAllTemplateRow(table, position);
             if (null != data && data instanceof Iterable) {
                 // 保存第行模板，以便在后续操作中获取光标
@@ -118,7 +119,7 @@ public class MultipleRowTableRenderPolicy implements RenderPolicy {
                         XmlObject object = newCursor.getObject();
                         XWPFTableRow newRow = new XWPFTableRow((CTRow) object, table);
                         newRow.getCtRow().set(object);
-                        setTableRow(table, newRow, position);
+                        WordTableUtils.setTableRow(table, newRow, position);
 
                         List<XWPFTableCell> cells = newRow.getTableCells();
                         RenderDataCompute dataCompute = template.getConfig()
@@ -175,17 +176,5 @@ public class MultipleRowTableRenderPolicy implements RenderPolicy {
         if (Objects.isNull(run) || !TableTools.isInsideTable(run)) {
             throw new IllegalStateException(message);
         }
-    }
-
-    @SuppressWarnings("unchecked")
-    protected void setTableRow(XWPFTable table, XWPFTableRow row, int pos) {
-        List<XWPFTableRow> rows = (List<XWPFTableRow>) ReflectionUtils.getValue("tableRows", table);
-        rows.set(pos, row);
-        table.getCTTbl().setTrArray(pos, row.getCtRow());
-    }
-
-    protected int getRowIndex(XWPFTableRow row) {
-        List<XWPFTableRow> rows = row.getTable().getRows();
-        return rows.indexOf(row);
     }
 }

@@ -38,6 +38,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -54,7 +56,7 @@ public class XWPFTemplate implements Closeable {
 
     public static final String TEMPLATE_TAG_NAME = "var";
 
-    private static Logger logger = LoggerFactory.getLogger(XWPFTemplate.class);
+    private final static Logger logger = LoggerFactory.getLogger(XWPFTemplate.class);
 
     private NiceXWPFDocument doc;
     private Configure config;
@@ -71,7 +73,7 @@ public class XWPFTemplate implements Closeable {
      * Compile template from absolute file path
      *
      * @param absolutePath template path
-     * @return
+     * @return {@link XWPFTemplate}
      */
     public static XWPFTemplate compile(String absolutePath) {
         return compile(new File(absolutePath));
@@ -81,7 +83,7 @@ public class XWPFTemplate implements Closeable {
      * Compile template from file
      *
      * @param templateFile template file
-     * @return
+     * @return {@link XWPFTemplate}
      */
     public static XWPFTemplate compile(File templateFile) {
         return compile(templateFile, Configure.createDefault());
@@ -91,7 +93,7 @@ public class XWPFTemplate implements Closeable {
      * Compile template from template input stream
      *
      * @param inputStream template input
-     * @return
+     * @return {@link XWPFTemplate}
      */
     public static XWPFTemplate compile(InputStream inputStream) {
         return compile(inputStream, Configure.createDefault());
@@ -101,7 +103,7 @@ public class XWPFTemplate implements Closeable {
      * Compile template from document
      *
      * @param document template document
-     * @return
+     * @return {@link XWPFTemplate}
      */
     public static XWPFTemplate compile(XWPFDocument document) {
         return compile(document, Configure.createDefault());
@@ -111,8 +113,8 @@ public class XWPFTemplate implements Closeable {
      * Compile template from absolute file path with configure
      *
      * @param absolutePath absolute template file path
-     * @param config
-     * @return
+     * @param config       {@link Configure config}
+     * @return {@link XWPFTemplate}
      */
     public static XWPFTemplate compile(String absolutePath, Configure config) {
         return compile(new File(absolutePath), config);
@@ -122,8 +124,8 @@ public class XWPFTemplate implements Closeable {
      * Compile template from file with configure
      *
      * @param templateFile template file
-     * @param config
-     * @return
+     * @param config       {@link Configure config}
+     * @return {@link XWPFTemplate}
      */
     public static XWPFTemplate compile(File templateFile, Configure config) {
         try {
@@ -137,8 +139,8 @@ public class XWPFTemplate implements Closeable {
      * Compile template from document with configure
      *
      * @param document template document
-     * @param config
-     * @return
+     * @param config   {@link Configure config}
+     * @return {@link XWPFTemplate}
      */
     public static XWPFTemplate compile(XWPFDocument document, Configure config) {
         try {
@@ -152,8 +154,8 @@ public class XWPFTemplate implements Closeable {
      * Compile template from template input stream with configure
      *
      * @param inputStream template input
-     * @param config
-     * @return
+     * @param config      {@link Configure config}
+     * @return {@link XWPFTemplate}
      */
     public static XWPFTemplate compile(InputStream inputStream, Configure config) {
         try {
@@ -215,8 +217,8 @@ public class XWPFTemplate implements Closeable {
      *
      * @param model render data
      * @param out   output
-     * @return
-     * @throws IOException
+     * @return {@link XWPFTemplate}
+     * @throws IOException if an I/ O error occurs.
      */
     public XWPFTemplate render(Object model, OutputStream out) throws IOException {
         this.render(model);
@@ -228,7 +230,7 @@ public class XWPFTemplate implements Closeable {
      * write to output stream, do'not forget invoke {@link XWPFTemplate#close()}, {@link OutputStream#close()} finally
      *
      * @param out eg.ServletOutputStream
-     * @throws IOException
+     * @throws IOException  if an I/ O error occurs.
      */
     public void write(OutputStream out) throws IOException {
         this.doc.write(out);
@@ -238,7 +240,7 @@ public class XWPFTemplate implements Closeable {
      * write to and close output stream
      *
      * @param out eg.ServletOutputStream
-     * @throws IOException
+     * @throws IOException  if an I/ O error occurs.
      */
     public void writeAndClose(OutputStream out) throws IOException {
         try {
@@ -253,10 +255,10 @@ public class XWPFTemplate implements Closeable {
      * write to file, this method will close all the stream
      *
      * @param path output path
-     * @throws IOException
+     * @throws IOException  if an I/ O error occurs.
      */
     public void writeToFile(String path) throws IOException {
-        this.writeAndClose(new FileOutputStream(path));
+        this.writeAndClose(Files.newOutputStream(Paths.get(path)));
     }
 
     /**
@@ -291,7 +293,7 @@ public class XWPFTemplate implements Closeable {
     /**
      * close the document
      *
-     * @throws IOException
+     * @throws IOException  if an I/ O error occurs.
      */
     @Override
     public void close() throws IOException {
@@ -301,7 +303,7 @@ public class XWPFTemplate implements Closeable {
     /**
      * Get all tags in the document
      *
-     * @return
+     * @return Return a set of MetaTemplates
      */
     public List<MetaTemplate> getElementTemplates() {
         return eleTemplates;
@@ -314,7 +316,7 @@ public class XWPFTemplate implements Closeable {
     /**
      * Get document
      *
-     * @return
+     * @return return document
      */
     public NiceXWPFDocument getXWPFDocument() {
         return this.doc;
@@ -323,7 +325,7 @@ public class XWPFTemplate implements Closeable {
     /**
      * Get configuration
      *
-     * @return
+     * @return return configuration
      */
     public Configure getConfig() {
         return config;
@@ -332,7 +334,7 @@ public class XWPFTemplate implements Closeable {
     /**
      * Get Resolver
      *
-     * @return
+     * @return return resolver
      */
     public Resolver getResolver() {
         return resolver;
