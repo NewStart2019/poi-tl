@@ -7,6 +7,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.util.Units;
+import org.apache.poi.wp.usermodel.Paragraph;
 import org.apache.poi.xwpf.usermodel.*;
 import org.apache.xmlbeans.XmlCursor;
 import org.apache.xmlbeans.XmlObject;
@@ -533,7 +534,7 @@ public class WordTableUtils {
         if (tblPr != null) {
             CTTblCellMar tblCellMar = tblPr.getTblCellMar();
             BigInteger bigInteger = new BigInteger("0");
-            if (tblCellMar == null){
+            if (tblCellMar == null) {
                 return 0;
             }
             if (flag == 1) {
@@ -730,6 +731,88 @@ public class WordTableUtils {
         return run.getFontSizeAsDouble();
     }
 
+    /**
+     * <p>Set element positions in XWPFDocument</p>
+     * <p>TODO Move error：XmlValueDisconnectedException，Do not use</p>
+     *
+     * @param document    {@link XWPFDocument doc}
+     * @param bodyElement {@link IBodyElement bodyElement}
+     * @param position    The position of elements in IBodyElement
+     */
+    @SuppressWarnings("unchecked")
+    public static void setElementPostion(XWPFDocument document, IBodyElement bodyElement, int position) {
+        if (document == null || bodyElement == null) {
+            return;
+        }
+        List<IBodyElement> bodyElements = (List<IBodyElement>) ReflectionUtils.getValue("bodyElements", document);
+        if (position < 0 || position > bodyElements.size()) {
+            throw new RuntimeException("The position of the element is out of range");
+        }
+        int index = bodyElements.indexOf(bodyElement);
+        if (index < 0 || index == position) {
+            return;
+        }
+        // Move XML elements
+        IBodyElement oldBodyElement = bodyElements.get(position);
+        XmlCursor oldXmlCursor = getXmlCursor(oldBodyElement);
+        XmlCursor xmlCursor = getXmlCursor(bodyElement);
+        if (oldXmlCursor != null && xmlCursor != null) {
+            if (position == bodyElements.size()) {
+                oldXmlCursor.toEndToken();
+            }
+            xmlCursor.moveXml(oldXmlCursor);
+            oldXmlCursor.close();
+            xmlCursor.close();
+        }
+
+
+        CTDocument1 ctDocument = document.getDocument();
+        int order = 0;
+        for (IBodyElement element : bodyElements) {
+            if (element.equals(bodyElement)) {
+                break;
+            } else {
+                if (element.getElementType() == bodyElement.getElementType()) {
+                    ++order;
+                }
+            }
+        }
+        CTBody body = ctDocument.getBody();
+        switch (bodyElement.getElementType()) {
+            case PARAGRAPH:
+                XWPFParagraph paragraph = (XWPFParagraph) bodyElement;
+                List<Paragraph> paragraphs = (List<Paragraph>) ReflectionUtils.getValue("paragraphs", document);
+                int i = paragraphs.indexOf(paragraph);
+                if (i != order) {
+                    List<CTP> pList = body.getPList();
+                    pList.set(order, paragraph.getCTP());
+                    paragraphs.remove(paragraph);
+                    paragraphs.add(order, paragraph);
+                }
+                break;
+            case TABLE:
+                XWPFTable table = (XWPFTable) bodyElement;
+                List<XWPFTable> tables = (List<XWPFTable>) ReflectionUtils.getValue("tables", document);
+                int i1 = tables.indexOf(table);
+                if (i1 != order) {
+                    List<CTTbl> tblList = body.getTblList();
+                    tblList.set(order, table.getCTTbl());
+                    tables.remove(table);
+                    tables.add(order, table);
+                }
+                break;
+        }
+    }
+
+    private static XmlCursor getXmlCursor(IBodyElement bodyElement) {
+        if (bodyElement.getElementType() == BodyElementType.PARAGRAPH) {
+            return ((XWPFParagraph) bodyElement).getCTP().newCursor();
+        } else if (bodyElement.getElementType() == BodyElementType.TABLE) {
+            return ((XWPFTable) bodyElement).getCTTbl().newCursor();
+        }
+        return null;
+    }
+
     public static void setTablePosition(XWPFDocument doc, XWPFTable targetTable, int tableIndex) {
         doc.insertTable(tableIndex, targetTable);
     }
@@ -876,6 +959,17 @@ public class WordTableUtils {
             XWPFRun pageBreakRun = pageBreakPara.createRun();
             pageBreakRun.addBreak(BreakType.PAGE);
         }
+    }
+
+    public static void setMinHeightParagraph(XWPFDocument document) {
+        XWPFParagraph paragraph = document.createParagraph();
+        CTP ctp = paragraph.getCTP();
+        CTPPr pPr = ctp.isSetPPr()?ctp.getPPr() : ctp.addNewPPr();
+        CTSpacing spacing = pPr.isSetSpacing() ? pPr.getSpacing() : pPr.addNewSpacing();
+        spacing.setBefore(BigInteger.valueOf(0));
+        spacing.setAfter(BigInteger.valueOf(0));
+        spacing.setLine(BigInteger.valueOf(1));
+        spacing.setLineRule(STLineSpacingRule.EXACT);
     }
 
     public static void mergeCellsHorizontalFullLine(XWPFTableRow tableRow) {

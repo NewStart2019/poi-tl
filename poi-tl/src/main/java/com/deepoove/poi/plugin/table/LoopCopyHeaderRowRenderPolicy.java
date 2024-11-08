@@ -206,11 +206,6 @@ public class LoopCopyHeaderRowRenderPolicy implements RenderPolicy {
                 insertLine = pageLine - (dataCount - firstPageLine) % pageLine - reduce;
             }
             this.fillBlankRow(insertLine, table, templateRowIndex);
-            if (firstPage) {
-                ruduceRowHeigth(table, starRenderLocation, starRenderLocation + firstPageLine - 1);
-            } else {
-                ruduceRowHeigth(table, headerNumber -1, -1);
-            }
 
             // Default blank line filling, fill blank lines with a reverse slash by mode equal 2
             if (mode != 1 && insertLine > 0) {
@@ -224,7 +219,6 @@ public class LoopCopyHeaderRowRenderPolicy implements RenderPolicy {
             if (table != nextTable) {
                 WordTableUtils.removeTable(xwpfDocument, nextTable);
             }
-
             template.reloadSelf();
         } catch (Exception e) {
             throw new RenderException("HackLoopTable for " + eleTemplate + " error: " + e.getMessage(), e);

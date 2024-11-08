@@ -2,11 +2,16 @@ package com.deepoove.poi.tl.util;
 
 import com.deepoove.poi.util.UnitUtils;
 import com.deepoove.poi.util.WordTableUtils;
+import org.apache.logging.log4j.util.Strings;
 import org.apache.poi.wp.usermodel.HeaderFooterType;
 import org.apache.poi.xwpf.usermodel.*;
+import org.apache.xmlbeans.XmlCursor;
+import org.apache.xmlbeans.XmlException;
+import org.apache.xmlbeans.XmlObject;
 import org.junit.jupiter.api.Test;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.STHeightRule;
 
+import javax.xml.namespace.QName;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -285,6 +290,126 @@ class WordTableUtilsTest {
             XWPFTableRow row = table.getRow(i);
             int rowHeight = WordTableUtils.findRowHeight(row);
             WordTableUtils.setTableRowHeight(row, rowHeight - 1, STHeightRule.AT_LEAST);
+        }
+    }
+
+    @Test
+    void testChangeElement() {
+        String template = "src/test/resources/util/copy_template.docx";
+        try (FileInputStream fileInputStream = new FileInputStream(template);
+             XWPFDocument document = new XWPFDocument(fileInputStream)) {
+            XWPFTable table1 = document.getTables().get(0);
+            XWPFTable table2 = document.getTables().get(1);
+            XWPFParagraph paragraphArray1 = document.getParagraphArray(3);
+
+            int posOfTable = document.getPosOfTable(table2);
+            WordTableUtils.setElementPostion(document, table2, document.getPosOfTable(table1));
+            WordTableUtils.setElementPostion(document, table1, posOfTable);
+            WordTableUtils.setElementPostion(document, paragraphArray1, document.getBodyElements().size() - 1);
+            try (FileOutputStream out = new FileOutputStream(out_file)) {
+                document.write(out);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Test
+    void testXmlCursorMove() {
+        String template = "src/test/resources/util/copy_template.docx";
+        try (FileInputStream fileInputStream = new FileInputStream(template);
+             XWPFDocument document = new XWPFDocument(fileInputStream)) {
+            // XmlCursor cursor = document.getDocument().getBody().newCursor();
+            String xmlString = "<root>\n" +
+                "    <parent>\n" +
+                "        <child>文本1</child>\n" +
+                "        <child>文本2</child>\n" +
+                "    </parent>\n" +
+                "    <sibling>文本3</sibling>\n" +
+                "</root>";
+            XmlObject xmlObject = XmlObject.Factory.parse(xmlString);
+            XmlCursor cursor = xmlObject.newCursor();
+            cursor.toStartDoc();  // 将光标移动到文档的起始位置
+
+            while (cursor.hasNextToken()) {
+                cursor.toNextToken();
+                XmlCursor.TokenType tokenType = cursor.currentTokenType();
+                System.out.println(String.format("当前节点类型-名称：%s-%s", tokenType, cursor.getName()));
+                if (tokenType.isText() && Strings.isNotBlank(cursor.getChars())) {
+                    System.out.println("当前文本内容：" + cursor.getChars());
+                }
+            }
+
+            cursor.toStartDoc();
+            // 定位到 <root> 元素
+            cursor.selectPath("$this//root");
+            cursor.toFirstChild();
+            cursor.toFirstChild();
+
+            // Start a new <work> element
+            cursor.beginElement("work");
+            cursor.insertChars("555-555-5555");
+            // cursor.toNextToken();
+
+            cursor.toStartDoc();
+            // 定位到 <parent> 元素
+            cursor.selectPath("$this/root/parent");
+            cursor.toNextSelection();
+            cursor.toFirstChild(); // 定位到 <parent> 的开始位置
+
+            // 使用 beginElement() 插入 <newChild> 标签对
+            cursor.beginElement("newChild");  // 插入 <newChild> 开始标签，并将光标移动到其内部
+            // 注意这里插入 属性的顺序不能 放在 插入内容之后，否则报错: Can only insert attributes before other attributes or after containers.
+            cursor.insertAttributeWithValue("attr", "attrValue");
+            cursor.insertChars("New Content");  // 插入内容到 <newChild> 内部
+            cursor.toParent();  // 返回到 <parent> 标签
+
+            QName qname = new QName("http://2006", "test", "v");
+            // 插入一个新元素，且只能插入这样插入值，否则在标签外面，需要进入标签里面插入值
+            cursor.insertElementWithText(qname, "New Element Text");
+
+            System.out.println("Modified XML:\n" + xmlObject.xmlText());
+            cursor.close();  // 释放资源
+        } catch (IOException | XmlException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Test
+    void testXmlCursorCopy() {
+        try {
+            // XmlCursor cursor = document.getDocument().getBody().newCursor();
+            String xmlString = "<root>\n" +
+                "    <parent>\n" +
+                "        <child>文本1</child>\n" +
+                "        <child>文本2</child>\n" +
+                "    </parent>\n" +
+                "    <sibling>文本3</sibling>\n" +
+                "</root>";
+
+            XmlObject xmlObject = XmlObject.Factory.parse(xmlString);
+            // 创建光标定位到要移动的标签位置（第一个 <child>）
+            XmlCursor sourceCursor = xmlObject.newCursor();
+            sourceCursor.selectPath("$this//child");
+            sourceCursor.toNextSelection();  // 定位到第一个 <child> 标签
+
+            // 创建目标光标，定位到 <sibling> 标签的开始位置
+            XmlCursor targetCursor = xmlObject.newCursor();
+            targetCursor.selectPath("$this//sibling");
+            targetCursor.toNextSelection();
+            // targetCursor.toStartToken();  // 确保移动到 <sibling> 的开始位置
+
+            // 移动 <child> 标签到 <sibling> 标签之前
+            sourceCursor.moveXml(targetCursor);
+
+            // 打印结果
+            System.out.println("Modified XML:\n" + xmlObject.xmlText());
+
+            // 清理资源
+            sourceCursor.close();
+            targetCursor.close();
+        } catch (XmlException e) {
+            throw new RuntimeException(e);
         }
     }
 }
