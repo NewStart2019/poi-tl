@@ -245,7 +245,7 @@ public class XWPFTextboxContent implements IBody {
         XmlCursor verify = cursor.newCursor();
         verify.toParent();
         boolean result = (verify.getObject() == this.ctTxbxContent);
-        verify.dispose();
+        verify.close();
         return result;
     }
 

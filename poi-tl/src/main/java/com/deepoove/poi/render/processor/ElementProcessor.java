@@ -61,7 +61,7 @@ public class ElementProcessor extends DefaultTemplateProcessor {
 
     void visit(ElementTemplate eleTemplate) {
         RenderPolicy policy = eleTemplate.findPolicy(template.getConfig());
-        if (null != policy && policy instanceof DocxRenderPolicy) return;
+        if (policy instanceof DocxRenderPolicy) return;
         DelegatePolicy.invoke(policy, eleTemplate, renderDataCompute.compute(eleTemplate.getTagName()), template);
     }
 

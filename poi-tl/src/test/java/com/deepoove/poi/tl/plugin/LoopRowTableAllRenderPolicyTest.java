@@ -6,6 +6,7 @@ import com.deepoove.poi.data.Pictures;
 import com.deepoove.poi.plugin.table.LoopFullTableInsertFillRenderPolicy;
 import com.deepoove.poi.plugin.table.LoopRowTableAllRenderPolicy;
 import com.deepoove.poi.plugin.table.LoopRowTableRenderPolicy;
+import com.deepoove.poi.util.WordTableUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -216,6 +217,7 @@ public class LoopRowTableAllRenderPolicyTest {
             .bind("test", policy)
             .build();
         XWPFTemplate template = XWPFTemplate.compile(resource, config).render(stringObjectMap);
+        WordTableUtils.setMinHeightParagraph(template.getXWPFDocument());
         template.writeToFile("target/out_loop_copy_header.docx");
     }
 

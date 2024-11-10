@@ -46,11 +46,8 @@ public class DefaultElementTemplateFactory implements ElementTemplateFactory {
         Character symbol = Character.valueOf(EMPTY_CHAR);
         if (!"".equals(tag)) {
             char fisrtChar = tag.charAt(0);
-            for (Character chara : gramerChars) {
-                if (chara.equals(fisrtChar)) {
-                    symbol = Character.valueOf(fisrtChar);
-                    break;
-                }
+            if (gramerChars.contains(fisrtChar)) {
+                symbol = fisrtChar;
             }
         }
         template.setSource(config.getGramerPrefix() + tag + config.getGramerSuffix());

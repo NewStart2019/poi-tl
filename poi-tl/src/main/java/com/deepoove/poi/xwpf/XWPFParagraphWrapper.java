@@ -15,39 +15,22 @@
  */
 package com.deepoove.poi.xwpf;
 
-import java.lang.reflect.Field;
+import com.deepoove.poi.util.ReflectionUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.poi.openxml4j.opc.PackageRelationship;
+import org.apache.poi.xwpf.usermodel.*;
+import org.apache.xmlbeans.QNameSet;
+import org.apache.xmlbeans.XmlCursor;
+import org.apache.xmlbeans.XmlObject;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.*;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.impl.CTPImpl;
+
+import javax.xml.namespace.QName;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
-
-import javax.xml.namespace.QName;
-
-import org.apache.commons.lang3.StringUtils;
-import org.apache.poi.openxml4j.opc.PackageRelationship;
-import org.apache.poi.xwpf.usermodel.IRunBody;
-import org.apache.poi.xwpf.usermodel.IRunElement;
-import org.apache.poi.xwpf.usermodel.XWPFFieldRun;
-import org.apache.poi.xwpf.usermodel.XWPFHyperlinkRun;
-import org.apache.poi.xwpf.usermodel.XWPFParagraph;
-import org.apache.poi.xwpf.usermodel.XWPFRelation;
-import org.apache.poi.xwpf.usermodel.XWPFRun;
-import org.apache.poi.xwpf.usermodel.XWPFSDT;
-import org.apache.xmlbeans.QNameSet;
-import org.apache.xmlbeans.XmlCursor;
-import org.apache.xmlbeans.XmlObject;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTBookmark;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTHyperlink;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTMarkupRange;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTP;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTR;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTSdtBlock;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTSdtRun;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTSimpleField;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.impl.CTPImpl;
-
-import com.deepoove.poi.exception.ReflectionException;
 
 /**
  * XWPFParagraph wrapper
@@ -116,7 +99,7 @@ public class XWPFParagraphWrapper {
             hyperlink.setId(relationship.getId());
 
             CTR ctr = hyperlink.addNewR();
-            XWPFHyperlinkRun newRun = new XWPFHyperlinkRun(hyperlink, ctr, (IRunBody) paragraph);
+            XWPFHyperlinkRun newRun = new XWPFHyperlinkRun(hyperlink, ctr, paragraph);
             updateRunsAndIRuns(pos, newRun);
             return newRun;
         }
@@ -263,10 +246,10 @@ public class XWPFParagraphWrapper {
                 } else {
                     runs.add(pos + 1, newRun);
                 }
-                newCursor.dispose();
+                newCursor.close();
                 return newRun;
             }
-            newCursor.dispose();
+            newCursor.close();
         }
         return null;
 
@@ -276,7 +259,7 @@ public class XWPFParagraphWrapper {
         XmlCursor verify = cursor.newCursor();
         verify.toParent();
         boolean result = (verify.getObject() == this.paragraph.getCTP());
-        verify.dispose();
+        verify.close();
         return result;
     }
 
@@ -295,7 +278,7 @@ public class XWPFParagraphWrapper {
         if (pos >= 0 && pos <= paragraph.getRuns().size()) {
             CTSimpleField ctSimpleField = this.insertNewFldSimple(pos);
             CTR addNewR = ctSimpleField.addNewR();
-            XWPFFieldRun newRun = new XWPFFieldRun(ctSimpleField, addNewR, (IRunBody) paragraph);
+            XWPFFieldRun newRun = new XWPFFieldRun(ctSimpleField, addNewR, paragraph);
 
             // To update the iruns, find where we're going
             // in the normal runs, and go in there
@@ -335,24 +318,12 @@ public class XWPFParagraphWrapper {
 
     @SuppressWarnings("unchecked")
     private List<XWPFRun> getRuns() {
-        try {
-            Field runsField = XWPFParagraph.class.getDeclaredField("runs");
-            runsField.setAccessible(true);
-            return (List<XWPFRun>) runsField.get(paragraph);
-        } catch (Exception e) {
-            throw new ReflectionException("runs", XWPFParagraph.class, e);
-        }
+        return (List<XWPFRun>)ReflectionUtils.getValue("runs",paragraph);
     }
 
     @SuppressWarnings("unchecked")
     private List<IRunElement> getIRuns() {
-        try {
-            Field runsField = XWPFParagraph.class.getDeclaredField("iruns");
-            runsField.setAccessible(true);
-            return (List<IRunElement>) runsField.get(paragraph);
-        } catch (Exception e) {
-            throw new ReflectionException("iruns", XWPFParagraph.class, e);
-        }
+        return (List<IRunElement>)ReflectionUtils.getValue("iruns",paragraph);
     }
 
     public void setAndUpdateRun(XWPFRun xwpfRun, XWPFRun source, int insertPostionCursor) {
@@ -456,8 +427,7 @@ public class XWPFParagraphWrapper {
         if (0 == count) return sdts;
 
         CTP ctp = paragraph.getCTP();
-        XmlCursor c = ctp.newCursor();
-        try {
+        try (XmlCursor c = ctp.newCursor()) {
             c.selectPath("child::*");
             while (c.toNextSelection()) {
                 XmlObject o = c.getObject();
@@ -470,8 +440,6 @@ public class XWPFParagraphWrapper {
                     sdts.add(cc);
                 }
             }
-        } finally {
-            c.dispose();
         }
         return sdts;
     }

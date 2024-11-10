@@ -234,7 +234,7 @@ public class TemplateResolver extends AbstractResolver {
             }
             RunTemplate runTemplate = (RunTemplate) parseTemplateFactory(text, run, run);
             if (null == runTemplate) continue;
-            char charValue = runTemplate.getSign().charValue();
+            char charValue = runTemplate.getSign();
             if (charValue == config.getIterable().getLeft()) {
                 IterableTemplate freshIterableTemplate = new IterableTemplate(runTemplate);
                 stack.push(freshIterableTemplate);
@@ -265,7 +265,7 @@ public class TemplateResolver extends AbstractResolver {
         String rid = wrapper.getChartId();
         if (null == rid) return null;
         POIXMLDocumentPart documentPart = run.getDocument().getRelationById(rid);
-        if (null == documentPart || !(documentPart instanceof XWPFChart)) return null;
+        if (!(documentPart instanceof XWPFChart)) return null;
         ElementTemplate template = parseTemplateFactory(wrapper.getTitle(), (XWPFChart) documentPart, run);
         return null == template ? (ChartTemplate) parseTemplateFactory(wrapper.getDesc(), (XWPFChart) documentPart, run)
                 : (ChartTemplate) template;
