@@ -73,6 +73,8 @@ public class LoopFullTableInsertFillRenderPolicy implements RenderPolicy {
             Map<String, Object> globalEnv = template.getEnvModel().getEnv();
             Map<String, Object> original = new HashMap<>(globalEnv);
             Configure config = template.getConfig();
+            RenderDataCompute dataCompute = config.getRenderDataComputeFactory()
+                .newCompute(EnvModel.of(template.getEnvModel().getRoot(), globalEnv));
             int pageLine = 0;
             int reduce = 0;
             boolean isRemoveNextLine = false;
@@ -147,7 +149,7 @@ public class LoopFullTableInsertFillRenderPolicy implements RenderPolicy {
                 XWPFTableRow nextRow = table.insertNewTableRow(tempTemplateRowIndex);
                 nextRow = WordTableUtils.copyLineContent(currentRow, nextRow, tempTemplateRowIndex);
                 EnvIterator.makeEnv(globalEnv, ++index, index < dataCount);
-                RenderDataCompute dataCompute = config.getRenderDataComputeFactory().newCompute(EnvModel.of(root, globalEnv));
+                EnvModel.of(root, globalEnv);
                 List<XWPFTableCell> cells = currentRow.getTableCells();
                 cells.forEach(cell -> {
                     List<MetaTemplate> templates = resolver.resolveBodyElements(cell.getBodyElements());

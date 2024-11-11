@@ -99,7 +99,8 @@ public class LoopCopyHeaderRowRenderPolicy implements RenderPolicy {
             }
 
             Configure config = template.getConfig();
-            RenderDataCompute dataCompute = null;
+            RenderDataCompute dataCompute = config.getRenderDataComputeFactory()
+                .newCompute(EnvModel.of(template.getEnvModel().getRoot(), globalEnv));
 
             TemplateResolver resolver = new TemplateResolver(template.getConfig().copy(prefix, suffix));
             // Delete blank XWPFParagraph after the table
@@ -170,12 +171,11 @@ public class LoopCopyHeaderRowRenderPolicy implements RenderPolicy {
                 XWPFTableRow nextRow = table.insertNewTableRow(templateRowIndex);
                 nextRow = WordTableUtils.copyLineContent(currentRow, nextRow, templateRowIndex);
                 EnvIterator.makeEnv(globalEnv, ++index, index < dataCount);
-                dataCompute = config.getRenderDataComputeFactory().newCompute(EnvModel.of(root, globalEnv));
+                EnvModel.of(root, globalEnv);
                 List<XWPFTableCell> cells = currentRow.getTableCells();
-                RenderDataCompute finalDataCompute1 = dataCompute;
                 cells.forEach(cell -> {
                     List<MetaTemplate> templates = resolver.resolveBodyElements(cell.getBodyElements());
-                    new DocumentProcessor(template, resolver, finalDataCompute1).process(templates);
+                    new DocumentProcessor(template, resolver, dataCompute).process(templates);
                 });
 
                 removeCurrentLineData(globalEnv, root);

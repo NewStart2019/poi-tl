@@ -154,7 +154,7 @@ public class LoopRowTableAllRenderPolicyTest {
         LoopFullTableInsertFillRenderPolicy hackLoopTableRenderPolicy2 = new LoopFullTableInsertFillRenderPolicy(false);
         resource = "src/test/resources/template/render_insert_fill.docx";
         Map<String, Object> stringObjectMap = init2(50);
-        stringObjectMap.put("test_number", 24);
+        stringObjectMap.put("test_number", 25);
         stringObjectMap.put("test_mode", 2);
         stringObjectMap.put("test_rendermode", 4);
         // stringObjectMap.put("test_reduce", 1);

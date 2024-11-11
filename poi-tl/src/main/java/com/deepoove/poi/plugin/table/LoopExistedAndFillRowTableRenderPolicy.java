@@ -80,6 +80,8 @@ public class LoopExistedAndFillRowTableRenderPolicy implements RenderPolicy {
             Map<String, Object> globalEnv = template.getEnvModel().getEnv();
             Map<String, Object> original = new HashMap<>(globalEnv);
             Configure config = template.getConfig();
+            RenderDataCompute dataCompute = config.getRenderDataComputeFactory()
+                .newCompute(EnvModel.of(template.getEnvModel().getRoot(), globalEnv));
             if (data instanceof Iterable) {
                 Iterator<?> iterator = ((Iterable<?>) data).iterator();
                 int insertPosition;
@@ -107,8 +109,7 @@ public class LoopExistedAndFillRowTableRenderPolicy implements RenderPolicy {
                     WordTableUtils.copyLineContent(currentLine, templateRow, templateRowIndex);
 
                     EnvIterator.makeEnv(globalEnv, ++index, hasNext);
-                    RenderDataCompute dataCompute = config.getRenderDataComputeFactory()
-                        .newCompute(EnvModel.of(root, globalEnv));
+                    EnvModel.of(root, globalEnv);
                     List<XWPFTableCell> cells = currentLine.getTableCells();
                     cells.forEach(cell -> {
                         List<MetaTemplate> templates = resolver.resolveBodyElements(cell.getBodyElements());

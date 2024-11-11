@@ -86,7 +86,6 @@ public class ReadMapAccessor implements CompilablePropertyAccessor {
         mv.visitMethodInsn(INVOKEINTERFACE, "java/util/Map", "get", "(Ljava/lang/Object;)Ljava/lang/Object;", true);
     }
 
-    @SuppressWarnings("serial")
     private static class MapAccessException extends AccessException {
 
         private final String key;

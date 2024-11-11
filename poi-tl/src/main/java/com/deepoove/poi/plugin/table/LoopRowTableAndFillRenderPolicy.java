@@ -78,6 +78,8 @@ public class LoopRowTableAndFillRenderPolicy implements RenderPolicy {
             Map<String, Object> globalEnv = template.getEnvModel().getEnv();
             Map<String, Object> original = new HashMap<>(globalEnv);
             Configure config = template.getConfig();
+            RenderDataCompute dataCompute = config.getRenderDataComputeFactory()
+                .newCompute(EnvModel.of(template.getEnvModel().getRoot(), globalEnv));
             // number of lines
             int index = 0;
             if (data instanceof Iterable) {
@@ -118,7 +120,7 @@ public class LoopRowTableAndFillRenderPolicy implements RenderPolicy {
                     WordTableUtils.setTableRow(table, nextRow, insertPosition);
 
                     EnvIterator.makeEnv(globalEnv, ++index, hasNext);
-                    RenderDataCompute dataCompute = config.getRenderDataComputeFactory().newCompute(EnvModel.of(root, globalEnv));
+                    EnvModel.of(root, globalEnv);
                     List<XWPFTableCell> cells = nextRow.getTableCells();
                     cells.forEach(cell -> {
                         List<MetaTemplate> templates = resolver.resolveBodyElements(cell.getBodyElements());
