@@ -6,7 +6,6 @@ import com.deepoove.poi.exception.RenderException;
 import com.deepoove.poi.policy.RenderPolicy;
 import com.deepoove.poi.render.compute.EnvModel;
 import com.deepoove.poi.render.compute.RenderDataCompute;
-import com.deepoove.poi.render.compute.SpELRenderDataCompute;
 import com.deepoove.poi.render.processor.DocumentProcessor;
 import com.deepoove.poi.render.processor.EnvIterator;
 import com.deepoove.poi.resolver.TemplateResolver;
@@ -17,6 +16,7 @@ import com.deepoove.poi.util.TableTools;
 import com.deepoove.poi.util.WordTableUtils;
 import org.apache.poi.xwpf.usermodel.*;
 
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -78,6 +78,8 @@ public class LoopExistedAndFillRowTableRenderPolicy implements RenderPolicy {
             XWPFTableRow templateRow = null;
             int index = 0;
             Map<String, Object> globalEnv = template.getEnvModel().getEnv();
+            Map<String, Object> original = new HashMap<>(globalEnv);
+            Configure config = template.getConfig();
             if (data instanceof Iterable) {
                 Iterator<?> iterator = ((Iterable<?>) data).iterator();
                 int insertPosition;
@@ -105,8 +107,6 @@ public class LoopExistedAndFillRowTableRenderPolicy implements RenderPolicy {
                     WordTableUtils.copyLineContent(currentLine, templateRow, templateRowIndex);
 
                     EnvIterator.makeEnv(globalEnv, ++index, hasNext);
-                    Configure config = template.getConfig();
-                    config.setRenderDataComputeFactory(model -> new SpELRenderDataCompute(model, false));
                     RenderDataCompute dataCompute = config.getRenderDataComputeFactory()
                         .newCompute(EnvModel.of(root, globalEnv));
                     List<XWPFTableCell> cells = currentLine.getTableCells();
@@ -160,6 +160,8 @@ public class LoopExistedAndFillRowTableRenderPolicy implements RenderPolicy {
                     }
                 }
             }
+
+            globalEnv.putAll(original);
             afterloop(table, data);
         } catch (Exception e) {
             throw new RenderException("HackLoopTable for " + eleTemplate + " error: " + e.getMessage(), e);

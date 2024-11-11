@@ -7,7 +7,6 @@ import com.deepoove.poi.exception.RenderException;
 import com.deepoove.poi.policy.RenderPolicy;
 import com.deepoove.poi.render.compute.EnvModel;
 import com.deepoove.poi.render.compute.RenderDataCompute;
-import com.deepoove.poi.render.compute.SpELRenderDataCompute;
 import com.deepoove.poi.render.processor.DocumentProcessor;
 import com.deepoove.poi.render.processor.EnvIterator;
 import com.deepoove.poi.resolver.TemplateResolver;
@@ -25,10 +24,7 @@ import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTVMerge;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.STHeightRule;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.STMerge;
 
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class LoopCopyHeaderRowRenderPolicy implements RenderPolicy {
 
@@ -77,6 +73,7 @@ public class LoopCopyHeaderRowRenderPolicy implements RenderPolicy {
             }
 
             Map<String, Object> globalEnv = template.getEnvModel().getEnv();
+            Map<String, Object> original = new HashMap<>(globalEnv);
             int firstPageLine = 0;
             int pageLine = 0;
             int reduce = 0;
@@ -102,7 +99,6 @@ public class LoopCopyHeaderRowRenderPolicy implements RenderPolicy {
             }
 
             Configure config = template.getConfig();
-            config.setRenderDataComputeFactory(model -> new SpELRenderDataCompute(model, false));
             RenderDataCompute dataCompute = null;
 
             TemplateResolver resolver = new TemplateResolver(template.getConfig().copy(prefix, suffix));
@@ -219,6 +215,8 @@ public class LoopCopyHeaderRowRenderPolicy implements RenderPolicy {
             if (table != nextTable) {
                 WordTableUtils.removeTable(xwpfDocument, nextTable);
             }
+
+            globalEnv.putAll(original);
             template.reloadSelf();
         } catch (Exception e) {
             throw new RenderException("HackLoopTable for " + eleTemplate + " error: " + e.getMessage(), e);

@@ -69,13 +69,17 @@ public class ConfigureBuilder {
     }
 
     public ConfigureBuilder useSpringEL(boolean isStrict) {
-        usedSpringEL = true;
-        return setRenderDataComputeFactory(model -> new SpELRenderDataCompute(model, isStrict));
+        return useSpringEL(isStrict, config.getSpELFunction());
     }
 
     public ConfigureBuilder useSpringEL(Map<String, Method> spELFunction) {
+        return useSpringEL(true, spELFunction);
+    }
+
+    public ConfigureBuilder useSpringEL(boolean isStrict, Map<String, Method> spELFunction) {
         usedSpringEL = true;
-        return setRenderDataComputeFactory(model -> new SpELRenderDataCompute(model, true, spELFunction));
+        config.setStrictMode(isStrict);
+        return setRenderDataComputeFactory(model -> new SpELRenderDataCompute(model, isStrict, spELFunction));
     }
 
     public ConfigureBuilder useDefaultEL(boolean isStrict) {

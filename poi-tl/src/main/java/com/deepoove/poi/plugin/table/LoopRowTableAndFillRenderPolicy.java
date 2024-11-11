@@ -6,7 +6,6 @@ import com.deepoove.poi.exception.RenderException;
 import com.deepoove.poi.policy.RenderPolicy;
 import com.deepoove.poi.render.compute.EnvModel;
 import com.deepoove.poi.render.compute.RenderDataCompute;
-import com.deepoove.poi.render.compute.SpELRenderDataCompute;
 import com.deepoove.poi.render.processor.DocumentProcessor;
 import com.deepoove.poi.render.processor.EnvIterator;
 import com.deepoove.poi.resolver.TemplateResolver;
@@ -23,6 +22,7 @@ import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTcPr;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTVMerge;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.STMerge;
 
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -76,6 +76,8 @@ public class LoopRowTableAndFillRenderPolicy implements RenderPolicy {
             int headerNumber = WordTableUtils.findCellVMergeNumber(tagCell);
             int templateRowIndex = getTemplateRowIndex(tagCell) + headerNumber - 1;
             Map<String, Object> globalEnv = template.getEnvModel().getEnv();
+            Map<String, Object> original = new HashMap<>(globalEnv);
+            Configure config = template.getConfig();
             // number of lines
             int index = 0;
             if (data instanceof Iterable) {
@@ -116,8 +118,6 @@ public class LoopRowTableAndFillRenderPolicy implements RenderPolicy {
                     WordTableUtils.setTableRow(table, nextRow, insertPosition);
 
                     EnvIterator.makeEnv(globalEnv, ++index, hasNext);
-                    Configure config = template.getConfig();
-                    config.setRenderDataComputeFactory(model -> new SpELRenderDataCompute(model, false));
                     RenderDataCompute dataCompute = config.getRenderDataComputeFactory().newCompute(EnvModel.of(root, globalEnv));
                     List<XWPFTableCell> cells = nextRow.getTableCells();
                     cells.forEach(cell -> {
@@ -184,6 +184,8 @@ public class LoopRowTableAndFillRenderPolicy implements RenderPolicy {
             } else {
                 table.removeRow(templateRowIndex);
             }
+
+            globalEnv.putAll(original);
             afterloop(table, data);
         } catch (Exception e) {
             throw new RenderException("HackLoopTable for " + eleTemplate + " error: " + e.getMessage(), e);

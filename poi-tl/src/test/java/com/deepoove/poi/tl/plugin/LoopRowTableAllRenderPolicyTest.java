@@ -61,18 +61,24 @@ public class LoopRowTableAllRenderPolicyTest {
     public void testDefaultLoopTablePolicyExample() throws Exception {
         LoopRowTableRenderPolicy hackLoopSameLineTableRenderPolicy = new LoopRowTableRenderPolicy(true);
         Configure config = Configure.builder()
+            .useSpringEL(false)
             .bind("goods", policy)
             .bind("labors", policy)
             .bind("goods2", hackLoopSameLineTableRenderPolicy)
             .bind("labors2", hackLoopSameLineTableRenderPolicy)
             .build();
         XWPFTemplate template = XWPFTemplate.compile(resource, config).render(data);
+        WordTableUtils.setMinHeightParagraph(template.getXWPFDocument());
         template.writeToFile("target/out_table_render_row_span.docx");
     }
 
     public Map<String, Object> init2(int number) {
         Map<String, Object> test = new HashMap<>();
         test.put("companyName", "测试公司");
+        test.put("org_email", "4398430@ee.com");
+        test.put("org_queryPhone", "56486");
+        test.put("org_address", "56486");
+        test.put("conclusion", "符合");
         List<Map<String, Object>> data = new ArrayList<>();
         test.put("test", data);
         test.put("test_number", 29);
@@ -98,9 +104,11 @@ public class LoopRowTableAllRenderPolicyTest {
         Map<String, Object> stringObjectMap = init2(65);
         stringObjectMap.put("test_rendermode", 1);
         Configure config = Configure.builder()
+            .useSpringEL(false)
             .bind("test", loopRowTableAllRenderPolicy)
             .build();
         XWPFTemplate template = XWPFTemplate.compile(resource, config).render(stringObjectMap);
+        WordTableUtils.setMinHeightParagraph(template.getXWPFDocument());
         template.writeToFile("target/out_existed.docx");
     }
 
@@ -111,9 +119,11 @@ public class LoopRowTableAllRenderPolicyTest {
         stringObjectMap.put("test_rendermode", 2);
         policy.setSaveNextLine(true);
         Configure config = Configure.builder()
+            .useSpringEL(false)
             .bind("test", policy)
             .build();
         XWPFTemplate template = XWPFTemplate.compile(resource, config).render(stringObjectMap);
+        WordTableUtils.setMinHeightParagraph(template.getXWPFDocument());
         template.writeToFile("target/out_exiest_fill.docx");
     }
 
@@ -127,13 +137,15 @@ public class LoopRowTableAllRenderPolicyTest {
         stringObjectMap.put("test_reduce", 0);
         stringObjectMap.put("test_mode", 2);
         stringObjectMap.put("test_header", 3);
-        stringObjectMap.put("test_footer", 4);
+        stringObjectMap.put("test_footer", 0);
         stringObjectMap.put("blank_desc", "以下空白");
         stringObjectMap.put("test_rendermode", 3);
         Configure config = Configure.builder()
+            .useSpringEL(false)
             .bind("test", policy)
             .build();
         XWPFTemplate template = XWPFTemplate.compile(resource, config).render(stringObjectMap);
+        WordTableUtils.setMinHeightParagraph(template.getXWPFDocument());
         template.writeToFile("target/out_insert_fill.docx");
     }
 
@@ -146,18 +158,24 @@ public class LoopRowTableAllRenderPolicyTest {
         stringObjectMap.put("test_mode", 2);
         stringObjectMap.put("test_rendermode", 4);
         // stringObjectMap.put("test_reduce", 1);
-        // stringObjectMap.put("testremove_next_line", 4);
+        stringObjectMap.put("test_remove_next_line", 4);
         stringObjectMap.put("blank_desc", "以下空白");
         Configure config = Configure.builder()
+            .useSpringEL(false)
             .bind("test", hackLoopTableRenderPolicy2)
             .build();
         XWPFTemplate template = XWPFTemplate.compile(resource, config).render(stringObjectMap);
+        WordTableUtils.setMinHeightParagraph(template.getXWPFDocument());
         template.writeToFile("target/out_loop_table.docx");
     }
 
     public Map<String, Object> init3(int first, int second) {
         Map<String, Object> test = new HashMap<>();
         test.put("companyName", "测试公司");
+        test.put("org_email", "439828430@ee.com");
+        test.put("org_queryPhone", "56486");
+        test.put("org_address", "56486");
+        test.put("conclusion", "符合");
         List<Map<String, Object>> data = new ArrayList<>();
         test.put("test", data);
         test.put("test_number", 29);
@@ -195,9 +213,11 @@ public class LoopRowTableAllRenderPolicyTest {
         // stringObjectMap.put("test_remove_next_line", 4);
         stringObjectMap.put("blank_desc", "以下空白");
         Configure config = Configure.builder()
+            .useSpringEL(false)
             .bind("test", policy)
             .build();
         XWPFTemplate template = XWPFTemplate.compile(resource, config).render(stringObjectMap);
+        WordTableUtils.setMinHeightParagraph(template.getXWPFDocument());
         template.writeToFile("target/out_loop_sub_table.docx");
     }
 
@@ -214,6 +234,7 @@ public class LoopRowTableAllRenderPolicyTest {
         stringObjectMap.put("test_remove_next_line", 4);
         stringObjectMap.put("blank_desc", "以下空白");
         Configure config = Configure.builder()
+            .useSpringEL(false)
             .bind("test", policy)
             .build();
         XWPFTemplate template = XWPFTemplate.compile(resource, config).render(stringObjectMap);

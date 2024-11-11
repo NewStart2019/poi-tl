@@ -57,7 +57,10 @@ public class SpELRenderDataCompute implements RenderDataCompute {
         }
         this.context = new StandardEvaluationContext(model.getRoot());
         ((StandardEvaluationContext) context).addPropertyAccessor(new ReadMapAccessor());
-        spELFunction.forEach(((StandardEvaluationContext) context)::registerFunction);
+        spELFunction.forEach((k, v) -> {
+            ((StandardEvaluationContext) context).registerFunction(k, v);
+            ((StandardEvaluationContext) envContext).registerFunction(k, v);
+        });
     }
 
     @Override
