@@ -50,7 +50,7 @@ public class ReflectionUtils {
             Field field;
             try {
                 field = searchType.getDeclaredField(name);
-                if (null != field) return field;
+                return field;
             } catch (NoSuchFieldException e) {
                 // no-op
             }

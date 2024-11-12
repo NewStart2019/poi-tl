@@ -17,7 +17,9 @@
 package com.deepoove.poi.render.processor;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.poi.xwpf.usermodel.BodyElementType;
 import org.apache.poi.xwpf.usermodel.IBodyElement;
@@ -90,7 +92,10 @@ public class IterableProcessor extends AbstractIterableProcessor {
         NumberingContinue numbringContinue = NumberingContinue.of(bodyContainer, startPos, endPos, iterableTemplate);
         IterableContext context = new IterableContext(startPos, endPos, numbringContinue);
 
-        EnvIterator.foreach(compute.iterator(), model -> next(iterableTemplate, bodyContainer, context, model));
+        Map<String, Object> globalEnv = this.template.getEnvModel().getEnv();
+        Map<String, Object> oldEnv = new HashMap<>(globalEnv);
+        EnvIterator.foreach(globalEnv, compute.iterator(), model -> next(iterableTemplate, bodyContainer, context, model));
+        globalEnv.putAll(oldEnv);
 
         // clear self iterable template
         for (int i = endPos - 1; i > startPos; i--) {

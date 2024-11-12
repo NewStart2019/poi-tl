@@ -17,7 +17,9 @@
 package com.deepoove.poi.render.processor;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.poi.xwpf.usermodel.XWPFRun;
 import org.apache.xmlbeans.XmlCursor;
@@ -70,7 +72,11 @@ public class InlineIterableProcessor extends AbstractIterableProcessor {
         Integer endRunPos = end.getRunPos();
         IterableContext context = new IterableContext(startRunPos, endRunPos);
 
-        EnvIterator.foreach(compute.iterator(), model -> next(iterableTemplate, parentContext, context, model));
+
+        Map<String, Object> globalEnv = this.template.getEnvModel().getEnv();
+        Map<String, Object> oldEnv = new HashMap<>(globalEnv);
+        EnvIterator.foreach(globalEnv, compute.iterator(), model -> next(iterableTemplate, parentContext, context, model));
+        globalEnv.putAll(oldEnv);
 
         // clear self iterable template
         for (int i = endRunPos - 1; i > startRunPos; i--) {

@@ -191,6 +191,10 @@ public class XWPFParagraphWrapper {
     }
 
     public XWPFRun insertNewRun(int pos) {
+        int size = paragraph.getRuns().size();
+        if (pos < 0){
+            pos = size + pos;
+        }
         if (pos >= 0 && pos <= paragraph.getRuns().size()) {
             CTR ctRun = this.insertNewR(pos);
             XWPFRun newRun = new XWPFRun(ctRun, (IRunBody) paragraph);
@@ -448,4 +452,22 @@ public class XWPFParagraphWrapper {
         return paragraph;
     }
 
+    /**
+     * Add page breaks to existing paragraphs
+     *
+     * @param pageBreakPara {@link XWPFParagraph pageBreakPara}
+     * @param pageMethod    Paging method, 1 is the entire paragraph paginated to the next page, not equal to 1 is the
+     *                      current paragraph content paginated to the next line, suitable for table pagination
+     */
+    public void setPageBreakEnd(XWPFParagraph pageBreakPara, int pageMethod) {
+        if (pageBreakPara == null) {
+            pageBreakPara = this.paragraph;
+        }
+        if (pageMethod == 1) {
+            pageBreakPara.setPageBreak(true);
+        } else {
+            XWPFRun pageBreakRun = this.insertNewRun(-1);
+            pageBreakRun.addBreak(BreakType.PAGE);
+        }
+    }
 }

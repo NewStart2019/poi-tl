@@ -396,8 +396,7 @@ public class NiceXWPFDocument extends XWPFDocument {
              * create a new cursor, that points to the START token of the just
              * inserted paragraph
              */
-            XmlCursor newParaPos = p.newCursor();
-            try {
+            try (XmlCursor newParaPos = p.newCursor()) {
                 /*
                  * Calculate the paragraphs index in the list of all body
                  * elements
@@ -414,8 +413,6 @@ public class NiceXWPFDocument extends XWPFDocument {
                 cursor.toCursor(newParaPos);
                 cursor.toEndToken();
                 return newP;
-            } finally {
-                newParaPos.dispose();
             }
         }
         return null;
@@ -468,7 +465,7 @@ public class NiceXWPFDocument extends XWPFDocument {
         XmlCursor verify = cursor.newCursor();
         verify.toParent();
         boolean result = (verify.getObject() == this.getDocument().getBody());
-        verify.dispose();
+        verify.close();
         return result;
     }
 
@@ -536,8 +533,12 @@ public class NiceXWPFDocument extends XWPFDocument {
 
     @Override
     public boolean removeBodyElement(int pos) {
-        if (pos >= 0 && pos < this.bodyElements.size()) {
-            BodyElementType type = ((IBodyElement) this.bodyElements.get(pos)).getElementType();
+        int size = this.bodyElements.size();
+        if (pos < 0){
+            pos = size + pos;
+        }
+        if (pos >= 0 && pos < size) {
+            BodyElementType type = this.bodyElements.get(pos).getElementType();
             int paraPos;
             if (type == BodyElementType.TABLE) {
                 paraPos = this.getTablePos(pos);

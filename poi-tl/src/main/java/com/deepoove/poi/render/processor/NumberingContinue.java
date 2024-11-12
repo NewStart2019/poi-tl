@@ -91,7 +91,7 @@ public class NumberingContinue {
                 if (startPos >= firstPos) break;
 
                 int endPos = bodyContainer.getPosOfParagraphCTP(endCtp);
-                if (firstPos > startPos && firstPos < endPos) { return new NumberingContinue(); }
+                if (firstPos < endPos) { return new NumberingContinue(); }
             }
         }
         return new NumberingContinue(first.getNumId().getVal());

@@ -11,7 +11,6 @@ import com.deepoove.poi.XWPFTemplate;
 
 public class NumberingContinueTest {
 
-    @SuppressWarnings("serial")
     @Test
     public void testNumberingContinue() throws Exception {
         XWPFTemplate template = XWPFTemplate.compile("src/test/resources/template/iterable_numbering.docx");

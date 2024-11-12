@@ -1,24 +1,17 @@
 package com.deepoove.poi.tl.xwpf;
 
+import com.deepoove.poi.XWPFTemplate;
+import com.deepoove.poi.util.WordTableUtils;
+import com.deepoove.poi.xwpf.NiceXWPFDocument;
+import org.apache.poi.ooxml.POIXMLProperties.CoreProperties;
+import org.junit.jupiter.api.Test;
+
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-
-import com.deepoove.poi.util.WordTableUtils;
-import org.apache.poi.ooxml.POIXMLProperties.CoreProperties;
-import org.apache.poi.xwpf.usermodel.XWPFDocument;
-import org.apache.poi.xwpf.usermodel.XWPFParagraph;
-import org.apache.poi.xwpf.usermodel.XWPFRun;
-import org.apache.poi.xwpf.usermodel.XWPFSDT;
-import org.apache.xmlbeans.XmlCursor;
-import org.apache.xmlbeans.XmlObject;
-import org.junit.jupiter.api.Test;
-
-import com.deepoove.poi.XWPFTemplate;
 
 /**
  * @author Sayi
@@ -119,10 +112,10 @@ public class SDTTest {
     }
 
     @Test
-    void testBreak() throws IOException {
+    void testBreak() {
         try (FileInputStream fis = new FileInputStream("src/test/resources/template/insert_paragraph.docx");
-             XWPFDocument document = new XWPFDocument(fis)) {
-            WordTableUtils.setPageBreak(document,  document.getTables().get(0) ,1);
+             NiceXWPFDocument document = new NiceXWPFDocument(fis)) {
+            WordTableUtils.setPageBreak(document.getParagraphArray(1), 1);
 
             // 保存文档
             try (FileOutputStream fos = new FileOutputStream("target/out_insert_paragraph.docx")) {

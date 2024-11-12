@@ -34,6 +34,17 @@ public class EnvIterator {
         }
     }
 
+    public static void foreach(Map<String, Object> globalEnv, Iterator<?> iterator, Consumer<EnvModel> consumer) {
+        int index = 0;
+        boolean hasNext = iterator.hasNext();
+        while (hasNext) {
+            Object root = iterator.next();
+            hasNext = iterator.hasNext();
+            EnvIterator.makeEnv(globalEnv, ++index, hasNext);
+            consumer.accept(EnvModel.of(root, globalEnv));
+        }
+    }
+
     public static Map<String, Object> makeEnv(int index, boolean hasNext) {
         Map<String, Object> env = new HashMap<>();
         env.put("_is_first", index == 0);

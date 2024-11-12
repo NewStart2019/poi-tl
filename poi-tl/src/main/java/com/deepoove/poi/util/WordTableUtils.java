@@ -1,8 +1,6 @@
 package com.deepoove.poi.util;
 
-import com.deepoove.poi.xwpf.Page;
-import com.deepoove.poi.xwpf.XWPFStructuredDocumentTagContent;
-import com.deepoove.poi.xwpf.XWPFTextboxContent;
+import com.deepoove.poi.xwpf.*;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
@@ -23,6 +21,7 @@ import java.util.List;
 
 /**
  * copy → clean → remove → find → set → merge
+ * TODO updat doc property id， DrawingSupport.updateDocPrId(table);
  */
 @SuppressWarnings("unused")
 public class WordTableUtils {
@@ -929,15 +928,16 @@ public class WordTableUtils {
      * content to a new page</p>
      * <p>XWPFRun.addBreak(BreakType.PAGE) inserts a page break in the text run (XWPFRun), which causes the page break
      * to be inserted from the current text position and the subsequent content is moved to a new page</p>
+     * <p><b>Hint</b>: It will generate a <b> blank line</b></p>
      *
      * @param document   {@link XWPFDocument document}
      * @param body       {@link  IBodyElement body}
      * @param pageMethod Paging method, 1 is the entire paragraph paginated to the next page, not equal to 1 is
      *                   the current paragraph content paginated to the next line, suitable for table pagination
      */
-    public static void setPageBreak(XWPFDocument document, IBodyElement body, int pageMethod) {
+    public static XWPFParagraph setPageBreak(XWPFDocument document, IBodyElement body, int pageMethod) {
         if (document == null || body == null) {
-            return;
+            return null;
         }
         XmlObject xmlObject = null;
         if (body.getElementType() == BodyElementType.PARAGRAPH) {
@@ -946,13 +946,36 @@ public class WordTableUtils {
         } else if (body.getElementType() == BodyElementType.TABLE) {
             XWPFTable table = (XWPFTable) body;
             xmlObject = table.getCTTbl();
+        } else if (body.getElementType() == BodyElementType.CONTENTCONTROL) {
+            XWPFStructuredDocumentTag sdt = (XWPFStructuredDocumentTag) body;
+            xmlObject = sdt.getCtSdtBlock();
         }
         if (xmlObject == null) {
-            return;
+            return null;
         }
         XmlCursor xmlCursor = xmlObject.newCursor();
         xmlCursor.toNextSibling();
         XWPFParagraph pageBreakPara = document.insertNewParagraph(xmlCursor);
+        if (pageMethod == 1) {
+            pageBreakPara.setPageBreak(true);
+        } else {
+            XWPFRun pageBreakRun = pageBreakPara.createRun();
+            pageBreakRun.addBreak(BreakType.PAGE);
+        }
+        return pageBreakPara;
+    }
+
+    /**
+     * Add page breaks to existing paragraphs
+     *
+     * @param pageBreakPara {@link XWPFParagraph pageBreakPara}
+     * @param pageMethod    Paging method, 1 is the entire paragraph paginated to the next page, not equal to 1 is the
+     *                      current paragraph content paginated to the next line, suitable for table pagination
+     */
+    public static void setPageBreak(XWPFParagraph pageBreakPara, int pageMethod) {
+        if (pageBreakPara == null) {
+            return;
+        }
         if (pageMethod == 1) {
             pageBreakPara.setPageBreak(true);
         } else {
@@ -964,7 +987,7 @@ public class WordTableUtils {
     public static void setMinHeightParagraph(XWPFDocument document) {
         XWPFParagraph paragraph = document.createParagraph();
         CTP ctp = paragraph.getCTP();
-        CTPPr pPr = ctp.isSetPPr()?ctp.getPPr() : ctp.addNewPPr();
+        CTPPr pPr = ctp.isSetPPr() ? ctp.getPPr() : ctp.addNewPPr();
         CTSpacing spacing = pPr.isSetSpacing() ? pPr.getSpacing() : pPr.addNewSpacing();
         spacing.setBefore(BigInteger.valueOf(0));
         spacing.setAfter(BigInteger.valueOf(0));
