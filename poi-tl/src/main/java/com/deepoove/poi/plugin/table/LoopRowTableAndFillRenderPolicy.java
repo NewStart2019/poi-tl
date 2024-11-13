@@ -88,6 +88,7 @@ public class LoopRowTableAndFillRenderPolicy implements RenderPolicy {
                 int insertPosition = templateRowIndex;
 
                 TemplateResolver resolver = new TemplateResolver(template.getConfig().copy(prefix, suffix));
+                DocumentProcessor documentProcessor = new DocumentProcessor(template, resolver, dataCompute);
                 boolean firstFlag = true;
                 boolean hasNext = iterator.hasNext();
                 while (hasNext) {
@@ -124,7 +125,7 @@ public class LoopRowTableAndFillRenderPolicy implements RenderPolicy {
                     List<XWPFTableCell> cells = nextRow.getTableCells();
                     cells.forEach(cell -> {
                         List<MetaTemplate> templates = resolver.resolveBodyElements(cell.getBodyElements());
-                        new DocumentProcessor(template, resolver, dataCompute).process(templates);
+                        documentProcessor.process(templates);
                     });
 
                     LoopCopyHeaderRowRenderPolicy.removeCurrentLineData(globalEnv, root);
@@ -142,14 +143,14 @@ public class LoopRowTableAndFillRenderPolicy implements RenderPolicy {
             int mode = 1;
             try {
                 pageLine = n == null ? pageLine : Integer.parseInt(n.toString());
-                Object r = globalEnv.get(eleTemplate.getTagName() + "_reduce");
-                reduce = r != null ? Integer.parseInt(r.toString()) : reduce;
-                Object h = globalEnv.get(eleTemplate.getTagName() + "_header");
-                tableHeaderLine = h != null ? Integer.parseInt(h.toString()) : tableHeaderLine;
-                Object f = globalEnv.get(eleTemplate.getTagName() + "_footer");
-                tableFooterLine = f != null ? Integer.parseInt(f.toString()) : tableFooterLine;
-                Object o = globalEnv.get(eleTemplate.getTagName() + "_mode");
-                mode = o != null ? Integer.parseInt(o.toString()) : mode;
+                n = globalEnv.get(eleTemplate.getTagName() + "_reduce");
+                reduce = n != null ? Integer.parseInt(n.toString()) : reduce;
+                n = globalEnv.get(eleTemplate.getTagName() + "_header");
+                tableHeaderLine = n != null ? Integer.parseInt(n.toString()) : tableHeaderLine;
+                n = globalEnv.get(eleTemplate.getTagName() + "_footer");
+                tableFooterLine = n != null ? Integer.parseInt(n.toString()) : tableFooterLine;
+                n = globalEnv.get(eleTemplate.getTagName() + "_mode");
+                mode = n != null ? Integer.parseInt(n.toString()) : mode;
             } catch (NumberFormatException ignore) {
             }
             if (n != null) {
@@ -168,12 +169,26 @@ public class LoopRowTableAndFillRenderPolicy implements RenderPolicy {
                     insertLine = firstPageLine - remain - reduce;
                     this.fillBlankRow(insertLine, table, templateRowIndex, mode);
                 } else {
-                    remain = (index - pageLine + tableHeaderLine) % pageLine;
-                    insertLine = pageLine - remain;
-                    if (insertLine > tableFooterLine) {
-                        insertLine = insertLine - tableFooterLine - reduce;
-                        this.fillBlankRow(insertLine, table, templateRowIndex, mode);
+                    // 第一页可写行数
+                    firstPageLine = pageLine - tableHeaderLine;
+                    // 判断超过第一页
+                    if (index + tableFooterLine > firstPageLine) {
+                        // 除了第一页剩余的行数
+                        int remain1 = index - firstPageLine;
+                        // 最后一页可写行数
+                        if (remain1 % pageLine == 0) {
+                            insertLine = pageLine - tableFooterLine - reduce;
+                        } else {
+                            int temp = remain1 % pageLine;
+                            // 剩余行数超过一页
+                            if (temp + tableFooterLine > pageLine) {
+                                insertLine = pageLine - remain + (pageLine - tableFooterLine) - reduce;
+                            } else {
+                                insertLine = pageLine - temp - tableFooterLine - reduce;
+                            }
+                        }
                     }
+                    this.fillBlankRow(insertLine, table, templateRowIndex, mode);
                 }
                 // Fill blank lines with a reverse slash
                 if (mode != 1) {

@@ -194,7 +194,7 @@ class WordTableUtilsTest {
         FileInputStream fileInputStream = new FileInputStream(file);
         XWPFDocument document = new XWPFDocument(fileInputStream);
         XWPFTable table = document.getTables().get(0);
-        XWPFTable newTable = WordTableUtils.copyTable(document, table);
+        XWPFTable newTable = WordTableUtils.copyTable(document, table, true);
 
         out_file = "target/test.docx";
         // 保存文档

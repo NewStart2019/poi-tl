@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.util.Arrays;
 import java.util.HashMap;
 
+import com.deepoove.poi.xwpf.NiceXWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.apache.poi.xwpf.usermodel.XWPFRun;
@@ -47,8 +48,8 @@ public class IterableEnvTest {
         XWPFDocument newDocument = XWPFTestSupport.readNewDocument(template);
         String text = newDocument.getParagraphArray(0).getText();
         assertEquals(
-                "index:1_is_first:true_is_last:false_has_next:true_is_even_item:false_is_odd_item:trueindex:2_is_first:false_is_last:false_has_next:true_is_even_item:true_is_odd_item:falseindex:3_is_first:false_is_last:false_has_next:true_is_even_item:false_is_odd_item:trueindex:4_is_first:false_is_last:true_has_next:false_is_even_item:true_is_odd_item:false",
-                text);
+            "index:2_is_first:false_is_last:false_has_next:true_is_even_item:true_is_odd_item:falseindex:3_is_first:false_is_last:false_has_next:true_is_even_item:false_is_odd_item:trueindex:4_is_first:false_is_last:false_has_next:true_is_even_item:true_is_odd_item:falseindex:5_is_first:false_is_last:true_has_next:false_is_even_item:false_is_odd_item:true",
+            text);
     }
 
 }

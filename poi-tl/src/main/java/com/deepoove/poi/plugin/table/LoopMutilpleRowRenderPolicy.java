@@ -15,36 +15,32 @@ import com.deepoove.poi.template.MetaTemplate;
 import com.deepoove.poi.template.run.RunTemplate;
 import com.deepoove.poi.util.TableTools;
 import com.deepoove.poi.util.TlBeanUtil;
-import com.deepoove.poi.util.UnitUtils;
 import com.deepoove.poi.util.WordTableUtils;
 import com.deepoove.poi.xwpf.NiceXWPFDocument;
 import org.apache.poi.xwpf.usermodel.*;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTcPr;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTVMerge;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.STHeightRule;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.STMerge;
+import org.apache.xmlbeans.XmlCursor;
 
 import java.util.*;
 
-public class LoopCopyHeaderRowRenderPolicy implements RenderPolicy {
+public class LoopMutilpleRowRenderPolicy implements RenderPolicy {
 
     private String prefix;
     private String suffix;
     private boolean onSameLine;
 
-    public LoopCopyHeaderRowRenderPolicy() {
+    public LoopMutilpleRowRenderPolicy() {
         this(false);
     }
 
-    public LoopCopyHeaderRowRenderPolicy(boolean onSameLine) {
+    public LoopMutilpleRowRenderPolicy(boolean onSameLine) {
         this("[", "]", onSameLine);
     }
 
-    public LoopCopyHeaderRowRenderPolicy(String prefix, String suffix) {
+    public LoopMutilpleRowRenderPolicy(String prefix, String suffix) {
         this(prefix, suffix, false);
     }
 
-    public LoopCopyHeaderRowRenderPolicy(String prefix, String suffix, boolean onSameLine) {
+    public LoopMutilpleRowRenderPolicy(String prefix, String suffix, boolean onSameLine) {
         this.prefix = prefix;
         this.suffix = suffix;
         this.onSameLine = onSameLine;
@@ -56,12 +52,11 @@ public class LoopCopyHeaderRowRenderPolicy implements RenderPolicy {
         XWPFRun run = runTemplate.getRun();
         try {
             if (!TableTools.isInsideTable(run)) {
-                throw new IllegalStateException("The template tag " + runTemplate.getSource() + " must be inside a table");
+                throw new RenderException("The template tag " + runTemplate.getSource() + " must be inside a table");
             }
             XWPFTableCell tagCell = (XWPFTableCell) ((XWPFParagraph) run.getParent()).getBody();
             int headerNumber = WordTableUtils.findCellVMergeNumber(tagCell);
             int templateRowIndex = this.getTemplateRowIndex(tagCell) + headerNumber - 1;
-            int starRenderLocation = templateRowIndex;
             XWPFTable table = tagCell.getTableRow().getTable();
             run.setText("", 0);
 
@@ -69,15 +64,16 @@ public class LoopCopyHeaderRowRenderPolicy implements RenderPolicy {
             if (data instanceof Collection) {
                 dataCount = ((Collection<?>) data).size();
             } else {
-                return;
+                throw new RenderException("The data type is an " + data.getClass().getSimpleName() +
+                    ", and the data type must be a collection");
             }
 
             Map<String, Object> globalEnv = template.getEnvModel().getEnv();
             Map<String, Object> original = new HashMap<>(globalEnv);
+            int template_row_number = 1;
             int firstPageLine = 0;
             int pageLine = 0;
             int reduce = 0;
-            boolean isRemoveNextLine = false;
             Object n = globalEnv.get(eleTemplate.getTagName() + "_number");
             int mode = 1;
             try {
@@ -87,135 +83,129 @@ public class LoopCopyHeaderRowRenderPolicy implements RenderPolicy {
                 } else {
                     pageLine = Integer.parseInt(n.toString());
                 }
-                Object fn = globalEnv.get(eleTemplate.getTagName() + "_first_number");
-                firstPageLine = fn != null ? Integer.parseInt(fn.toString()) : 0;
-                Object o = globalEnv.get(eleTemplate.getTagName() + "_mode");
-                mode = o != null ? Integer.parseInt(o.toString()) : mode;
-                Object r = globalEnv.get(eleTemplate.getTagName() + "_reduce");
-                reduce = r != null ? Integer.parseInt(r.toString()) : reduce;
-                Object rnl = globalEnv.get(eleTemplate.getTagName() + "_remove_next_line");
-                isRemoveNextLine = rnl != null;
+                Object temp = globalEnv.get(eleTemplate.getTagName() + "_row_number");
+                template_row_number = temp == null ? template_row_number : Integer.parseInt(temp.toString());
+                temp = globalEnv.get(eleTemplate.getTagName() + "_first_number");
+                firstPageLine = temp != null ? Integer.parseInt(temp.toString()) : firstPageLine;
+                temp = globalEnv.get(eleTemplate.getTagName() + "_mode");
+                mode = temp != null ? Integer.parseInt(temp.toString()) : mode;
+                temp = globalEnv.get(eleTemplate.getTagName() + "_reduce");
+                reduce = temp != null ? Integer.parseInt(temp.toString()) : reduce;
             } catch (NumberFormatException ignore) {
+            }
+            if (template_row_number > firstPageLine) {
+                throw new RenderException("Template rendering with more lines than the first page is not supported!");
+            }
+            if (firstPageLine % template_row_number != 0 ||  pageLine % template_row_number != 0) {
+                throw new RenderException("The size of each page should be a multiple of the number of lines in the template for multi line rendering!");
             }
 
             Configure config = template.getConfig();
             RenderDataCompute dataCompute = config.getRenderDataComputeFactory()
                 .newCompute(EnvModel.of(template.getEnvModel().getRoot(), globalEnv));
-
             TemplateResolver resolver = new TemplateResolver(template.getConfig().copy(prefix, suffix));
             DocumentProcessor documentProcessor = new DocumentProcessor(template, resolver, dataCompute);
+
             // Delete blank XWPFParagraph after the table
             NiceXWPFDocument xwpfDocument = template.getXWPFDocument();
             WordTableUtils.removeLastBlankParagraph(xwpfDocument);
             Iterator<?> iterator = ((Iterable<?>) data).iterator();
             boolean hasNext = iterator.hasNext();
             int index = 0;
-            boolean firstFlag = true;
             boolean firstPage = true;
-            int allPage = countPageNumber(dataCount, pageLine, firstPageLine);
+            int allPage = countPageNumber(dataCount, template_row_number, pageLine, firstPageLine);
+            int firstNumber = firstPageLine / template_row_number;
+            int perPageNumber = pageLine / template_row_number;
             int currentPage = 1;
             XWPFTable nextTable = table;
             int templateRowIndex2 = templateRowIndex;
             int insertPosition;
+            XWPFParagraph paragraph = null;
             while (hasNext) {
                 Object root = iterator.next();
                 hasNext = iterator.hasNext();
 
-                firstPage = index < firstPageLine;
-                if (index == 0 || index == firstPageLine || (index - firstPageLine) % pageLine == 0) {
+                firstPage = index < firstNumber;
+                if (index == 0 || index == firstNumber || (index - firstNumber) % perPageNumber == 0) {
                     if (index != 0) {
-                        table.removeRow(templateRowIndex);
-                        if (isRemoveNextLine) {
-                            table.removeRow(templateRowIndex);
-                        }
+                        removeMutipleLine(template_row_number, table, templateRowIndex);
                     }
-                    // 存在下一页，创建表格
                     table = nextTable;
                     if (currentPage <= allPage) {
+                        // set page break
+                        XmlCursor xmlCursor = table.getCTTbl().newCursor();
+                        xmlCursor.toNextSibling();
+                        paragraph = xwpfDocument.insertNewParagraph(xmlCursor);
+                        xmlCursor.close();
+                        WordTableUtils.setPageBreak(paragraph, 1);
+                        WordTableUtils.setMinHeightParagraph(paragraph);
                         if (firstPage) {
                             nextTable = xwpfDocument.createTable();
                             int rowIndex = WordTableUtils.findRowIndex(tagCell);
                             templateRowIndex2 = headerNumber;
                             int temp = 0;
-                            for (int i = rowIndex; i <= rowIndex + headerNumber; i++) {
+                            for (int i = rowIndex; i < rowIndex + headerNumber + template_row_number; i++) {
                                 WordTableUtils.copyLineContent(table.getRow(i), nextTable.insertNewTableRow(temp), temp++);
                             }
                             WordTableUtils.removeLastRow(nextTable);
                             WordTableUtils.copyTableTblPr(table, nextTable);
                             nextTable.getCTTbl().setTblGrid(table.getCTTbl().getTblGrid());
                         } else {
-                            nextTable = WordTableUtils.copyTable(xwpfDocument, table);
+                            XmlCursor paraCursor = paragraph.getCTP().newCursor();
+                            nextTable = WordTableUtils.copyTable(xwpfDocument, table, paraCursor);
                             templateRowIndex = templateRowIndex2;
                         }
-                        firstFlag = true;
                         currentPage++;
                     }
                 }
 
-                insertPosition = templateRowIndex++;
-                XWPFTableRow currentRow = table.getRow(insertPosition);
-                if (!firstFlag) {
-                    // update VMerge cells for non-first row
-                    List<XWPFTableCell> tableCells = currentRow.getTableCells();
-                    for (XWPFTableCell cell : tableCells) {
-                        CTTcPr tcPr = TableTools.getTcPr(cell);
-                        CTVMerge vMerge = tcPr.getVMerge();
-                        if (null == vMerge) continue;
-                        if (STMerge.RESTART == vMerge.getVal()) {
-                            vMerge.setVal(STMerge.CONTINUE);
-                        }
-                    }
-                } else {
-                    firstFlag = false;
-                }
-
-                XWPFTableRow nextRow = table.insertNewTableRow(templateRowIndex);
-                nextRow = WordTableUtils.copyLineContent(currentRow, nextRow, templateRowIndex);
+                insertPosition = templateRowIndex;
+                templateRowIndex += template_row_number;
                 EnvIterator.makeEnv(globalEnv, ++index, index < dataCount);
                 EnvModel.of(root, globalEnv);
-                List<XWPFTableCell> cells = currentRow.getTableCells();
-                cells.forEach(cell -> {
-                    List<MetaTemplate> templates = resolver.resolveBodyElements(cell.getBodyElements());
-                    documentProcessor.process(templates);
-                });
+                for (int i = 0; i < template_row_number; i++) {
+                    XWPFTableRow currentRow = table.getRow(insertPosition + i);
+                    XWPFTableRow nextRow = table.insertNewTableRow(templateRowIndex + i);
+                    nextRow = WordTableUtils.copyLineContent(currentRow, nextRow, templateRowIndex + i);
+                    if (currentRow == null){
+                        System.out.println("null");
+                    }
+                    currentRow.getTableCells().forEach(cell -> {
+                        List<MetaTemplate> templates = resolver.resolveBodyElements(cell.getBodyElements());
+                        documentProcessor.process(templates);
+                    });
+                }
 
                 removeCurrentLineData(globalEnv, root);
+
             }
 
-            if (firstPage) {
-                table.removeRow(templateRowIndex);
-                if (isRemoveNextLine) {
-                    if (templateRowIndex < table.getRows().size() - 1) {
-                        table.removeRow(templateRowIndex);
-                        templateRowIndex--;
-                    }
-                }
-            } else {
-                table.removeRow(templateRowIndex);
-                templateRowIndex = table.getRows().size() - 1;
+            if (paragraph != null) {
+                WordTableUtils.removeParagraph(paragraph);
             }
             int insertLine;
             if (firstPage) {
-                insertLine = firstPageLine - dataCount - reduce;
-            } else if ((dataCount - firstPageLine) % pageLine == 0) {
+                insertLine = firstPageLine - index * template_row_number - reduce;
+            } else if ((dataCount - firstNumber) % perPageNumber == 0) {
                 insertLine = 0;
             } else {
-                insertLine = pageLine - (dataCount - firstPageLine) % pageLine - reduce;
+                insertLine = pageLine - (dataCount - firstNumber) % perPageNumber * template_row_number - reduce;
             }
             this.fillBlankRow(insertLine, table, templateRowIndex);
 
             // Default blank line filling, fill blank lines with a reverse slash by mode equal 2
             if (mode != 1 && insertLine > 0) {
-                WordTableUtils.mergeMutipleLine(table, templateRowIndex + 1, templateRowIndex + insertLine);
+                WordTableUtils.mergeMutipleLine(table, templateRowIndex, templateRowIndex + insertLine - 1);
                 // Set diagonal border
-                XWPFTableCell cellRow00 = table.getRow(templateRowIndex + 1).getCell(0);
+                XWPFTableCell cellRow00 = table.getRow(templateRowIndex).getCell(0);
                 WordTableUtils.setDiagonalBorder(cellRow00);
                 WordTableUtils.setCellWidth(cellRow00, table.getWidth());
             }
-            afterloop(table, data);
             if (table != nextTable) {
                 WordTableUtils.removeTable(xwpfDocument, nextTable);
             }
+            removeMutipleLine(template_row_number, table, templateRowIndex + insertLine);
+            afterloop(table, data);
 
             globalEnv.putAll(original);
             template.reloadSelf();
@@ -224,44 +214,19 @@ public class LoopCopyHeaderRowRenderPolicy implements RenderPolicy {
         }
     }
 
-    /**
-     * <p>Ruduce row height </p>
-     * <p>write a full page，remove the last line break symbol，The default font is SimSun 12 points.</p>
-     * <p>default font is Simsun</p>
-     *
-     * @param table      {@link XWPFTable table}
-     * @param startIndex start index
-     * @param endIndex   end index
-     */
-    public static void ruduceRowHeigth(XWPFTable table, int startIndex, int endIndex) {
-        if (endIndex == -1) {
-            endIndex = table.getRows().size() - 1;
-        }
-        int rowNumber = endIndex - startIndex + 1;
-        int tableMargin = WordTableUtils.findTableMargin(table, 2);
-        // 默认行距：如果不手动设置，XWPFParagraph的行距是单倍行距，具体数值取决于Word应用的默认设置
-        // 240：表示1倍行距
-        int sum = tableMargin + UnitUtils.point2Twips(24 + 24);
-        int perRowReduce = sum / rowNumber;
-        int remain = sum % rowNumber;
-        // perRowReduce += (remain == 0 ? 0 : 1);
-        for (int i = startIndex; i <= endIndex; i++) {
-            XWPFTableRow row = table.getRow(i);
-            int rowHeight = WordTableUtils.findRowHeight(row);
-            WordTableUtils.setTableRowHeight(row, rowHeight - perRowReduce, STHeightRule.EXACT);
-        }
-        for (int i = endIndex - remain + 1; i <= endIndex; i++) {
-            XWPFTableRow row = table.getRow(i);
-            int rowHeight = WordTableUtils.findRowHeight(row);
-            WordTableUtils.setTableRowHeight(row, rowHeight - 1, STHeightRule.EXACT);
+    private static void removeMutipleLine(int template_row_number, XWPFTable table, int templateRowIndex) {
+        for (int i = templateRowIndex + template_row_number - 1; i >= templateRowIndex; i--) {
+            table.removeRow(templateRowIndex);
         }
     }
 
-    private int countPageNumber(int dataCount, int pageLine, int firstPageLine) {
-        if (dataCount <= firstPageLine) {
+    private int countPageNumber(int dataCount, int template_row_number, int pageLine, int firstPageLine) {
+        if (dataCount * template_row_number <= firstPageLine) {
             return 1;
         }
-        return (dataCount - firstPageLine) / pageLine + ((dataCount - firstPageLine) % pageLine == 0 ? 0 : 1) + 1;
+        int firstNumber = firstPageLine / template_row_number;
+        int perPageNumber = pageLine / template_row_number;
+        return (dataCount - firstNumber) / perPageNumber + ((dataCount - firstNumber) % perPageNumber == 0 ? 0 : 1) + 1;
     }
 
     public static void removeCurrentLineData(Map<String, Object> globalEnv, Object root) {
@@ -305,16 +270,14 @@ public class LoopCopyHeaderRowRenderPolicy implements RenderPolicy {
         if (insertLine <= 0) {
             return;
         }
-        XWPFTableRow tempRow = table.insertNewTableRow(startIndex + 1);
-        tempRow = WordTableUtils.copyLineContent(table.getRow(startIndex), tempRow, startIndex + 1);
+        XWPFTableRow tempRow = table.insertNewTableRow(startIndex);
+        tempRow = WordTableUtils.copyLineContent(table.getRow(startIndex + 1), tempRow, startIndex);
         WordTableUtils.cleanRowTextContent(tempRow);
-        startIndex++;
         for (int i = 1; i < insertLine; i++) {
-            tempRow = table.insertNewTableRow(startIndex + 1);
-            WordTableUtils.copyLineContent(table.getRow(startIndex), tempRow, startIndex + 1);
-            startIndex++;
+            XWPFTableRow nextRow = table.insertNewTableRow(startIndex + 1);
+            WordTableUtils.copyLineContent(tempRow, nextRow, ++startIndex);
         }
     }
 
-
 }
+

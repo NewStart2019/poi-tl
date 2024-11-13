@@ -99,6 +99,7 @@ public class LoopFullTableInsertFillRenderPolicy implements RenderPolicy {
             int[] a = new int[]{0, 0};
 
             TemplateResolver resolver = new TemplateResolver(template.getConfig().copy(prefix, suffix));
+            DocumentProcessor documentProcessor = new DocumentProcessor(template, resolver, dataCompute);
             int index = 0;
             XWPFTable nextTable = table;
             int tempTemplateRowIndex = 0;
@@ -153,7 +154,7 @@ public class LoopFullTableInsertFillRenderPolicy implements RenderPolicy {
                 List<XWPFTableCell> cells = currentRow.getTableCells();
                 cells.forEach(cell -> {
                     List<MetaTemplate> templates = resolver.resolveBodyElements(cell.getBodyElements());
-                    new DocumentProcessor(template, resolver, dataCompute).process(templates);
+                    documentProcessor.process(templates);
                 });
 
                 LoopCopyHeaderRowRenderPolicy.removeCurrentLineData(globalEnv, root);

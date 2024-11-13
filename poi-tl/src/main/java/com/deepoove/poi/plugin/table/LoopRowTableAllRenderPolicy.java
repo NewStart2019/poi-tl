@@ -70,6 +70,9 @@ public class LoopRowTableAllRenderPolicy implements RenderPolicy {
             case 6:
                 new LoopCopyHeaderRowRenderPolicy(this.prefix, this.suffix, this.onSameLine).render(eleTemplate, data, template);
                 break;
+            case 7:
+                new LoopMutilpleRowRenderPolicy(this.prefix, this.suffix, this.onSameLine).render(eleTemplate, data, template);
+                break;
             default:
                 new LoopRowTableRenderPolicy(this.prefix, this.suffix, this.onSameLine).render(eleTemplate, data, template);
         }

@@ -239,7 +239,7 @@ public class NiceXWPFDocument extends XWPFDocument {
                         || !ctLvl.getLvlText().getVal().equals(numFmt.getLvlText())) {
                         break;
                     }
-                    if (i == size -1) {
+                    if (i == size - 1) {
                         return num;
                     }
 
@@ -352,6 +352,12 @@ public class NiceXWPFDocument extends XWPFDocument {
         return new XmlXWPFDocumentMerge().merge(this, iterator, newRun);
     }
 
+    /**
+     * Inserts a new paragraph at the given cursor position.
+     *
+     * @param cursor Insert a new paragraph at the position before the cursor element
+     * @return the newly created paragraph
+     */
     @Override
     public XWPFParagraph insertNewParagraph(XmlCursor cursor) {
         if (isCursorInBody(cursor)) {
@@ -418,6 +424,12 @@ public class NiceXWPFDocument extends XWPFDocument {
         return null;
     }
 
+    /**
+     * Inserts a new table into the body of the document.
+     *
+     * @param cursor Insert a new table at the position before the cursor element
+     * @return the newly created table
+     */
     @Override
     public XWPFTable insertNewTbl(XmlCursor cursor) {
         if (isCursorInBody(cursor)) {
@@ -438,8 +450,7 @@ public class NiceXWPFDocument extends XWPFDocument {
                 tables.add(pos, newT);
             }
             int i = 0;
-            XmlCursor tableCursor = t.newCursor();
-            try {
+            try (XmlCursor tableCursor = t.newCursor()) {
                 cursor.toCursor(tableCursor);
                 while (cursor.toPrevSibling()) {
                     o = cursor.getObject();
@@ -451,8 +462,6 @@ public class NiceXWPFDocument extends XWPFDocument {
                 cursor.toCursor(tableCursor);
                 cursor.toEndToken();
                 return newT;
-            } finally {
-                tableCursor.dispose();
             }
         }
         return null;
@@ -534,7 +543,7 @@ public class NiceXWPFDocument extends XWPFDocument {
     @Override
     public boolean removeBodyElement(int pos) {
         int size = this.bodyElements.size();
-        if (pos < 0){
+        if (pos < 0) {
             pos = size + pos;
         }
         if (pos >= 0 && pos < size) {

@@ -92,6 +92,7 @@ public class LoopIncludeSubTableRenderPolicy implements RenderPolicy {
                 .newCompute(EnvModel.of(template.getEnvModel().getRoot(), globalEnv));
 
             TemplateResolver resolver = new TemplateResolver(template.getConfig().copy(prefix, suffix));
+            DocumentProcessor documentProcessor = new DocumentProcessor(template, resolver, dataCompute);
             // Delete blank XWPFParagraph after the table
             NiceXWPFDocument xwpfDocument = removeEmptParagraph(template, table);
             Iterator<?> iterator = ((Iterable<?>) data).iterator();
@@ -139,7 +140,7 @@ public class LoopIncludeSubTableRenderPolicy implements RenderPolicy {
                                                 List<XWPFTableCell> cells = currentTable.getRow(i).getTableCells();
                                                 cells.forEach(cell -> {
                                                     List<MetaTemplate> templates = resolver.resolveBodyElements(cell.getBodyElements());
-                                                    new DocumentProcessor(template, resolver, dataCompute).process(templates);
+                                                    documentProcessor.process(templates);
                                                 });
                                             }
                                             // WordTableUtils.setPageBreak(xwpfDocument);
@@ -176,7 +177,7 @@ public class LoopIncludeSubTableRenderPolicy implements RenderPolicy {
                                 List<XWPFTableCell> cells = currentRow.getTableCells();
                                 cells.forEach(cell -> {
                                     List<MetaTemplate> templates = resolver.resolveBodyElements(cell.getBodyElements());
-                                    new DocumentProcessor(template, resolver, dataCompute).process(templates);
+                                    documentProcessor.process(templates);
                                 });
 
                                 LoopCopyHeaderRowRenderPolicy.removeCurrentLineData(globalEnv, sub);
@@ -211,7 +212,7 @@ public class LoopIncludeSubTableRenderPolicy implements RenderPolicy {
                                 List<XWPFTableCell> cells = currentTable.getRow(i).getTableCells();
                                 cells.forEach(cell -> {
                                     List<MetaTemplate> templates = resolver.resolveBodyElements(cell.getBodyElements());
-                                    new DocumentProcessor(template, resolver, dataCompute).process(templates);
+                                    documentProcessor.process(templates);
                                 });
                             }
                         }

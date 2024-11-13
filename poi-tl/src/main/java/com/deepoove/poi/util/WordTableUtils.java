@@ -1,6 +1,9 @@
 package com.deepoove.poi.util;
 
-import com.deepoove.poi.xwpf.*;
+import com.deepoove.poi.xwpf.Page;
+import com.deepoove.poi.xwpf.XWPFStructuredDocumentTag;
+import com.deepoove.poi.xwpf.XWPFStructuredDocumentTagContent;
+import com.deepoove.poi.xwpf.XWPFTextboxContent;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
@@ -29,31 +32,53 @@ public class WordTableUtils {
     private static final Logger logger = LoggerFactory.getLogger(WordTableUtils.class);
 
     public static XWPFTable copyTable(XWPFDocument doc, XWPFTable sourceTable) {
-        return copyTable(doc, sourceTable, false);
+        return copyTable(doc, sourceTable, null, false);
+    }
+
+    public static XWPFTable copyTable(XWPFDocument doc, XWPFTable sourceTable, boolean isTail) {
+        return copyTable(doc, sourceTable, null, isTail);
+    }
+
+    public static XWPFTable copyTable(XWPFDocument doc, XWPFTable sourceTable, XmlCursor xmlCursor) {
+        return copyTable(doc, sourceTable, xmlCursor, false);
     }
 
     /**
-     * <p>Copy a new table from the original document and place it after the original table.</p>
+     * <p>Copy the specified table after the specified {@link XmlCursor xmlCursor}. If <b>{@link XmlCursor xmlCursor}</b> parameter is <b>empty</b>,
+     * it will be added by default after the position of the <b>current</b> tbale.</p>
      * <p>If isTail is True, the new table will be placed at the end of the document.</p>
+     * <p>If the {@link XmlCursor xmlCursor} parameter is created externally, remember to release the resource yourself</p>
      *
      * @param doc         {@link XWPFDocument doc}
      * @param sourceTable {@link XWPFTable sourceTable}
+     * @param xmlCursor   {@link XmlCursor xmlCursor} Add a table after the specified XMLCursor
+     * @param isTail      boolean, whether to place the new table at the end of the document
      * @return {@link XWPFTable}
      */
-    public static XWPFTable copyTable(XWPFDocument doc, XWPFTable sourceTable, boolean isTail) {
+    @SuppressWarnings("unchecked")
+    public static XWPFTable copyTable(XWPFDocument doc, XWPFTable sourceTable, XmlCursor xmlCursor, boolean isTail) {
         if (doc == null || sourceTable == null) {
             throw new RuntimeException("The parameters passed in cannot be empty!");
         }
         // doc.getPosOfTable：What is obtained is the position of the table in the body
         // int tableIndex = doc.getPosOfTable(sourceTable);
-        int tableIndex = doc.getTables().indexOf(sourceTable) + 1;
-        if (isTail) {
-            tableIndex = doc.getTables().size();
+        if (xmlCursor == null) {
+            xmlCursor = sourceTable.getCTTbl().newCursor();
         }
-        CTTbl newTbl = doc.getDocument().getBody().insertNewTbl(tableIndex);
-        newTbl.set(sourceTable.getCTTbl());
-        XWPFTable table = new XWPFTable(newTbl, doc);
-        doc.insertTable(tableIndex, table);
+        xmlCursor.toNextSibling();
+        if (isTail) {
+            while (xmlCursor.toNextSibling()) ;
+        }
+        XWPFTable table = doc.insertNewTbl(xmlCursor);
+        table.removeRow(0);
+        CTTbl ctTbl = table.getCTTbl();
+        ctTbl.set(sourceTable.getCTTbl());
+        CTRow[] trArray = ctTbl.getTrArray();
+        List<XWPFTableRow> tableRows = (List<XWPFTableRow>) ReflectionUtils.getValue("tableRows", table);
+        for (int i = 0; i < trArray.length; i++) {
+            XWPFTableRow row = new XWPFTableRow(trArray[i], table);
+            tableRows.add(i, row);
+        }
         return table;
     }
 
@@ -328,8 +353,9 @@ public class WordTableUtils {
     public static void cleanRowTextContent(XWPFTableRow templateRow) {
         List<XWPFTableCell> tableCells = templateRow.getTableCells();
         tableCells.forEach(cell -> {
-            if (CollectionUtils.isNotEmpty(cell.getParagraphs())) {
-                cell.getParagraphs().forEach(WordTableUtils::removeAllRun);
+            List<XWPFParagraph> paragraphs = cell.getParagraphs();
+            for (int i = paragraphs.size() - 1; i >= 0; i--) {
+                cell.removeParagraph(i);
             }
         });
     }
@@ -986,6 +1012,10 @@ public class WordTableUtils {
 
     public static void setMinHeightParagraph(XWPFDocument document) {
         XWPFParagraph paragraph = document.createParagraph();
+        setMinHeightParagraph(paragraph);
+    }
+
+    public static void setMinHeightParagraph(XWPFParagraph paragraph) {
         CTP ctp = paragraph.getCTP();
         CTPPr pPr = ctp.isSetPPr() ? ctp.getPPr() : ctp.addNewPPr();
         CTSpacing spacing = pPr.isSetSpacing() ? pPr.getSpacing() : pPr.addNewSpacing();
@@ -1045,35 +1075,42 @@ public class WordTableUtils {
 
         List<XWPFTableCell> cells = tableRow.getTableCells();
         int cellCount = cells.size();
-
-        if (toCol < fromCol || fromCol < 0 || toCol >= cellCount) {
-            throw new IllegalArgumentException("col index out of bounds");
-        }
-
         int tableMaxLineAllGridSpan = findTableMaxLineAllGridSpan(table);
-        XWPFTableCell startCell = tableRow.getCell(fromCol);
-        CTTc startCTTc = startCell.getCTTc();
-        CTTcPr startTcPr = startCTTc.isSetTcPr() ? startCTTc.getTcPr() : startCTTc.addNewTcPr();
-        if (startTcPr.isSetVMerge()) {
-            startTcPr.unsetVMerge();
-        }
-
-        CTHMerge hMerge = startTcPr.isSetHMerge() ? startTcPr.getHMerge() : startTcPr.addNewHMerge();
-        hMerge.setVal(STMerge.RESTART);
-        // set gridSpan element
-        CTDecimalNumber gridSpan = startTcPr.isSetGridSpan() ? startTcPr.getGridSpan() : startTcPr.addNewGridSpan();
-        gridSpan.setVal(BigInteger.valueOf(tableMaxLineAllGridSpan));
-
-        for (int colIndex = fromCol + 1; colIndex <= toCol; colIndex++) {
-            XWPFTableCell cell = tableRow.getCell(colIndex);
-            CTTc ctTc = cell.getCTTc();
-            CTTcPr tcPr = ctTc.isSetTcPr() ? ctTc.getTcPr() : ctTc.addNewTcPr();
-            if (tcPr.isSetVMerge()) {
-                tcPr.unsetVMerge();
+        if (cellCount == 0) {
+            XWPFTableCell tableCell = tableRow.addNewTableCell();
+            CTTc ctTc = tableCell.getCTTc();
+            CTTcPr ctTcPr = ctTc.isSetTcPr() ? ctTc.getTcPr() : ctTc.addNewTcPr();
+            CTDecimalNumber gridSpan = ctTcPr.isSetGridSpan() ? ctTcPr.getGridSpan() : ctTcPr.addNewGridSpan();
+            gridSpan.setVal(BigInteger.valueOf(tableMaxLineAllGridSpan));
+        } else {
+            if (toCol < fromCol || fromCol < 0 || toCol >= cellCount) {
+                throw new IllegalArgumentException("col index out of bounds");
             }
-            CTHMerge continueHMerge = tcPr.isSetHMerge() ? tcPr.getHMerge() : tcPr.addNewHMerge();
-            continueHMerge.setVal(STMerge.CONTINUE);
-            cleanCellContent(cell);
+
+            XWPFTableCell startCell = tableRow.getCell(fromCol);
+            CTTc startCTTc = startCell.getCTTc();
+            CTTcPr startTcPr = startCTTc.isSetTcPr() ? startCTTc.getTcPr() : startCTTc.addNewTcPr();
+            if (startTcPr.isSetVMerge()) {
+                startTcPr.unsetVMerge();
+            }
+
+            CTHMerge hMerge = startTcPr.isSetHMerge() ? startTcPr.getHMerge() : startTcPr.addNewHMerge();
+            hMerge.setVal(STMerge.RESTART);
+            // set gridSpan element
+            CTDecimalNumber gridSpan = startTcPr.isSetGridSpan() ? startTcPr.getGridSpan() : startTcPr.addNewGridSpan();
+            gridSpan.setVal(BigInteger.valueOf(tableMaxLineAllGridSpan));
+
+            for (int colIndex = fromCol + 1; colIndex <= toCol; colIndex++) {
+                XWPFTableCell cell = tableRow.getCell(colIndex);
+                CTTc ctTc = cell.getCTTc();
+                CTTcPr tcPr = ctTc.isSetTcPr() ? ctTc.getTcPr() : ctTc.addNewTcPr();
+                if (tcPr.isSetVMerge()) {
+                    tcPr.unsetVMerge();
+                }
+                CTHMerge continueHMerge = tcPr.isSetHMerge() ? tcPr.getHMerge() : tcPr.addNewHMerge();
+                continueHMerge.setVal(STMerge.CONTINUE);
+                cleanCellContent(cell);
+            }
         }
     }
 
@@ -1185,7 +1222,9 @@ public class WordTableUtils {
         }
         for (int i = fromRow; i <= toRow; i++) {
             XWPFTableRow row = rows.get(i);
-            mergeCellsHorizontal(table, i, row, 0, row.getTableCells().size() - 1);
+            int size = row.getTableCells().size();
+            size = size == 0 ? size : size - 1;
+            mergeCellsHorizontal(table, i, row, 0, size);
         }
         mergeCellsVertically(table, 0, fromRow, toRow);
     }
