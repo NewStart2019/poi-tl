@@ -593,7 +593,7 @@ public class WordTableUtils {
         }
         int i = startRow + 1;
         int size = table.getRows().size();
-        for (; i <= size; i++) {
+        for (; i < size; i++) {
             if (table.getRow(i).getCell(colIndex) == null) {
                 break;
             }
@@ -610,7 +610,7 @@ public class WordTableUtils {
                 break;
             }
             CTVMerge vMerge = tcPr.getVMerge();
-            if (vMerge == null) {
+            if (vMerge == null || vMerge.getVal() == STMerge.RESTART) {
                 break;
             }
         }

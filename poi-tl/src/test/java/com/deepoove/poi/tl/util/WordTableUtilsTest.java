@@ -2,6 +2,7 @@ package com.deepoove.poi.tl.util;
 
 import com.deepoove.poi.util.UnitUtils;
 import com.deepoove.poi.util.WordTableUtils;
+import com.deepoove.poi.xwpf.NiceXWPFDocument;
 import org.apache.logging.log4j.util.Strings;
 import org.apache.poi.wp.usermodel.HeaderFooterType;
 import org.apache.poi.xwpf.usermodel.*;
@@ -411,5 +412,15 @@ class WordTableUtilsTest {
         } catch (XmlException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Test
+    void test() throws IOException {
+        String template = "D:\\DingTalkAppData\\DingTalk\\download\\保温板与基层的拉伸粘结强度(1).docx";
+        FileInputStream fileInputStream = new FileInputStream(template);
+        NiceXWPFDocument document = new NiceXWPFDocument(fileInputStream);
+        XWPFTable xwpfTable = document.getTables().get(2);
+        int verticalMergedRows = WordTableUtils.findVerticalMergedRows(xwpfTable, 0, 0);
+        System.out.println(verticalMergedRows);
     }
 }
