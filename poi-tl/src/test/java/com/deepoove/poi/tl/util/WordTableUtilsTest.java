@@ -10,12 +10,14 @@ import org.apache.xmlbeans.XmlCursor;
 import org.apache.xmlbeans.XmlException;
 import org.apache.xmlbeans.XmlObject;
 import org.junit.jupiter.api.Test;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.STHeightRule;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.*;
 
 import javax.xml.namespace.QName;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -415,12 +417,39 @@ class WordTableUtilsTest {
     }
 
     @Test
-    void test() throws IOException {
-        String template = "D:\\DingTalkAppData\\DingTalk\\download\\保温板与基层的拉伸粘结强度(1).docx";
+    void testCopyLeftBorder() throws IOException {
+        String template = "src/test/resources/util//copy_border.docx";
         FileInputStream fileInputStream = new FileInputStream(template);
         NiceXWPFDocument document = new NiceXWPFDocument(fileInputStream);
-        XWPFTable xwpfTable = document.getTables().get(2);
-        int verticalMergedRows = WordTableUtils.findVerticalMergedRows(xwpfTable, 0, 0);
-        System.out.println(verticalMergedRows);
+        XWPFTable xwpfTable = document.getTables().get(0);
+        CTTblPr tblPr = xwpfTable.getCTTbl().getTblPr();
+        if (tblPr == null) tblPr = xwpfTable.getCTTbl().addNewTblPr();
+        CTTblBorders ctTblBorders = tblPr.isSetTblBorders() ? tblPr.getTblBorders() : tblPr.addNewTblBorders();
+        CTBorder leftBorder = ctTblBorders.isSetLeft() ? ctTblBorders.getLeft() : ctTblBorders.addNewLeft();
+        XWPFTableRow row = WordTableUtils.findLastLine(xwpfTable);
+        // 遍历行中的每一个单元格
+        for (XWPFTableCell cell : row.getTableCells()) {
+            // 获取单元格的边框设置
+            CTTcPr tcPr = cell.getCTTc().getTcPr();
+            if (tcPr == null) {
+                tcPr = cell.getCTTc().addNewTcPr();
+            }
+            CTTcBorders borders = tcPr.getTcBorders();
+            if (borders == null) {
+                borders = tcPr.addNewTcBorders();
+            }
+            if (leftBorder != null) {
+                CTBorder bottomBorder = borders.getBottom();
+                if (bottomBorder == null) {
+                    bottomBorder = borders.addNewBottom();
+                }
+                // 设置底部边框的样式与左边边框相同
+                bottomBorder.setVal(leftBorder.getVal());
+                bottomBorder.setColor(leftBorder.getColor());
+                bottomBorder.setSz(leftBorder.getSz());
+                bottomBorder.setSpace(leftBorder.getSpace());
+            }
+        }
+        document.write(Files.newOutputStream(Paths.get("target/out_copy_border.docx")));
     }
 }
