@@ -129,9 +129,9 @@ public class LoopMutilpleRowRenderPolicy implements RenderPolicy {
                 if (index == 0 || index == firstNumber || (index - firstNumber) % perPageNumber == 0) {
                     if (index != 0) {
                         removeMutipleLine(template_row_number, table, templateRowIndex);
+                        // Set the bottom border of the table to the left border style
+                        WordTableUtils.setBottomBorder(table, null);
                     }
-                    // Set the bottom border of the table to the left border style
-                    WordTableUtils.setBottomBorder(table, null);
                     table = nextTable;
                     if (currentPage <= allPage) {
                         // set page break
@@ -219,7 +219,9 @@ public class LoopMutilpleRowRenderPolicy implements RenderPolicy {
             removeMutipleLine(template_row_number, table, templateRowIndex + insertLine);
             afterloop(table, data);
             // Set the bottom border of the table to the left border style
-            WordTableUtils.setBottomBorder(table, null);
+            if (currentPage > 1) {
+                WordTableUtils.setBottomBorder(table, null);
+            }
             globalEnv.putAll(original);
             template.reloadSelf();
         } catch (Exception e) {
