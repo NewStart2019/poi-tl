@@ -96,7 +96,7 @@ public class LoopMutilpleRowRenderPolicy implements RenderPolicy {
             if (template_row_number > firstPageLine) {
                 throw new RenderException("Template rendering with more lines than the first page is not supported!");
             }
-            if (firstPageLine % template_row_number != 0 ||  pageLine % template_row_number != 0) {
+            if (firstPageLine % template_row_number != 0 || pageLine % template_row_number != 0) {
                 throw new RenderException("The size of each page should be a multiple of the number of lines in the template for multi line rendering!");
             }
 
@@ -130,6 +130,8 @@ public class LoopMutilpleRowRenderPolicy implements RenderPolicy {
                     if (index != 0) {
                         removeMutipleLine(template_row_number, table, templateRowIndex);
                     }
+                    // Set the bottom border of the table to the left border style
+                    WordTableUtils.setBottomBorder(table, null);
                     table = nextTable;
                     if (currentPage <= allPage) {
                         // set page break
@@ -167,7 +169,7 @@ public class LoopMutilpleRowRenderPolicy implements RenderPolicy {
                     XWPFTableRow currentRow = table.getRow(insertPosition + i);
                     XWPFTableRow nextRow = table.insertNewTableRow(templateRowIndex + i);
                     nextRow = WordTableUtils.copyLineContent(currentRow, nextRow, templateRowIndex + i);
-                    if (currentRow == null){
+                    if (currentRow == null) {
                         System.out.println("null");
                     }
                     currentRow.getTableCells().forEach(cell -> {
@@ -194,19 +196,30 @@ public class LoopMutilpleRowRenderPolicy implements RenderPolicy {
             this.fillBlankRow(insertLine, table, templateRowIndex);
 
             // Default blank line filling, fill blank lines with a reverse slash by mode equal 2
-            if (mode != 1 && insertLine > 0) {
-                WordTableUtils.mergeMutipleLine(table, templateRowIndex, templateRowIndex + insertLine - 1);
-                // Set diagonal border
-                XWPFTableCell cellRow00 = table.getRow(templateRowIndex).getCell(0);
-                WordTableUtils.setDiagonalBorder(cellRow00);
-                WordTableUtils.setCellWidth(cellRow00, table.getWidth());
+            // Fill in the following blanks for Mode 3 mode fill "以下空白"
+            if (insertLine > 0) {
+                if (mode == 2) {
+                    WordTableUtils.mergeMutipleLine(table, templateRowIndex, templateRowIndex + insertLine - 1);
+                    // Set diagonal border
+                    XWPFTableCell cellRow00 = table.getRow(templateRowIndex).getCell(0);
+                    WordTableUtils.setDiagonalBorder(cellRow00);
+                    WordTableUtils.setCellWidth(cellRow00, table.getWidth());
+                } else if (mode == 3) {
+                    XWPFTableRow row = table.getRow(templateRowIndex);
+                    int i = 2;
+                    XWPFTableCell cell = row.getCell((row.getTableCells().size() - 1) / 2);
+                    XWPFParagraph xwpfParagraph = cell.addParagraph();
+                    xwpfParagraph.createRun().setText("以下空白");
+                }
             }
+
             if (table != nextTable) {
                 WordTableUtils.removeTable(xwpfDocument, nextTable);
             }
             removeMutipleLine(template_row_number, table, templateRowIndex + insertLine);
             afterloop(table, data);
-
+            // Set the bottom border of the table to the left border style
+            WordTableUtils.setBottomBorder(table, null);
             globalEnv.putAll(original);
             template.reloadSelf();
         } catch (Exception e) {

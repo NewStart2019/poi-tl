@@ -1025,6 +1025,44 @@ public class WordTableUtils {
         spacing.setLineRule(STLineSpacingRule.EXACT);
     }
 
+    /**
+     * Set the bottom border of the table to the default left border style
+     *
+     * @param table {@link XWPFTable table}
+     */
+    public static void setBottomBorder(XWPFTable table, CTBorder border) {
+        if (table == null) {
+            return;
+        }
+        if (border == null) {
+            CTTblPr tblPr = table.getCTTbl().getTblPr();
+            if (tblPr == null) tblPr = table.getCTTbl().addNewTblPr();
+            CTTblBorders ctTblBorders = tblPr.isSetTblBorders() ? tblPr.getTblBorders() : tblPr.addNewTblBorders();
+            border = ctTblBorders.isSetLeft() ? ctTblBorders.getLeft() : ctTblBorders.addNewLeft();
+        }
+        XWPFTableRow row = WordTableUtils.findLastLine(table);
+        // Set each cell in the row
+        for (XWPFTableCell cell : row.getTableCells()) {
+            CTTcPr tcPr = cell.getCTTc().getTcPr();
+            if (tcPr == null) {
+                tcPr = cell.getCTTc().addNewTcPr();
+            }
+            CTTcBorders borders = tcPr.getTcBorders();
+            if (borders == null) {
+                borders = tcPr.addNewTcBorders();
+            }
+            CTBorder bottomBorder = borders.getBottom();
+            if (bottomBorder == null) {
+                bottomBorder = borders.addNewBottom();
+            }
+            // 设置底部边框的样式与左边边框相同
+            bottomBorder.setVal(border.getVal());
+            bottomBorder.setColor(border.getColor());
+            bottomBorder.setSz(border.getSz());
+            bottomBorder.setSpace(border.getSpace());
+        }
+    }
+
     public static void mergeCellsHorizontalFullLine(XWPFTableRow tableRow) {
         if (tableRow == null) {
             return;
