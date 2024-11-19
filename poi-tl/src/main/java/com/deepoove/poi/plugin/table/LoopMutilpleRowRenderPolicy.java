@@ -76,6 +76,7 @@ public class LoopMutilpleRowRenderPolicy implements RenderPolicy {
             int reduce = 0;
             Object n = globalEnv.get(eleTemplate.getTagName() + "_number");
             int mode = 1;
+            boolean isDrawBorderOfFirstPage = false;
             try {
                 if (n == null) {
                     // Subtract the default number of rows in the header by 1
@@ -91,6 +92,8 @@ public class LoopMutilpleRowRenderPolicy implements RenderPolicy {
                 mode = temp != null ? Integer.parseInt(temp.toString()) : mode;
                 temp = globalEnv.get(eleTemplate.getTagName() + "_reduce");
                 reduce = temp != null ? Integer.parseInt(temp.toString()) : reduce;
+                temp = globalEnv.get(eleTemplate.getTagName() + "_fpdb");
+                isDrawBorderOfFirstPage = temp != null;
             } catch (NumberFormatException ignore) {
             }
             if (template_row_number > firstPageLine) {
@@ -129,9 +132,9 @@ public class LoopMutilpleRowRenderPolicy implements RenderPolicy {
                 if (index == 0 || index == firstNumber || (index - firstNumber) % perPageNumber == 0) {
                     if (index != 0) {
                         removeMutipleLine(template_row_number, table, templateRowIndex);
-                        // Set the bottom border of the table to the left border style
-                        WordTableUtils.setBottomBorder(table, null);
                     }
+                    // Set the bottom border of the table to the left border style
+                    drawBottomBorder(currentPage, isDrawBorderOfFirstPage, table);
                     table = nextTable;
                     if (currentPage <= allPage) {
                         // set page break
@@ -169,9 +172,6 @@ public class LoopMutilpleRowRenderPolicy implements RenderPolicy {
                     XWPFTableRow currentRow = table.getRow(insertPosition + i);
                     XWPFTableRow nextRow = table.insertNewTableRow(templateRowIndex + i);
                     nextRow = WordTableUtils.copyLineContent(currentRow, nextRow, templateRowIndex + i);
-                    if (currentRow == null) {
-                        System.out.println("null");
-                    }
                     currentRow.getTableCells().forEach(cell -> {
                         List<MetaTemplate> templates = resolver.resolveBodyElements(cell.getBodyElements());
                         documentProcessor.process(templates);
@@ -206,7 +206,6 @@ public class LoopMutilpleRowRenderPolicy implements RenderPolicy {
                     WordTableUtils.setCellWidth(cellRow00, table.getWidth());
                 } else if (mode == 3) {
                     XWPFTableRow row = table.getRow(templateRowIndex);
-                    int i = 2;
                     XWPFTableCell cell = row.getCell((row.getTableCells().size() - 1) / 2);
                     XWPFParagraph xwpfParagraph = cell.addParagraph();
                     xwpfParagraph.createRun().setText("以下空白");
@@ -218,14 +217,21 @@ public class LoopMutilpleRowRenderPolicy implements RenderPolicy {
             }
             removeMutipleLine(template_row_number, table, templateRowIndex + insertLine);
             afterloop(table, data);
-            // Set the bottom border of the table to the left border style
-            if (currentPage > 1) {
-                WordTableUtils.setBottomBorder(table, null);
-            }
+            drawBottomBorder(currentPage, isDrawBorderOfFirstPage, table);
             globalEnv.putAll(original);
             template.reloadSelf();
         } catch (Exception e) {
             throw new RenderException("HackLoopTable for " + eleTemplate + " error: " + e.getMessage(), e);
+        }
+    }
+
+    private static void drawBottomBorder(int currentPage, boolean isDrawBorderOfFirstPage, XWPFTable table) {
+        // Set the bottom border of the table to the left border style
+        if (currentPage == 2 && isDrawBorderOfFirstPage){
+            WordTableUtils.setBottomBorder(table, null);
+        }
+        if (currentPage > 2){
+            WordTableUtils.setBottomBorder(table, null);
         }
     }
 
