@@ -115,7 +115,7 @@ public class LoopExistedRowTableRenderPolicy implements RenderPolicy {
                     }
                     XWPFTableRow currentLine = table.getRow(insertPosition);
                     if (isSaveNextLine) {
-                        // 把下一行移到下下一行
+                        // Move the next line to the next line
                         if (templateRowIndex + 1 > allRowNumber) {
                             allRowNumber += 1;
                             table.insertNewTableRow(templateRowIndex + 1);
@@ -136,7 +136,7 @@ public class LoopExistedRowTableRenderPolicy implements RenderPolicy {
                 }
             }
 
-            // 清空这一行模板内容内容，把最近的一行往上移动一格
+            // Clear the content of this template line and move the nearest line up one space
             if (templateRow != null) {
                 int newAdd = allRowNumber - oldRowNumber;
                 if (isSaveNextLine) {

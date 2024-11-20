@@ -100,7 +100,7 @@ public class LoopExistedAndFillRowTableRenderPolicy implements RenderPolicy {
                     }
                     XWPFTableRow currentLine = table.getRow(insertPosition);
                     if (isSaveNextLine) {
-                        // 把下一行移到下下一行
+                        // Move the next line to the next line
                         if (templateRowIndex + 1 > allRowNumber) {
                             allRowNumber += 1;
                             table.insertNewTableRow(templateRowIndex + 1);
@@ -121,7 +121,7 @@ public class LoopExistedAndFillRowTableRenderPolicy implements RenderPolicy {
                 }
             }
 
-            // 清空这一行模板内容内容，把最近的一行往上移动一格
+            // Clear the content of this template line and move the nearest line up one space
             int newAdd = allRowNumber - oldRowNumber;
             // 默认模板给表格写满一页
             int pageLine = oldRowNumber + 1;
@@ -138,7 +138,7 @@ public class LoopExistedAndFillRowTableRenderPolicy implements RenderPolicy {
                     XWPFTableRow row = table.getRow(templateRowIndex + 1);
                     WordTableUtils.cleanRowTextContent(templateRow);
                     WordTableUtils.copyLineContent(row, templateRow, templateRowIndex);
-                    // 判断有没有跨页
+                    // Determine if there is a cross page
                     int remain = (allRowNumber + 1) % pageLine;
                     if ((allRowNumber + 1) <= pageLine) {
                         WordTableUtils.cleanRowTextContent(row);
@@ -150,7 +150,7 @@ public class LoopExistedAndFillRowTableRenderPolicy implements RenderPolicy {
                         table.removeRow(templateRowIndex);
                     } else {
                         table.removeRow(templateRowIndex + 1);
-                        // 填充剩余部分，
+                        // Fill in the remaining portion，
                         this.fillBlankRow(pageLine, remain, reduce, table, templateRowIndex);
                     }
                 } else {

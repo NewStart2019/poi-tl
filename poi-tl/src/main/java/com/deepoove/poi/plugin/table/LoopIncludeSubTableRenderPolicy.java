@@ -126,7 +126,7 @@ public class LoopIncludeSubTableRenderPolicy implements RenderPolicy {
                                 Object sub = subIterator.next();
                                 hasSubNext = subIterator.hasNext();
 
-                                // 判断是否跨页，跨页复制一份新表格
+                                // Determine whether to cross page and copy a new table across pages
                                 if (index % pageLine == 0) {
                                     if (index != 0) {
                                         currentTable.removeRow(tempTemplateRowIndex);
@@ -152,7 +152,7 @@ public class LoopIncludeSubTableRenderPolicy implements RenderPolicy {
                                     firstFlag = true;
                                 }
 
-                                // 在原来的表上插入新的行
+                                // Insert new rows into the original table
                                 insertPosition = tempTemplateRowIndex++;
                                 XWPFTableRow currentRow = currentTable.getRow(insertPosition);
                                 if (!firstFlag) {
@@ -221,7 +221,6 @@ public class LoopIncludeSubTableRenderPolicy implements RenderPolicy {
             }
             WordTableUtils.removeTable(xwpfDocument, table);
             globalEnv.putAll(original);
-            template.reloadSelf();
         } catch (Exception e) {
             throw new RenderException("HackLoopTable for " + eleTemplate + " error: " + e.getMessage(), e);
         }

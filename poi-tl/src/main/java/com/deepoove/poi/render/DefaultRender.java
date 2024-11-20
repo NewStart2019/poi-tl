@@ -88,6 +88,8 @@ public class DefaultRender implements Render {
         // render
         this.documentProcessor = new DocumentProcessor(template, template.getResolver(), renderDataCompute);
         this.documentProcessor.process(template.getElementTemplates());
+        // processing dynamically generated placeholders
+        template.reloadSelf();
     }
 
     private void renderInclude(XWPFTemplate template, RenderDataCompute renderDataCompute) throws IOException {

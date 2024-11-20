@@ -187,7 +187,6 @@ public class LoopFullTableInsertFillRenderPolicy implements RenderPolicy {
 
             removeEmptParagraph(template, table);
             globalEnv.putAll(original);
-            template.reloadSelf();
         } catch (Exception e) {
             throw new RenderException("HackLoopTable for " + eleTemplate + " error: " + e.getMessage(), e);
         }

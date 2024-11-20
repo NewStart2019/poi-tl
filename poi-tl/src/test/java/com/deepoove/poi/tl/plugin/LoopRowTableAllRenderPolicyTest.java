@@ -348,4 +348,77 @@ public class LoopRowTableAllRenderPolicyTest {
         }
     }
 
+    public Map<String, Object> init4(int number) {
+        Map<String, Object> test = new HashMap<>();
+        test.put("report_no", "5864986054");
+        test.put("projectCode", "439843054");
+        List<Map<String, Object>> data = new ArrayList<>();
+        test.put("subRecords", data);
+        test.put("subRecords2", data);
+        test.put("subRecords_number", 29);
+        test.put("subRecords_reduce", 0);
+        Random random = new Random();
+        for (int i = 1; i <= number; i++) {
+            Map<String, Object> e1 = new HashMap<>();
+            data.add(e1);
+            e1.put("jc1", i);
+            e1.put("wg1", "检测部位" + i);
+            e1.put("wg2", "技术指标" + i);
+            e1.put("wg3", "混凝土抗折" + i);
+            e1.put("jg1", 30);
+            e1.put("jg2", 10);
+            e1.put("jg3", 20);
+            e1.put("zt1", 20);
+            e1.put("fc1", "随便做");
+            e1.put("fc2", "随便做");
+            e1.put("fc3", "随便做");
+            e1.put("bw1", "部位1_"+i);
+            e1.put("bw2", "部位2_"+i);
+            e1.put("bw3", "部位3_"+i);
+            e1.put("image_base64", Pictures.of("src/test/resources/picture/p.png").create());
+            e1.put("image2_base64", Pictures.of("src/test/resources/picture/p.png").create());
+            e1.put("image3_base64", Pictures.of("src/test/resources/picture/p.png").create());
+        }
+        return test;
+    }
+
+    @Test
+    public void testLoopMutipleRowIncludePicture() throws Exception {
+        // 测试支持多行表头和单行表头
+        ArrayList<Integer> conditions = new ArrayList<>();
+        resource = "src/test/resources/util/double_mutiple_copy_picture.docx";
+        // resource = "D:\\DingTalkAppData\\DingTalk\\download\\外墙节能构造及保温层厚度（钻芯法）检测报告.docx";
+        conditions.add(8);
+        conditions.add(14);
+        conditions.add(20);
+        conditions.add(23);
+        conditions.add(80);
+        for (Integer condition : conditions) {
+            Map<String, Object> stringObjectMap = init4(condition);
+            stringObjectMap.put("subRecords_rendermode", 7);
+            stringObjectMap.put("subRecords_row_number", 3);
+            stringObjectMap.put("subRecords_first_number", 6);
+            stringObjectMap.put("subRecords_number", 6);
+            stringObjectMap.put("subRecords_mode", 2);
+            stringObjectMap.put("subRecords_fpdb", 2);
+
+            stringObjectMap.put("subRecords2_rendermode", 7);
+            stringObjectMap.put("subRecords2_row_number", 3);
+            stringObjectMap.put("subRecords2_first_number", 3);
+            stringObjectMap.put("subRecords2_number", 3);
+            stringObjectMap.put("subRecords2_mode", 2);
+            stringObjectMap.put("subRecords2_fpdb", 2);
+            stringObjectMap.put("blank_desc", "以下空白");
+            Configure config = Configure.builder()
+                .useSpringEL(false)
+                .bind("subRecords", policy)
+                .bind("subRecords2", policy)
+                .build();
+            XWPFTemplate template = XWPFTemplate.compile(resource, config).render(stringObjectMap);
+            WordTableUtils.setMinHeightParagraph(template.getXWPFDocument());
+            template.writeToFile("target/out_double_mutiple_copy_picture" + condition + ".docx");
+        }
+    }
+
+
 }

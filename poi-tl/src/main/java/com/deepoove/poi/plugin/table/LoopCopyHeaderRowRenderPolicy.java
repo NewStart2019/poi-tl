@@ -218,7 +218,6 @@ public class LoopCopyHeaderRowRenderPolicy implements RenderPolicy {
             }
 
             globalEnv.putAll(original);
-            template.reloadSelf();
         } catch (Exception e) {
             throw new RenderException("HackLoopTable for " + eleTemplate + " error: " + e.getMessage(), e);
         }
@@ -239,8 +238,9 @@ public class LoopCopyHeaderRowRenderPolicy implements RenderPolicy {
         }
         int rowNumber = endIndex - startIndex + 1;
         int tableMargin = WordTableUtils.findTableMargin(table, 2);
-        // 默认行距：如果不手动设置，XWPFParagraph的行距是单倍行距，具体数值取决于Word应用的默认设置
-        // 240：表示1倍行距
+        // Default line spacing: If not manually set, the line spacing of XWPFParagraph is single line spacing,
+        // and the specific value depends on the default settings of the Word application
+        // 240：Representing 1 line spacing
         int sum = tableMargin + UnitUtils.point2Twips(24 + 24);
         int perRowReduce = sum / rowNumber;
         int remain = sum % rowNumber;

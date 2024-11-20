@@ -129,7 +129,7 @@ public class LoopMutilpleRowRenderPolicy implements RenderPolicy {
                 hasNext = iterator.hasNext();
 
                 firstPage = index < firstNumber;
-                if (index == 0 || index == firstNumber || (index - firstNumber) % perPageNumber == 0) {
+                if (index == 0 || index == firstNumber || ((index > firstNumber) && (index - firstNumber) % perPageNumber == 0)) {
                     if (index != 0) {
                         removeMutipleLine(template_row_number, table, templateRowIndex);
                     }
@@ -141,25 +141,25 @@ public class LoopMutilpleRowRenderPolicy implements RenderPolicy {
                         XmlCursor xmlCursor = table.getCTTbl().newCursor();
                         xmlCursor.toNextSibling();
                         paragraph = xwpfDocument.insertNewParagraph(xmlCursor);
-                        xmlCursor.close();
                         WordTableUtils.setPageBreak(paragraph, 1);
                         WordTableUtils.setMinHeightParagraph(paragraph);
                         if (firstPage) {
-                            nextTable = xwpfDocument.createTable();
+                            xmlCursor.toParent();
+                            xmlCursor.toNextSibling();
+                            nextTable = xwpfDocument.insertNewTbl(xmlCursor);
+                            nextTable.removeRow(0);
                             int rowIndex = WordTableUtils.findRowIndex(tagCell);
                             templateRowIndex2 = headerNumber;
                             int temp = 0;
                             for (int i = rowIndex; i < rowIndex + headerNumber + template_row_number; i++) {
                                 WordTableUtils.copyLineContent(table.getRow(i), nextTable.insertNewTableRow(temp), temp++);
                             }
-                            WordTableUtils.removeLastRow(nextTable);
-                            WordTableUtils.copyTableTblPr(table, nextTable);
-                            nextTable.getCTTbl().setTblGrid(table.getCTTbl().getTblGrid());
                         } else {
-                            XmlCursor paraCursor = paragraph.getCTP().newCursor();
-                            nextTable = WordTableUtils.copyTable(xwpfDocument, table, paraCursor);
+                            xmlCursor.toParent();
+                            nextTable = WordTableUtils.copyTable(xwpfDocument, table, xmlCursor);
                             templateRowIndex = templateRowIndex2;
                         }
+                        xmlCursor.close();
                         currentPage++;
                     }
                 }
@@ -219,7 +219,6 @@ public class LoopMutilpleRowRenderPolicy implements RenderPolicy {
             afterloop(table, data);
             drawBottomBorder(currentPage, isDrawBorderOfFirstPage, table);
             globalEnv.putAll(original);
-            template.reloadSelf();
         } catch (Exception e) {
             throw new RenderException("HackLoopTable for " + eleTemplate + " error: " + e.getMessage(), e);
         }

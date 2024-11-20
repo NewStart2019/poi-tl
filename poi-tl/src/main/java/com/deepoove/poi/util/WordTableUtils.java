@@ -1026,7 +1026,7 @@ public class WordTableUtils {
     }
 
     /**
-     * Set the bottom border of the table to the default left border style
+     * Set the bottom border of the table to the default left border style or the left border style of the first cell
      *
      * @param table {@link XWPFTable table}
      */
@@ -1036,11 +1036,37 @@ public class WordTableUtils {
         }
         if (border == null) {
             CTTblPr tblPr = table.getCTTbl().getTblPr();
-            if (tblPr == null) tblPr = table.getCTTbl().addNewTblPr();
-            CTTblBorders ctTblBorders = tblPr.isSetTblBorders() ? tblPr.getTblBorders() : tblPr.addNewTblBorders();
-            border = ctTblBorders.isSetLeft() ? ctTblBorders.getLeft() : ctTblBorders.addNewLeft();
+            if (tblPr != null) {
+                if (tblPr.isSetTblBorders()) {
+                    CTTblBorders ctTblBorders = tblPr.getTblBorders();
+                    if (ctTblBorders.isSetLeft()) {
+                        border = ctTblBorders.getLeft();
+                    }
+                }
+            }
         }
         XWPFTableRow row = WordTableUtils.findLastLine(table);
+        if (row == null || CollectionUtils.isEmpty(row.getTableCells())) {
+            return;
+        } else {
+            if (border == null || border.getSz() == null) {
+                XWPFTableCell cell = row.getCell(0);
+                CTTc ctTc = cell.getCTTc();
+                if (ctTc.isSetTcPr()) {
+                    CTTcPr ctTcPr = ctTc.getTcPr();
+                    if (ctTcPr.isSetTcBorders()) {
+                        CTTcBorders tcBorders = ctTcPr.getTcBorders();
+                        if (tcBorders.isSetLeft()) {
+                            border = tcBorders.getLeft();
+                        }
+                    }
+                }
+            }
+        }
+        if (border == null) {
+            return;
+        }
+
         // Set each cell in the row
         for (XWPFTableCell cell : row.getTableCells()) {
             CTTcPr tcPr = cell.getCTTc().getTcPr();
