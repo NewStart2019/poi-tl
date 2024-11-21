@@ -22,11 +22,7 @@ import org.apache.xmlbeans.XmlCursor;
 
 import java.util.*;
 
-public class LoopMutilpleRowRenderPolicy implements RenderPolicy {
-
-    private String prefix;
-    private String suffix;
-    private boolean onSameLine;
+public class LoopMutilpleRowRenderPolicy extends AbstractLoopRowTableRenderPolicy implements RenderPolicy {
 
     public LoopMutilpleRowRenderPolicy() {
         this(false);
@@ -44,6 +40,10 @@ public class LoopMutilpleRowRenderPolicy implements RenderPolicy {
         this.prefix = prefix;
         this.suffix = suffix;
         this.onSameLine = onSameLine;
+    }
+
+    public LoopMutilpleRowRenderPolicy(AbstractLoopRowTableRenderPolicy policy) {
+        super(policy);
     }
 
     @Override
@@ -224,56 +224,10 @@ public class LoopMutilpleRowRenderPolicy implements RenderPolicy {
         }
     }
 
-    private static void drawBottomBorder(int currentPage, boolean isDrawBorderOfFirstPage, XWPFTable table) {
-        // Set the bottom border of the table to the left border style
-        if (currentPage == 2 && isDrawBorderOfFirstPage){
-            WordTableUtils.setBottomBorder(table, null);
-        }
-        if (currentPage > 2){
-            WordTableUtils.setBottomBorder(table, null);
-        }
-    }
-
     private static void removeMutipleLine(int template_row_number, XWPFTable table, int templateRowIndex) {
         for (int i = templateRowIndex + template_row_number - 1; i >= templateRowIndex; i--) {
             table.removeRow(templateRowIndex);
         }
-    }
-
-    private int countPageNumber(int dataCount, int template_row_number, int pageLine, int firstPageLine) {
-        if (dataCount * template_row_number <= firstPageLine) {
-            return 1;
-        }
-        int firstNumber = firstPageLine / template_row_number;
-        int perPageNumber = pageLine / template_row_number;
-        return (dataCount - firstNumber) / perPageNumber + ((dataCount - firstNumber) % perPageNumber == 0 ? 0 : 1) + 1;
-    }
-
-    public static void removeCurrentLineData(Map<String, Object> globalEnv, Object root) {
-        TlBeanUtil beanUtil = new TlBeanUtil();
-        if (root instanceof String || TlBeanUtil.isPrimitive(root)) {
-            return;
-        }
-        Map<String, Object> map = beanUtil.beanToMap(root, RenderData.class, 0);
-        map.forEach((key, value) -> globalEnv.remove(key));
-    }
-
-    private static NiceXWPFDocument removeEmptParagraph(XWPFTemplate template, XWPFTable table) {
-        NiceXWPFDocument xwpfDocument = template.getXWPFDocument();
-        int posOfTable = xwpfDocument.getPosOfTable(table);
-        if ((posOfTable + 1) < xwpfDocument.getBodyElements().size()) {
-            IBodyElement iBodyElement = xwpfDocument.getBodyElements().get(posOfTable + 1);
-            if (iBodyElement instanceof XWPFParagraph) {
-                XWPFParagraph paragraph = (XWPFParagraph) iBodyElement;
-                WordTableUtils.removeParagraph(paragraph);
-            }
-        }
-        return xwpfDocument;
-    }
-
-    private int getTemplateRowIndex(XWPFTableCell tagCell) {
-        XWPFTableRow tagRow = tagCell.getTableRow();
-        return onSameLine ? WordTableUtils.findRowIndex(tagRow) : (WordTableUtils.findRowIndex(tagRow) + 1);
     }
 
     protected void afterloop(XWPFTable table, Object data) {
@@ -286,7 +240,7 @@ public class LoopMutilpleRowRenderPolicy implements RenderPolicy {
      * @param table      XWPFTable
      * @param startIndex Start writing the position of blank lines
      */
-    private void fillBlankRow(int insertLine, XWPFTable table, int startIndex) {
+    protected void fillBlankRow(int insertLine, XWPFTable table, int startIndex) {
         if (insertLine <= 0) {
             return;
         }

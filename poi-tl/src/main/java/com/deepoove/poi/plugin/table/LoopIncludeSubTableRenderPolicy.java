@@ -22,11 +22,7 @@ import org.openxmlformats.schemas.wordprocessingml.x2006.main.STMerge;
 
 import java.util.*;
 
-public class LoopIncludeSubTableRenderPolicy implements RenderPolicy {
-
-    private String prefix;
-    private String suffix;
-    private boolean onSameLine;
+public class LoopIncludeSubTableRenderPolicy  extends AbstractLoopRowTableRenderPolicy implements RenderPolicy {
 
     public LoopIncludeSubTableRenderPolicy() {
         this(false);
@@ -45,6 +41,12 @@ public class LoopIncludeSubTableRenderPolicy implements RenderPolicy {
         this.suffix = suffix;
         this.onSameLine = onSameLine;
     }
+
+
+    public LoopIncludeSubTableRenderPolicy(AbstractLoopRowTableRenderPolicy policy) {
+        super(policy);
+    }
+
 
     @Override
     public void render(ElementTemplate eleTemplate, Object data, XWPFTemplate template) {
@@ -180,9 +182,9 @@ public class LoopIncludeSubTableRenderPolicy implements RenderPolicy {
                                     documentProcessor.process(templates);
                                 });
 
-                                LoopCopyHeaderRowRenderPolicy.removeCurrentLineData(globalEnv, sub);
+                                this.removeCurrentLineData(globalEnv, sub);
                             }
-                            LoopCopyHeaderRowRenderPolicy.removeCurrentLineData(globalEnv, root);
+                            this.removeCurrentLineData(globalEnv, root);
 
                             currentTable.removeRow(tempTemplateRowIndex);
                             int insertLine;
@@ -239,11 +241,6 @@ public class LoopIncludeSubTableRenderPolicy implements RenderPolicy {
         return xwpfDocument;
     }
 
-    private int getTemplateRowIndex(XWPFTableCell tagCell) {
-        XWPFTableRow tagRow = tagCell.getTableRow();
-        return onSameLine ? WordTableUtils.findRowIndex(tagRow) : (WordTableUtils.findRowIndex(tagRow) + 1);
-    }
-
     protected void afterloop(XWPFTable table, Object data) {
     }
 
@@ -254,7 +251,7 @@ public class LoopIncludeSubTableRenderPolicy implements RenderPolicy {
      * @param table      XWPFTable
      * @param startIndex Start writing the position of blank lines
      */
-    private void fillBlankRow(int insertLine, XWPFTable table, int startIndex) {
+    protected void fillBlankRow(int insertLine, XWPFTable table, int startIndex) {
         if (insertLine <= 0) {
             return;
         }

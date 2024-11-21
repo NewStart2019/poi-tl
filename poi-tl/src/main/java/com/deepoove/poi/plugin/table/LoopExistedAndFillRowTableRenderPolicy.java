@@ -26,12 +26,7 @@ import java.util.Map;
  *
  * @author Sayi
  */
-public class LoopExistedAndFillRowTableRenderPolicy implements RenderPolicy {
-
-    private String prefix;
-    private String suffix;
-    private boolean onSameLine;
-    private boolean isSaveNextLine;
+public class LoopExistedAndFillRowTableRenderPolicy extends AbstractLoopRowTableRenderPolicy implements RenderPolicy {
 
     public LoopExistedAndFillRowTableRenderPolicy() {
         this(false);
@@ -56,6 +51,11 @@ public class LoopExistedAndFillRowTableRenderPolicy implements RenderPolicy {
         this.onSameLine = onSameLine;
         this.isSaveNextLine = isSaveNextLine;
     }
+
+    public LoopExistedAndFillRowTableRenderPolicy(AbstractLoopRowTableRenderPolicy policy) {
+        super(policy);
+    }
+
 
     @Override
     public void render(ElementTemplate eleTemplate, Object data, XWPFTemplate template) {
@@ -117,7 +117,7 @@ public class LoopExistedAndFillRowTableRenderPolicy implements RenderPolicy {
                         documentProcessor.process(templates);
                     });
 
-                    LoopCopyHeaderRowRenderPolicy.removeCurrentLineData(globalEnv, root);
+                    this.removeCurrentLineData(globalEnv, root);
                 }
             }
 
@@ -179,7 +179,7 @@ public class LoopExistedAndFillRowTableRenderPolicy implements RenderPolicy {
      * @param table      XWPFTable
      * @param startIndex Start writing the position of blank lines
      */
-    private void fillBlankRow(int pageLine, int remain, int reduce, XWPFTable table, int startIndex) {
+    protected void fillBlankRow(int pageLine, int remain, int reduce, XWPFTable table, int startIndex) {
         if (remain == 0) {
             return;
         }
@@ -195,11 +195,6 @@ public class LoopExistedAndFillRowTableRenderPolicy implements RenderPolicy {
             WordTableUtils.copyLineContent(table.getRow(startIndex), tempRow, startIndex + 1);
             startIndex += 1;
         }
-    }
-
-    private int getTemplateRowIndex(XWPFTableCell tagCell) {
-        XWPFTableRow tagRow = tagCell.getTableRow();
-        return onSameLine ? WordTableUtils.findRowIndex(tagRow) : (WordTableUtils.findRowIndex(tagRow) + 1);
     }
 
     protected void afterloop(XWPFTable table, Object data) {

@@ -47,12 +47,7 @@ import java.util.Map;
  *
  * @author Sayi
  */
-public class LoopRowTableRenderPolicy implements RenderPolicy {
-
-    private String prefix;
-    private String suffix;
-    private boolean onSameLine;
-    private boolean isSaveNextLine;
+public class LoopRowTableRenderPolicy extends AbstractLoopRowTableRenderPolicy implements RenderPolicy {
 
     public LoopRowTableRenderPolicy() {
         this(false);
@@ -79,6 +74,13 @@ public class LoopRowTableRenderPolicy implements RenderPolicy {
         this.onSameLine = onSameLine;
     }
 
+    public LoopRowTableRenderPolicy(AbstractLoopRowTableRenderPolicy policy) {
+        this.prefix = policy.getPrefix();
+        this.suffix = policy.getSuffix();
+        this.onSameLine = policy.isOnSameLine();
+        this.isSaveNextLine = policy.isSaveNextLine();
+    }
+
     @Override
     public void render(ElementTemplate eleTemplate, Object data, XWPFTemplate template) {
         RunTemplate runTemplate = (RunTemplate) eleTemplate;
@@ -92,9 +94,7 @@ public class LoopRowTableRenderPolicy implements RenderPolicy {
             XWPFTable table = tagCell.getTableRow().getTable();
             run.setText("", 0);
 
-            int oldRowNumber = table.getRows().size();
-
-            int templateRowIndex = getTemplateRowIndex(tagCell);
+            int templateRowIndex = this.getTemplateRowIndex(tagCell);
             Map<String, Object> globalEnv = template.getEnvModel().getEnv();
             Map<String, Object> original = new HashMap<>(globalEnv);
             Configure config = template.getConfig();
@@ -146,7 +146,7 @@ public class LoopRowTableRenderPolicy implements RenderPolicy {
                         new DocumentProcessor(template, resolver, dataCompute).process(templates);
                     });
 
-                    LoopCopyHeaderRowRenderPolicy.removeCurrentLineData(globalEnv, root);
+                    this.removeCurrentLineData(globalEnv, root);
                 }
             }
 
@@ -156,11 +156,6 @@ public class LoopRowTableRenderPolicy implements RenderPolicy {
         } catch (Exception e) {
             throw new RenderException("HackLoopTable for " + eleTemplate + " error: " + e.getMessage(), e);
         }
-    }
-
-    private int getTemplateRowIndex(XWPFTableCell tagCell) {
-        XWPFTableRow tagRow = tagCell.getTableRow();
-        return onSameLine ? WordTableUtils.findRowIndex(tagRow) : (WordTableUtils.findRowIndex(tagRow) + 1);
     }
 
     protected void afterloop(XWPFTable table, Object data) {

@@ -27,12 +27,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-public class LoopRowTableAndFillRenderPolicy implements RenderPolicy {
-
-    private String prefix;
-    private String suffix;
-    private boolean onSameLine;
-    private boolean isSaveNextLine;
+public class LoopRowTableAndFillRenderPolicy extends AbstractLoopRowTableRenderPolicy implements RenderPolicy {
 
     public LoopRowTableAndFillRenderPolicy() {
         this(false);
@@ -43,6 +38,7 @@ public class LoopRowTableAndFillRenderPolicy implements RenderPolicy {
     }
 
     public LoopRowTableAndFillRenderPolicy(boolean onSameLine, boolean isSaveNextLine) {
+        super();
         this.prefix = "[";
         this.suffix = "]";
         this.onSameLine = onSameLine;
@@ -54,9 +50,14 @@ public class LoopRowTableAndFillRenderPolicy implements RenderPolicy {
     }
 
     public LoopRowTableAndFillRenderPolicy(String prefix, String suffix, boolean onSameLine) {
+        super();
         this.prefix = prefix;
         this.suffix = suffix;
         this.onSameLine = onSameLine;
+    }
+
+    public LoopRowTableAndFillRenderPolicy(AbstractLoopRowTableRenderPolicy policy) {
+        super(policy);
     }
 
     @Override
@@ -128,7 +129,7 @@ public class LoopRowTableAndFillRenderPolicy implements RenderPolicy {
                         documentProcessor.process(templates);
                     });
 
-                    LoopCopyHeaderRowRenderPolicy.removeCurrentLineData(globalEnv, root);
+                    this.removeCurrentLineData(globalEnv, root);
                 }
             }
 
@@ -207,11 +208,6 @@ public class LoopRowTableAndFillRenderPolicy implements RenderPolicy {
         } catch (Exception e) {
             throw new RenderException("HackLoopTable for " + eleTemplate + " error: " + e.getMessage(), e);
         }
-    }
-
-    private int getTemplateRowIndex(XWPFTableCell tagCell) {
-        XWPFTableRow tagRow = tagCell.getTableRow();
-        return onSameLine ? WordTableUtils.findRowIndex(tagRow) : (WordTableUtils.findRowIndex(tagRow) + 1);
     }
 
     protected void afterloop(XWPFTable table, Object data) {

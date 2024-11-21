@@ -24,11 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class LoopFullTableInsertFillRenderPolicy implements RenderPolicy {
-
-    private String prefix;
-    private String suffix;
-    private boolean onSameLine;
+public class LoopFullTableInsertFillRenderPolicy extends AbstractLoopRowTableRenderPolicy implements RenderPolicy {
 
     public LoopFullTableInsertFillRenderPolicy() {
         this(false);
@@ -46,6 +42,10 @@ public class LoopFullTableInsertFillRenderPolicy implements RenderPolicy {
         this.prefix = prefix;
         this.suffix = suffix;
         this.onSameLine = onSameLine;
+    }
+
+    public LoopFullTableInsertFillRenderPolicy(AbstractLoopRowTableRenderPolicy policy) {
+        super(policy);
     }
 
     @Override
@@ -157,7 +157,7 @@ public class LoopFullTableInsertFillRenderPolicy implements RenderPolicy {
                     documentProcessor.process(templates);
                 });
 
-                LoopCopyHeaderRowRenderPolicy.removeCurrentLineData(globalEnv, root);
+                this.removeCurrentLineData(globalEnv, root);
             }
 
             table.removeRow(tempTemplateRowIndex);
@@ -205,11 +205,6 @@ public class LoopFullTableInsertFillRenderPolicy implements RenderPolicy {
         return xwpfDocument;
     }
 
-    private int getTemplateRowIndex(XWPFTableCell tagCell) {
-        XWPFTableRow tagRow = tagCell.getTableRow();
-        return onSameLine ? WordTableUtils.findRowIndex(tagRow) : (WordTableUtils.findRowIndex(tagRow) + 1);
-    }
-
     protected void afterloop(XWPFTable table, Object data) {
     }
 
@@ -220,7 +215,7 @@ public class LoopFullTableInsertFillRenderPolicy implements RenderPolicy {
      * @param table      XWPFTable
      * @param startIndex Start writing the position of blank lines
      */
-    private void fillBlankRow(int insertLine, XWPFTable table, int startIndex) {
+    protected void fillBlankRow(int insertLine, XWPFTable table, int startIndex) {
         if (insertLine <= 0) {
             return;
         }

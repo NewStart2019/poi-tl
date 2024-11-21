@@ -26,11 +26,7 @@ import org.openxmlformats.schemas.wordprocessingml.x2006.main.STMerge;
 
 import java.util.*;
 
-public class LoopCopyHeaderRowRenderPolicy implements RenderPolicy {
-
-    private String prefix;
-    private String suffix;
-    private boolean onSameLine;
+public class LoopCopyHeaderRowRenderPolicy extends AbstractLoopRowTableRenderPolicy implements RenderPolicy {
 
     public LoopCopyHeaderRowRenderPolicy() {
         this(false);
@@ -45,10 +41,16 @@ public class LoopCopyHeaderRowRenderPolicy implements RenderPolicy {
     }
 
     public LoopCopyHeaderRowRenderPolicy(String prefix, String suffix, boolean onSameLine) {
+        super();
         this.prefix = prefix;
         this.suffix = suffix;
         this.onSameLine = onSameLine;
     }
+
+    public LoopCopyHeaderRowRenderPolicy(AbstractLoopRowTableRenderPolicy policy) {
+        super(policy);
+    }
+
 
     @Override
     public void render(ElementTemplate eleTemplate, Object data, XWPFTemplate template) {
@@ -115,7 +117,7 @@ public class LoopCopyHeaderRowRenderPolicy implements RenderPolicy {
             int index = 0;
             boolean firstFlag = true;
             boolean firstPage = true;
-            int allPage = countPageNumber(dataCount, pageLine, firstPageLine);
+            int allPage = countPageNumber(dataCount, 1, pageLine, firstPageLine);
             int currentPage = 1;
             XWPFTable nextTable = table;
             int templateRowIndex2 = templateRowIndex;
@@ -227,17 +229,6 @@ public class LoopCopyHeaderRowRenderPolicy implements RenderPolicy {
         }
     }
 
-    // Set the bottom border of the table to the left border style
-    private static void drawBottomBorder(int currentPage, boolean isDrawBorderOfFirstPage, XWPFTable table) {
-        // Set the bottom border of the table to the left border style
-        if (currentPage == 2 && isDrawBorderOfFirstPage){
-            WordTableUtils.setBottomBorder(table, null);
-        }
-        if (currentPage > 2){
-            WordTableUtils.setBottomBorder(table, null);
-        }
-    }
-
     /**
      * <p>Ruduce row height </p>
      * <p>write a full page，remove the last line break symbol，The default font is SimSun 12 points.</p>
@@ -272,40 +263,6 @@ public class LoopCopyHeaderRowRenderPolicy implements RenderPolicy {
         }
     }
 
-    private int countPageNumber(int dataCount, int pageLine, int firstPageLine) {
-        if (dataCount <= firstPageLine) {
-            return 1;
-        }
-        return (dataCount - firstPageLine) / pageLine + ((dataCount - firstPageLine) % pageLine == 0 ? 0 : 1) + 1;
-    }
-
-    public static void removeCurrentLineData(Map<String, Object> globalEnv, Object root) {
-        TlBeanUtil beanUtil = new TlBeanUtil();
-        if (root instanceof String || TlBeanUtil.isPrimitive(root)) {
-            return;
-        }
-        Map<String, Object> map = beanUtil.beanToMap(root, RenderData.class, 0);
-        map.forEach((key, value) -> globalEnv.remove(key));
-    }
-
-    private static NiceXWPFDocument removeEmptParagraph(XWPFTemplate template, XWPFTable table) {
-        NiceXWPFDocument xwpfDocument = template.getXWPFDocument();
-        int posOfTable = xwpfDocument.getPosOfTable(table);
-        if ((posOfTable + 1) < xwpfDocument.getBodyElements().size()) {
-            IBodyElement iBodyElement = xwpfDocument.getBodyElements().get(posOfTable + 1);
-            if (iBodyElement instanceof XWPFParagraph) {
-                XWPFParagraph paragraph = (XWPFParagraph) iBodyElement;
-                WordTableUtils.removeParagraph(paragraph);
-            }
-        }
-        return xwpfDocument;
-    }
-
-    private int getTemplateRowIndex(XWPFTableCell tagCell) {
-        XWPFTableRow tagRow = tagCell.getTableRow();
-        return onSameLine ? WordTableUtils.findRowIndex(tagRow) : (WordTableUtils.findRowIndex(tagRow) + 1);
-    }
-
     protected void afterloop(XWPFTable table, Object data) {
     }
 
@@ -316,7 +273,7 @@ public class LoopCopyHeaderRowRenderPolicy implements RenderPolicy {
      * @param table      XWPFTable
      * @param startIndex Start writing the position of blank lines
      */
-    private void fillBlankRow(int insertLine, XWPFTable table, int startIndex) {
+    protected void fillBlankRow(int insertLine, XWPFTable table, int startIndex) {
         if (insertLine <= 0) {
             return;
         }

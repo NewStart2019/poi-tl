@@ -151,7 +151,7 @@ public class LoopRowTableAllRenderPolicyTest {
         for (Integer condition : conditions) {
             Map<String, Object> stringObjectMap = init2(condition);
             stringObjectMap.put("test_number", 31);
-            stringObjectMap.put("test_reduce", 0);
+            stringObjectMap.put("test_reduce", 1);
             stringObjectMap.put("test_mode", 1);
             stringObjectMap.put("test_header", 3);
             stringObjectMap.put("test_footer", 5);

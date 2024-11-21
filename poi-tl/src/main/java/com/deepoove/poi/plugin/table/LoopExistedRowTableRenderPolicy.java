@@ -41,12 +41,7 @@ import java.util.Map;
  *
  * @author Sayi
  */
-public class LoopExistedRowTableRenderPolicy implements RenderPolicy {
-
-    private String prefix;
-    private String suffix;
-    private boolean onSameLine;
-    private boolean isSaveNextLine;
+public class LoopExistedRowTableRenderPolicy  extends AbstractLoopRowTableRenderPolicy implements RenderPolicy {
 
     public LoopExistedRowTableRenderPolicy() {
         this(false);
@@ -70,6 +65,10 @@ public class LoopExistedRowTableRenderPolicy implements RenderPolicy {
         this.suffix = suffix;
         this.onSameLine = onSameLine;
         this.isSaveNextLine = isSaveNextLine;
+    }
+
+    public LoopExistedRowTableRenderPolicy(AbstractLoopRowTableRenderPolicy policy) {
+        super(policy);
     }
 
     @Override
@@ -132,7 +131,7 @@ public class LoopExistedRowTableRenderPolicy implements RenderPolicy {
                         documentProcessor.process(templates);
                     });
 
-                    LoopCopyHeaderRowRenderPolicy.removeCurrentLineData(globalEnv, root);
+                    this.removeCurrentLineData(globalEnv, root);
                 }
             }
 
@@ -167,11 +166,6 @@ public class LoopExistedRowTableRenderPolicy implements RenderPolicy {
         } catch (Exception e) {
             throw new RenderException("HackLoopTable for " + eleTemplate + " error: " + e.getMessage(), e);
         }
-    }
-
-    private int getTemplateRowIndex(XWPFTableCell tagCell) {
-        XWPFTableRow tagRow = tagCell.getTableRow();
-        return onSameLine ? WordTableUtils.findRowIndex(tagRow) : (WordTableUtils.findRowIndex(tagRow) + 1);
     }
 
     protected void afterloop(XWPFTable table, Object data) {

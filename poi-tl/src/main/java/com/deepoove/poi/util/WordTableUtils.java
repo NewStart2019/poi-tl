@@ -471,7 +471,7 @@ public class WordTableUtils {
             return;
         }
         List<IBodyElement> bodyElements = xwpfDocument.getBodyElements();
-        // 最后几行内容为空，删除元素避免产生新页
+        // The last few lines are empty, delete elements to avoid creating a new page
         for (int i = bodyElements.size() - 1; i >= 0; i--) {
             IBodyElement iBodyElement = bodyElements.get(i);
             if (iBodyElement instanceof XWPFParagraph) {

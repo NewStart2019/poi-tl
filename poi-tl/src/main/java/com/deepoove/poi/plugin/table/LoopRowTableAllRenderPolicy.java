@@ -6,12 +6,7 @@ import com.deepoove.poi.template.ElementTemplate;
 
 import java.util.Map;
 
-public class LoopRowTableAllRenderPolicy implements RenderPolicy {
-
-    private String prefix;
-    private String suffix;
-    private boolean onSameLine;
-    private boolean isSaveNextLine;
+public class LoopRowTableAllRenderPolicy extends AbstractLoopRowTableRenderPolicy implements RenderPolicy {
 
     public LoopRowTableAllRenderPolicy() {
         this(false);
@@ -51,62 +46,32 @@ public class LoopRowTableAllRenderPolicy implements RenderPolicy {
             rendermode = r != null ? Integer.parseInt(r.toString()) : rendermode;
         } catch (NumberFormatException ignore) {
         }
+        AbstractLoopRowTableRenderPolicy policy;
         switch (rendermode) {
             case 1:
-                new LoopExistedRowTableRenderPolicy(this.prefix, this.suffix, this.onSameLine, this.isSaveNextLine).render(eleTemplate, data, template);
+                policy = new LoopExistedRowTableRenderPolicy(this);
                 break;
             case 2:
-                new LoopExistedAndFillRowTableRenderPolicy(this.prefix, this.suffix, this.onSameLine, this.isSaveNextLine).render(eleTemplate, data, template);
+                policy = new LoopExistedAndFillRowTableRenderPolicy(this);
                 break;
             case 3:
-                new LoopRowTableAndFillRenderPolicy(this.prefix, this.suffix, this.onSameLine).render(eleTemplate, data, template);
+                policy = new LoopRowTableAndFillRenderPolicy(this);
                 break;
             case 4:
-                new LoopFullTableInsertFillRenderPolicy(this.prefix, this.suffix, this.onSameLine).render(eleTemplate, data, template);
+                policy = new LoopFullTableInsertFillRenderPolicy(this);
                 break;
             case 5:
-                new LoopIncludeSubTableRenderPolicy(this.prefix, this.suffix, this.onSameLine).render(eleTemplate, data, template);
+                policy = new LoopIncludeSubTableRenderPolicy(this);
                 break;
             case 6:
-                new LoopCopyHeaderRowRenderPolicy(this.prefix, this.suffix, this.onSameLine).render(eleTemplate, data, template);
+                policy = new LoopCopyHeaderRowRenderPolicy(this);
                 break;
             case 7:
-                new LoopMutilpleRowRenderPolicy(this.prefix, this.suffix, this.onSameLine).render(eleTemplate, data, template);
+                policy = new LoopMutilpleRowRenderPolicy(this);
                 break;
             default:
-                new LoopRowTableRenderPolicy(this.prefix, this.suffix, this.onSameLine).render(eleTemplate, data, template);
+                policy = new LoopRowTableRenderPolicy(this);
         }
-    }
-
-    public String getPrefix() {
-        return prefix;
-    }
-
-    public void setPrefix(String prefix) {
-        this.prefix = prefix;
-    }
-
-    public String getSuffix() {
-        return suffix;
-    }
-
-    public void setSuffix(String suffix) {
-        this.suffix = suffix;
-    }
-
-    public boolean isOnSameLine() {
-        return onSameLine;
-    }
-
-    public void setOnSameLine(boolean onSameLine) {
-        this.onSameLine = onSameLine;
-    }
-
-    public boolean isSaveNextLine() {
-        return isSaveNextLine;
-    }
-
-    public void setSaveNextLine(boolean saveNextLine) {
-        isSaveNextLine = saveNextLine;
+        policy.render(eleTemplate, data, template);
     }
 }
