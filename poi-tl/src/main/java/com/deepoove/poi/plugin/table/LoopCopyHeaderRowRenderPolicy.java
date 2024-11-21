@@ -80,6 +80,7 @@ public class LoopCopyHeaderRowRenderPolicy implements RenderPolicy {
             boolean isRemoveNextLine = false;
             Object n = globalEnv.get(eleTemplate.getTagName() + "_number");
             int mode = 1;
+            boolean isDrawBorderOfFirstPage = false;
             try {
                 if (n == null) {
                     // Subtract the default number of rows in the header by 1
@@ -89,12 +90,14 @@ public class LoopCopyHeaderRowRenderPolicy implements RenderPolicy {
                 }
                 Object fn = globalEnv.get(eleTemplate.getTagName() + "_first_number");
                 firstPageLine = fn != null ? Integer.parseInt(fn.toString()) : 0;
-                Object o = globalEnv.get(eleTemplate.getTagName() + "_mode");
-                mode = o != null ? Integer.parseInt(o.toString()) : mode;
-                Object r = globalEnv.get(eleTemplate.getTagName() + "_reduce");
-                reduce = r != null ? Integer.parseInt(r.toString()) : reduce;
-                Object rnl = globalEnv.get(eleTemplate.getTagName() + "_remove_next_line");
-                isRemoveNextLine = rnl != null;
+                fn = globalEnv.get(eleTemplate.getTagName() + "_mode");
+                mode = fn != null ? Integer.parseInt(fn.toString()) : mode;
+                fn = globalEnv.get(eleTemplate.getTagName() + "_reduce");
+                reduce = fn != null ? Integer.parseInt(fn.toString()) : reduce;
+                fn = globalEnv.get(eleTemplate.getTagName() + "_remove_next_line");
+                isRemoveNextLine = fn != null;
+                fn = globalEnv.get(eleTemplate.getTagName() + "_fpdb");
+                isDrawBorderOfFirstPage = fn != null;
             } catch (NumberFormatException ignore) {
             }
 
@@ -129,6 +132,7 @@ public class LoopCopyHeaderRowRenderPolicy implements RenderPolicy {
                             table.removeRow(templateRowIndex);
                         }
                     }
+                    drawBottomBorder(currentPage, isDrawBorderOfFirstPage, table);
                     // 存在下一页，创建表格
                     table = nextTable;
                     if (currentPage <= allPage) {
@@ -216,10 +220,21 @@ public class LoopCopyHeaderRowRenderPolicy implements RenderPolicy {
             if (table != nextTable) {
                 WordTableUtils.removeTable(xwpfDocument, nextTable);
             }
-
+            drawBottomBorder(currentPage, isDrawBorderOfFirstPage, table);
             globalEnv.putAll(original);
         } catch (Exception e) {
             throw new RenderException("HackLoopTable for " + eleTemplate + " error: " + e.getMessage(), e);
+        }
+    }
+
+    // Set the bottom border of the table to the left border style
+    private static void drawBottomBorder(int currentPage, boolean isDrawBorderOfFirstPage, XWPFTable table) {
+        // Set the bottom border of the table to the left border style
+        if (currentPage == 2 && isDrawBorderOfFirstPage){
+            WordTableUtils.setBottomBorder(table, null);
+        }
+        if (currentPage > 2){
+            WordTableUtils.setBottomBorder(table, null);
         }
     }
 
