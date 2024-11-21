@@ -69,6 +69,9 @@ public class LoopRowTableAllRenderPolicy extends AbstractLoopRowTableRenderPolic
             case 7:
                 policy = new LoopMutilpleRowRenderPolicy(this);
                 break;
+            case 8:
+                policy = new LoopMutilpleRowRenderSaveSuffixPolicy(this);
+                break;
             default:
                 policy = new LoopRowTableRenderPolicy(this);
         }

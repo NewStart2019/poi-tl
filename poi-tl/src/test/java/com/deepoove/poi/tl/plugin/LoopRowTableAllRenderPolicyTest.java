@@ -372,9 +372,9 @@ public class LoopRowTableAllRenderPolicyTest {
             e1.put("fc1", "随便做");
             e1.put("fc2", "随便做");
             e1.put("fc3", "随便做");
-            e1.put("bw1", "部位1_"+i);
-            e1.put("bw2", "部位2_"+i);
-            e1.put("bw3", "部位3_"+i);
+            e1.put("bw1", "部位1_" + i);
+            e1.put("bw2", "部位2_" + i);
+            e1.put("bw3", "部位3_" + i);
             e1.put("image_base64", Pictures.of("src/test/resources/picture/p.png").create());
             e1.put("image2_base64", Pictures.of("src/test/resources/picture/p.png").create());
             e1.put("image3_base64", Pictures.of("src/test/resources/picture/p.png").create());
@@ -420,5 +420,69 @@ public class LoopRowTableAllRenderPolicyTest {
         }
     }
 
+    public Map<String, Object> init5(int number) {
+        Map<String, Object> test = new HashMap<>();
+        test.put("companyName", "测试公司");
+        test.put("org_email", "4398430@ee.com");
+        test.put("fillPersonName", "李四");
+        test.put("create_time", "56486");
+        test.put("receivePerson", "李世明");
+        test.put("receiveTime", "2024-11-21 10:00:00");
+        test.put("signedTime", "2024-11-21 12:00:00");
+        test.put("qrcode", Pictures.of("src/test/resources/picture/p.png").create());
+        test.put("signedPersonQrcode", Pictures.of("src/test/resources/picture/p.png").create());
+        List<Map<String, Object>> data = new ArrayList<>();
+        test.put("subRecords", data);
+        test.put("subRecords_number", 29);
+        test.put("subRecords_reduce", 0);
+        Random random = new Random();
+        for (int i = 1; i <= number; i++) {
+            Map<String, Object> e1 = new HashMap<>();
+            data.add(e1);
+            e1.put("inspeItemName", "检测项目" + i);
+            e1.put("wt_no", 100 + random.nextInt(10));
+            e1.put("wtrq", "2024-11-21 10:00:00");
+            e1.put("report_no", "19849884" + i);
+            e1.put("jcEgName", "测试工程");
+            e1.put("remark", "无");
+            e1.put("p1", 20);
+        }
+        return test;
+    }
 
+
+    @Test
+    public void testLoopMutilpleRowRenderSaveSuffixPolicy() throws Exception {
+        // 测试支持多行表头和单行表头
+        ArrayList<Integer> conditions = new ArrayList<>();
+        resource = "src/test/resources/util/mutiple_suffix.docx";
+        conditions.add(5);
+        conditions.add(9);
+        conditions.add(10);
+        conditions.add(13);
+        conditions.add(20);
+        conditions.add(22);
+        conditions.add(24);
+        conditions.add(26);
+        conditions.add(30);
+        conditions.add(80);
+        for (Integer condition : conditions) {
+            Map<String, Object> stringObjectMap = init5(condition);
+            stringObjectMap.put("subRecords_rendermode", 8);
+            stringObjectMap.put("subRecords_row_number", 1);
+            stringObjectMap.put("subRecords_first_number", 13);
+            stringObjectMap.put("subRecords_number", 13);
+            stringObjectMap.put("subRecords_mode", 3);
+            stringObjectMap.put("subRecords_external_footer", 4);
+            // stringObjectMap.put("subRecords_nofill", 0);
+            stringObjectMap.put("blank_desc", "以下空白");
+            Configure config = Configure.builder()
+                .useSpringEL(false)
+                .bind("subRecords", policy)
+                .build();
+            XWPFTemplate template = XWPFTemplate.compile(resource, config).render(stringObjectMap);
+            WordTableUtils.setMinHeightParagraph(template.getXWPFDocument());
+            template.writeToFile("target/out_mutiple_suffix" + condition + ".docx");
+        }
+    }
 }
