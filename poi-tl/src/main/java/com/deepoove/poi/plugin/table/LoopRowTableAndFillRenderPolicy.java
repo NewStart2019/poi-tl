@@ -62,25 +62,16 @@ public class LoopRowTableAndFillRenderPolicy extends AbstractLoopRowTableRenderP
 
     @Override
     public void render(ElementTemplate eleTemplate, Object data, XWPFTemplate template) {
-        RunTemplate runTemplate = (RunTemplate) eleTemplate;
-        XWPFRun run = runTemplate.getRun();
         try {
-            if (!TableTools.isInsideTable(run)) {
-                throw new IllegalStateException("The template tag " + runTemplate.getSource() + " must be inside a table");
-            }
-            XWPFTableCell tagCell = (XWPFTableCell) ((XWPFParagraph) run.getParent()).getBody();
+            XWPFTableCell tagCell = this.dealPlaceTag(eleTemplate);
             XWPFTable table = tagCell.getTableRow().getTable();
-            run.setText("", 0);
 
             int oldRowNumber = table.getRows().size();
-
             int headerNumber = WordTableUtils.findCellVMergeNumber(tagCell);
             int templateRowIndex = getTemplateRowIndex(tagCell) + headerNumber - 1;
             Map<String, Object> globalEnv = template.getEnvModel().getEnv();
             Map<String, Object> original = new HashMap<>(globalEnv);
-            Configure config = template.getConfig();
-            RenderDataCompute dataCompute = config.getRenderDataComputeFactory()
-                .newCompute(EnvModel.of(template.getEnvModel().getRoot(), globalEnv));
+
             // number of lines
             int index = 0;
             if (data instanceof Iterable) {
@@ -88,8 +79,12 @@ public class LoopRowTableAndFillRenderPolicy extends AbstractLoopRowTableRenderP
                 XWPFTableRow templateRow = table.getRow(templateRowIndex);
                 int insertPosition = templateRowIndex;
 
+                Configure config = template.getConfig();
+                RenderDataCompute dataCompute = config.getRenderDataComputeFactory()
+                    .newCompute(EnvModel.of(template.getEnvModel().getRoot(), globalEnv));
                 TemplateResolver resolver = new TemplateResolver(template.getConfig().copy(prefix, suffix));
                 DocumentProcessor documentProcessor = new DocumentProcessor(template, resolver, dataCompute);
+
                 boolean firstFlag = true;
                 boolean hasNext = iterator.hasNext();
                 while (hasNext) {
@@ -106,16 +101,7 @@ public class LoopRowTableAndFillRenderPolicy extends AbstractLoopRowTableRenderP
                     XmlObject object = newCursor.getObject();
                     nextRow = new XWPFTableRow((CTRow) object, table);
                     if (!firstFlag) {
-                        // update VMerge cells for non-first row
-                        List<XWPFTableCell> tableCells = nextRow.getTableCells();
-                        for (XWPFTableCell cell : tableCells) {
-                            CTTcPr tcPr = TableTools.getTcPr(cell);
-                            CTVMerge vMerge = tcPr.getVMerge();
-                            if (null == vMerge) continue;
-                            if (STMerge.RESTART == vMerge.getVal()) {
-                                vMerge.setVal(STMerge.CONTINUE);
-                            }
-                        }
+                        this.setVMerge(nextRow);
                     } else {
                         firstFlag = false;
                     }
@@ -123,12 +109,7 @@ public class LoopRowTableAndFillRenderPolicy extends AbstractLoopRowTableRenderP
 
                     EnvIterator.makeEnv(globalEnv, ++index, hasNext);
                     EnvModel.of(root, globalEnv);
-                    List<XWPFTableCell> cells = nextRow.getTableCells();
-                    cells.forEach(cell -> {
-                        List<MetaTemplate> templates = resolver.resolveBodyElements(cell.getBodyElements());
-                        documentProcessor.process(templates);
-                    });
-
+                    this.renderMultipleRow(table, insertPosition, insertPosition, resolver, documentProcessor);
                     this.removeCurrentLineData(globalEnv, root);
                 }
             }

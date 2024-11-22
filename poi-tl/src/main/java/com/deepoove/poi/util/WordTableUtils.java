@@ -1248,6 +1248,31 @@ public class WordTableUtils {
         }
     }
 
+    public static void umMergeCell(XWPFTableCell cellRow) {
+        if (cellRow == null) {
+            return;
+        }
+        CTTcPr tcPr = cellRow.getCTTc().getTcPr();
+        if (tcPr == null) {
+            return;
+        }
+        if (tcPr.isSetHMerge()) {
+            tcPr.unsetHMerge();
+        }
+        if (tcPr.isSetVMerge()) {
+            tcPr.unsetVMerge();
+        }
+        if (tcPr.isSetGridSpan()) {
+            CTDecimalNumber gridSpan = tcPr.getGridSpan();
+            if (gridSpan != null && gridSpan.getVal() != null) {
+                int gridSpanValue = gridSpan.getVal().intValue();
+                if (gridSpanValue > 1) {
+                    tcPr.unsetGridSpan();
+                }
+            }
+        }
+    }
+
     /**
      * Merge a column into a single cell by specifying the start and end rows.
      *

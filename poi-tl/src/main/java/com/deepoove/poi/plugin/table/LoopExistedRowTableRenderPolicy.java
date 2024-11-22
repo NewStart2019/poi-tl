@@ -25,23 +25,21 @@ import com.deepoove.poi.render.processor.DocumentProcessor;
 import com.deepoove.poi.render.processor.EnvIterator;
 import com.deepoove.poi.resolver.TemplateResolver;
 import com.deepoove.poi.template.ElementTemplate;
-import com.deepoove.poi.template.MetaTemplate;
-import com.deepoove.poi.template.run.RunTemplate;
-import com.deepoove.poi.util.TableTools;
 import com.deepoove.poi.util.WordTableUtils;
-import org.apache.poi.xwpf.usermodel.*;
+import org.apache.poi.xwpf.usermodel.XWPFTable;
+import org.apache.poi.xwpf.usermodel.XWPFTableCell;
+import org.apache.poi.xwpf.usermodel.XWPFTableRow;
 
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 
 /**
- * loop table row
+ * Render existing lines
  *
- * @author Sayi
+ * @author zqh
  */
-public class LoopExistedRowTableRenderPolicy  extends AbstractLoopRowTableRenderPolicy implements RenderPolicy {
+public class LoopExistedRowTableRenderPolicy extends AbstractLoopRowTableRenderPolicy implements RenderPolicy {
 
     public LoopExistedRowTableRenderPolicy() {
         this(false);
@@ -73,100 +71,84 @@ public class LoopExistedRowTableRenderPolicy  extends AbstractLoopRowTableRender
 
     @Override
     public void render(ElementTemplate eleTemplate, Object data, XWPFTemplate template) {
-        RunTemplate runTemplate = (RunTemplate) eleTemplate;
-        XWPFRun run = runTemplate.getRun();
         try {
-            if (!TableTools.isInsideTable(run)) {
-                throw new IllegalStateException(
-                    "The template tag " + runTemplate.getSource() + " must be inside a table");
-            }
-            XWPFTableCell tagCell = (XWPFTableCell) ((XWPFParagraph) run.getParent()).getBody();
+            XWPFTableCell tagCell = this.dealPlaceTag(eleTemplate);
             XWPFTable table = tagCell.getTableRow().getTable();
-            run.setText("", 0);
 
             int headerNumber = WordTableUtils.findCellVMergeNumber(tagCell);
-            int templateRowIndex = getTemplateRowIndex(tagCell) + headerNumber - 1;
-            int allRowNumber = table.getRows().size() - 1;
-            int oldRowNumber = allRowNumber;
-            TemplateResolver resolver = new TemplateResolver(template.getConfig().copy(prefix, suffix));
-            XWPFTableRow templateRow = null;
+            int templateRowIndex = this.getTemplateRowIndex(tagCell) + headerNumber - 1;
+            int allRowNumber = table.getRows().size() - headerNumber;
+            XWPFTableRow templateRow;
+            int index = 0;
             Map<String, Object> globalEnv = template.getEnvModel().getEnv();
             Map<String, Object> original = new HashMap<>(globalEnv);
+
+            TemplateResolver resolver = new TemplateResolver(template.getConfig().copy(prefix, suffix));
             Configure config = template.getConfig();
             RenderDataCompute dataCompute = config.getRenderDataComputeFactory()
                 .newCompute(EnvModel.of(template.getEnvModel().getRoot(), globalEnv));
             DocumentProcessor documentProcessor = new DocumentProcessor(template, resolver, dataCompute);
+
+            // Clear the content of this template line and move the nearest line up one space
+            // Default template to fill a full page of the table
+            int pageLine = allRowNumber + 1;
+            int reduce = 0;
+            boolean isFill = true;
+            int mode = 1;
+            try {
+                Object n = globalEnv.get(eleTemplate.getTagName() + "_number");
+                pageLine = n == null ? pageLine : Integer.parseInt(n.toString());
+                Object temp = globalEnv.get(eleTemplate.getTagName() + "_reduce");
+                reduce = temp != null ? Integer.parseInt(temp.toString()) : 0;
+                temp = globalEnv.get(eleTemplate.getTagName() + "_nofill");
+                isFill = temp == null;
+                temp = globalEnv.get(eleTemplate.getTagName() + "_mode");
+                mode = temp != null ? Integer.parseInt(temp.toString()) : mode;
+            } catch (NumberFormatException ignore) {
+            }
+            boolean firstFlag = true;
             if (data instanceof Iterable) {
                 Iterator<?> iterator = ((Iterable<?>) data).iterator();
                 int insertPosition;
 
-                int index = 0;
                 boolean hasNext = iterator.hasNext();
                 while (hasNext) {
                     Object root = iterator.next();
                     hasNext = iterator.hasNext();
                     insertPosition = templateRowIndex++;
-                    if (allRowNumber < templateRowIndex) {
-                        allRowNumber += 1;
+                    if (allRowNumber - 1 <= index) {
                         templateRow = table.insertNewTableRow(templateRowIndex);
                     } else {
                         templateRow = table.getRow(templateRowIndex);
                     }
                     XWPFTableRow currentLine = table.getRow(insertPosition);
-                    if (isSaveNextLine) {
-                        // Move the next line to the next line
-                        if (templateRowIndex + 1 > allRowNumber) {
-                            allRowNumber += 1;
-                            table.insertNewTableRow(templateRowIndex + 1);
-                        }
-                        WordTableUtils.copyLineContent(templateRow, table.getRow(templateRowIndex + 1), templateRowIndex + 1);
+                    templateRow = WordTableUtils.copyLineContent(currentLine, templateRow, templateRowIndex);
+                    if (!firstFlag) {
+                        this.setVMerge(templateRow);
+                    } else {
+                        firstFlag = false;
                     }
-                    WordTableUtils.copyLineContent(currentLine, templateRow, templateRowIndex);
 
                     EnvIterator.makeEnv(globalEnv, ++index, hasNext);
                     EnvModel.of(root, globalEnv);
-                    List<XWPFTableCell> cells = currentLine.getTableCells();
-                    cells.forEach(cell -> {
-                        List<MetaTemplate> templates = resolver.resolveBodyElements(cell.getBodyElements());
-                        documentProcessor.process(templates);
-                    });
-
+                    this.renderMultipleRow(table, insertPosition, insertPosition, resolver, documentProcessor);
                     this.removeCurrentLineData(globalEnv, root);
                 }
             }
 
-            // Clear the content of this template line and move the nearest line up one space
-            if (templateRow != null) {
-                int newAdd = allRowNumber - oldRowNumber;
-                if (isSaveNextLine) {
-                    if (newAdd == 0) {
-                        XWPFTableRow row = table.getRow(templateRowIndex + 1);
-                        WordTableUtils.cleanRowTextContent(templateRow);
-                        WordTableUtils.copyLineContent(row, templateRow, templateRowIndex);
-                        WordTableUtils.cleanRowTextContent(row);
-                    } else if (newAdd == 1) {
-                        XWPFTableRow row = table.getRow(templateRowIndex + 1);
-                        WordTableUtils.cleanRowTextContent(templateRow);
-                        WordTableUtils.copyLineContent(row, templateRow, templateRowIndex);
-                        table.removeRow(templateRowIndex + 1);
-                    } else {
-                        table.removeRow(templateRowIndex);
-                        table.removeRow(templateRowIndex);
-                    }
-                } else {
-                    if (newAdd == 0) {
-                        WordTableUtils.cleanRowTextContent(templateRow);
-                    } else {
-                        table.removeRow(templateRowIndex);
-                    }
-                }
+            if (index >= allRowNumber) {
+                table.removeRow(templateRowIndex);
+            } else {
+                WordTableUtils.cleanRowTextContent(table, templateRowIndex);
             }
+            globalEnv.clear();
             globalEnv.putAll(original);
             afterloop(table, data);
         } catch (Exception e) {
             throw new RenderException("HackLoopTable for " + eleTemplate + " error: " + e.getMessage(), e);
         }
     }
+
 
     protected void afterloop(XWPFTable table, Object data) {
     }

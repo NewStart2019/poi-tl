@@ -113,6 +113,7 @@ public class LoopRowTableAllRenderPolicyTest {
                 .bind("test", policy)
                 .build();
             XWPFTemplate template = XWPFTemplate.compile(resource, config).render(stringObjectMap);
+            WordTableUtils.removeLastBlankParagraph(template.getXWPFDocument());
             WordTableUtils.setMinHeightParagraph(template.getXWPFDocument());
             template.writeToFile("target/out_existed" + condition + ".docx");
         }
@@ -123,21 +124,28 @@ public class LoopRowTableAllRenderPolicyTest {
         resource = "src/test/resources/template/render_existed_fill.docx";
         ArrayList<Integer> conditions = new ArrayList<>();
         conditions.add(10);
+        conditions.add(27);
+        conditions.add(56);
         conditions.add(65);
+        conditions.add(200);
         for (Integer condition : conditions) {
             Map<String, Object> stringObjectMap = init2(condition);
             stringObjectMap.put("test_rendermode", 2);
+            stringObjectMap.put("test_mode", 3);
+            // stringObjectMap.put("test_nofill", 2);
             policy.setSaveNextLine(true);
             Configure config = Configure.builder()
                 .useSpringEL(false)
                 .bind("test", policy)
                 .build();
             XWPFTemplate template = XWPFTemplate.compile(resource, config).render(stringObjectMap);
+            WordTableUtils.removeLastBlankParagraph(template.getXWPFDocument());
             WordTableUtils.setMinHeightParagraph(template.getXWPFDocument());
             template.writeToFile("target/out_exiest_fill" + condition + ".docx");
         }
     }
 
+    // TODO 解决空白行填充 没有解决 垂直归并的问题
     @Test
     public void testLoopFillRow() throws Exception {
         policy = new LoopRowTableAllRenderPolicy(false, true);

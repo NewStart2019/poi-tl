@@ -10,23 +10,17 @@ import com.deepoove.poi.render.processor.DocumentProcessor;
 import com.deepoove.poi.render.processor.EnvIterator;
 import com.deepoove.poi.resolver.TemplateResolver;
 import com.deepoove.poi.template.ElementTemplate;
-import com.deepoove.poi.template.MetaTemplate;
-import com.deepoove.poi.template.run.RunTemplate;
-import com.deepoove.poi.util.TableTools;
 import com.deepoove.poi.util.WordTableUtils;
-import org.apache.poi.xwpf.usermodel.*;
+import org.apache.poi.xwpf.usermodel.XWPFTable;
+import org.apache.poi.xwpf.usermodel.XWPFTableCell;
+import org.apache.poi.xwpf.usermodel.XWPFTableRow;
 
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 
 /**
- * TODO 重构，支持复制表头
- * 定义每页的行数，默认读取模板中的空白行
- * 复制模板行样式
- * 自定义是否填充空白行
- * 删除渲染模式1：{@link LoopExistedRowTableRenderPolicy LoopExistedRowTableRenderPolicy}
+ * Render existing lines and fill in blank spaces
  *
  * @author zqh
  */
@@ -60,25 +54,16 @@ public class LoopExistedAndFillRowTableRenderPolicy extends AbstractLoopRowTable
         super(policy);
     }
 
-
     @Override
     public void render(ElementTemplate eleTemplate, Object data, XWPFTemplate template) {
-        RunTemplate runTemplate = (RunTemplate) eleTemplate;
-        XWPFRun run = runTemplate.getRun();
         try {
-            if (!TableTools.isInsideTable(run)) {
-                throw new IllegalStateException(
-                    "The template tag " + runTemplate.getSource() + " must be inside a table");
-            }
-            XWPFTableCell tagCell = (XWPFTableCell) ((XWPFParagraph) run.getParent()).getBody();
+            XWPFTableCell tagCell = this.dealPlaceTag(eleTemplate);
             XWPFTable table = tagCell.getTableRow().getTable();
-            run.setText("", 0);
 
             int headerNumber = WordTableUtils.findCellVMergeNumber(tagCell);
             int templateRowIndex = this.getTemplateRowIndex(tagCell) + headerNumber - 1;
-            int allRowNumber = table.getRows().size() - 1;
-            int oldRowNumber = allRowNumber;
-            XWPFTableRow templateRow = null;
+            int allRowNumber = table.getRows().size() - headerNumber;
+            XWPFTableRow templateRow;
             int index = 0;
             Map<String, Object> globalEnv = template.getEnvModel().getEnv();
             Map<String, Object> original = new HashMap<>(globalEnv);
@@ -91,7 +76,7 @@ public class LoopExistedAndFillRowTableRenderPolicy extends AbstractLoopRowTable
 
             // Clear the content of this template line and move the nearest line up one space
             // Default template to fill a full page of the table
-            int pageLine = oldRowNumber + 1;
+            int pageLine = allRowNumber + headerNumber;
             int reduce = 0;
             boolean isFill = true;
             int mode = 1;
@@ -106,6 +91,7 @@ public class LoopExistedAndFillRowTableRenderPolicy extends AbstractLoopRowTable
                 mode = temp != null ? Integer.parseInt(temp.toString()) : mode;
             } catch (NumberFormatException ignore) {
             }
+            boolean firstFlag = true;
             if (data instanceof Iterable) {
                 Iterator<?> iterator = ((Iterable<?>) data).iterator();
                 int insertPosition;
@@ -115,90 +101,56 @@ public class LoopExistedAndFillRowTableRenderPolicy extends AbstractLoopRowTable
                     Object root = iterator.next();
                     hasNext = iterator.hasNext();
                     insertPosition = templateRowIndex++;
-                    if (allRowNumber < templateRowIndex) {
-                        allRowNumber += 1;
+                    if (allRowNumber - 1 <= index) {
                         templateRow = table.insertNewTableRow(templateRowIndex);
                     } else {
                         templateRow = table.getRow(templateRowIndex);
                     }
                     XWPFTableRow currentLine = table.getRow(insertPosition);
-                    WordTableUtils.copyLineContent(currentLine, templateRow, templateRowIndex);
+                    templateRow = WordTableUtils.copyLineContent(currentLine, templateRow, templateRowIndex);
+                    if (!firstFlag) {
+                        this.setVMerge(templateRow);
+                    } else {
+                        firstFlag = false;
+                    }
 
                     EnvIterator.makeEnv(globalEnv, ++index, hasNext);
                     EnvModel.of(root, globalEnv);
-                    List<XWPFTableCell> cells = currentLine.getTableCells();
-                    cells.forEach(cell -> {
-                        List<MetaTemplate> templates = resolver.resolveBodyElements(cell.getBodyElements());
-                        documentProcessor.process(templates);
-                    });
-
+                    this.renderMultipleRow(table, insertPosition, insertPosition, resolver, documentProcessor);
                     this.removeCurrentLineData(globalEnv, root);
                 }
             }
 
-            int newAdd = allRowNumber - oldRowNumber;
-            if (templateRow != null) {
-                if (isSaveNextLine) {
-                    XWPFTableRow row = table.getRow(templateRowIndex + 1);
-                    WordTableUtils.cleanRowTextContent(templateRow);
-                    WordTableUtils.copyLineContent(row, templateRow, templateRowIndex);
-                    // Determine if there is a cross page
-                    int remain = (allRowNumber + 1) % pageLine;
-                    if ((allRowNumber + 1) <= pageLine) {
-                        WordTableUtils.cleanRowTextContent(row);
-                        this.fillBlankRow(pageLine, remain, reduce, table, templateRowIndex + 1);
-                    } else if (remain == 1) {
-                        table.removeRow(templateRowIndex + 1);
-                    } else if (remain == 2) {
-                        table.removeRow(templateRowIndex);
-                        table.removeRow(templateRowIndex);
-                    } else {
-                        table.removeRow(templateRowIndex + 1);
-                        // Fill in the remaining portion，
-                        this.fillBlankRow(pageLine, remain, reduce, table, templateRowIndex);
+            if (isFill) {
+                // If there is less than one line on the first page, it will not be processed.
+                // If the number of lines exceeds the homepage, it needs to be processed
+                if (index > allRowNumber) {
+                    int remain = (index - allRowNumber) % pageLine;
+                    if (remain > 0) {
+                        int insertLine = pageLine - remain - reduce;
+                        this.fillBlankRow(insertLine, table, templateRowIndex);
+                        this.blankDeal(table, mode, templateRowIndex, insertLine);
+                        templateRowIndex += insertLine;
                     }
+                    table.removeRow(templateRowIndex);
                 } else {
-                    if (newAdd == 0) {
-                        WordTableUtils.cleanRowTextContent(templateRow);
-                    } else {
-                        table.removeRow(templateRowIndex);
-                        templateRowIndex -= 1;
-                    }
+                    int mergeLine = allRowNumber - index;
+                    this.blankDeal(table, mode, templateRowIndex, mergeLine);
+                    templateRowIndex += mergeLine;
+                    table.removeRow(templateRowIndex);
+                }
+            } else {
+                if (index >= allRowNumber) {
+                    table.removeRow(templateRowIndex);
+                } else {
+                    WordTableUtils.cleanRowTextContent(table, templateRowIndex);
                 }
             }
-
             globalEnv.clear();
             globalEnv.putAll(original);
             afterloop(table, data);
         } catch (Exception e) {
             throw new RenderException("HackLoopTable for " + eleTemplate + " error: " + e.getMessage(), e);
-        }
-    }
-
-    /**
-     * Fill the blank row
-     *
-     * @param pageLine   The number of rows per page
-     * @param remain     Number of rows already used
-     * @param reduce     the number of rows to be reduced
-     * @param table      XWPFTable
-     * @param startIndex Start writing the position of blank lines
-     */
-    protected void fillBlankRow(int pageLine, int remain, int reduce, XWPFTable table, int startIndex) {
-        if (remain == 0) {
-            return;
-        }
-        int insertLine = pageLine - remain - reduce;
-        if (insertLine > 0) {
-            XWPFTableRow tempRow = table.insertNewTableRow(startIndex + 1);
-            tempRow = WordTableUtils.copyLineContent(table.getRow(startIndex), tempRow, startIndex + 1);
-            WordTableUtils.cleanRowTextContent(tempRow);
-            startIndex += 1;
-        }
-        for (int i = 1; i < insertLine; i++) {
-            XWPFTableRow tempRow = table.insertNewTableRow(startIndex + 1);
-            WordTableUtils.copyLineContent(table.getRow(startIndex), tempRow, startIndex + 1);
-            startIndex += 1;
         }
     }
 

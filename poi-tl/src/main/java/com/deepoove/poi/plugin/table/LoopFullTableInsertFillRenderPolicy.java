@@ -10,7 +10,6 @@ import com.deepoove.poi.render.processor.DocumentProcessor;
 import com.deepoove.poi.render.processor.EnvIterator;
 import com.deepoove.poi.resolver.TemplateResolver;
 import com.deepoove.poi.template.ElementTemplate;
-import com.deepoove.poi.template.MetaTemplate;
 import com.deepoove.poi.template.run.RunTemplate;
 import com.deepoove.poi.util.TableTools;
 import com.deepoove.poi.util.WordTableUtils;
@@ -20,7 +19,6 @@ import org.apache.xmlbeans.XmlCursor;
 
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 public class LoopFullTableInsertFillRenderPolicy extends AbstractLoopRowTableRenderPolicy implements RenderPolicy {
@@ -212,23 +210,6 @@ public class LoopFullTableInsertFillRenderPolicy extends AbstractLoopRowTableRen
             afterloop(table, data);
         } catch (Exception e) {
             throw new RenderException("HackLoopTable for " + eleTemplate + " error: " + e.getMessage(), e);
-        }
-    }
-
-    private void renderMultipleRow(XWPFTable table, int startIndex, int endIndex, TemplateResolver resolver,
-                                          DocumentProcessor documentProcessor) {
-        if (endIndex < 0) {
-            endIndex = table.getRows().size() + endIndex;
-        }
-        if (startIndex > endIndex) {
-            return;
-        }
-        for (int i = startIndex; i <= endIndex; i++) {
-            List<XWPFTableCell> cells = table.getRow(i).getTableCells();
-            cells.forEach(cell -> {
-                List<MetaTemplate> templates = resolver.resolveBodyElements(cell.getBodyElements());
-                documentProcessor.process(templates);
-            });
         }
     }
 

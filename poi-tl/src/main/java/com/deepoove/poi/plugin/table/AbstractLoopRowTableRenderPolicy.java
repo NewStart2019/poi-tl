@@ -2,12 +2,15 @@ package com.deepoove.poi.plugin.table;
 
 import com.deepoove.poi.data.RenderData;
 import com.deepoove.poi.policy.RenderPolicy;
+import com.deepoove.poi.render.processor.DocumentProcessor;
+import com.deepoove.poi.resolver.TemplateResolver;
+import com.deepoove.poi.template.ElementTemplate;
+import com.deepoove.poi.template.MetaTemplate;
+import com.deepoove.poi.template.run.RunTemplate;
 import com.deepoove.poi.util.TableTools;
 import com.deepoove.poi.util.TlBeanUtil;
 import com.deepoove.poi.util.WordTableUtils;
-import org.apache.poi.xwpf.usermodel.XWPFTable;
-import org.apache.poi.xwpf.usermodel.XWPFTableCell;
-import org.apache.poi.xwpf.usermodel.XWPFTableRow;
+import org.apache.poi.xwpf.usermodel.*;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTcPr;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTVMerge;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.STMerge;
@@ -67,6 +70,19 @@ public abstract class AbstractLoopRowTableRenderPolicy implements RenderPolicy {
 
     public void setSaveNextLine(boolean saveNextLine) {
         isSaveNextLine = saveNextLine;
+    }
+
+    // Processing placeholder symbol labels，return the template tag cell
+    protected XWPFTableCell dealPlaceTag(ElementTemplate eleTemplate) {
+        RunTemplate runTemplate = (RunTemplate) eleTemplate;
+        XWPFRun run = runTemplate.getRun();
+        if (!TableTools.isInsideTable(run)) {
+            throw new IllegalStateException(
+                "The template tag " + runTemplate.getSource() + " must be inside a table");
+        }
+        XWPFTableCell tagCell = (XWPFTableCell) ((XWPFParagraph) run.getParent()).getBody();
+        run.setText("", 0);
+        return tagCell;
     }
 
     /**
@@ -168,6 +184,61 @@ public abstract class AbstractLoopRowTableRenderPolicy implements RenderPolicy {
             if (STMerge.RESTART == vMerge.getVal()) {
                 vMerge.setVal(STMerge.CONTINUE);
             }
+        }
+    }
+
+    /**
+     * Rendering Multi line Template
+     *
+     * @param table             {@link XWPFTable table}
+     * @param startIndex        starting the index
+     * @param endIndex          ending the index
+     * @param resolver          template  {@link TemplateResolver resolver}
+     * @param documentProcessor {@link DocumentProcessor documentProcessor}
+     */
+    protected void renderMultipleRow(XWPFTable table, int startIndex, int endIndex, TemplateResolver resolver,
+                                     DocumentProcessor documentProcessor) {
+        if (endIndex < 0) {
+            endIndex = table.getRows().size() + endIndex;
+        }
+        if (startIndex > endIndex) {
+            return;
+        }
+        for (int i = startIndex; i <= endIndex; i++) {
+            List<XWPFTableCell> cells = table.getRow(i).getTableCells();
+            cells.forEach(cell -> {
+                List<MetaTemplate> templates = resolver.resolveBodyElements(cell.getBodyElements());
+                documentProcessor.process(templates);
+            });
+        }
+    }
+
+    /**
+     * Blank line processing
+     *
+     * @param table         {@link XWPFTable table}
+     * @param mode          mode， 1:blank line, 2:diagonal line, 3:text "以下空白"
+     * @param startRowIndex template row index
+     * @param mergeLines    merge rows
+     */
+    protected void blankDeal(XWPFTable table, int mode, int startRowIndex, int mergeLines) {
+        if (table == null || startRowIndex < 0 || mergeLines <= 0) {
+            return;
+        }
+        int endIndex = startRowIndex + mergeLines - 1;
+        endIndex = Math.min(endIndex, table.getRows().size() - 1);
+        if (mode == 2) {
+            WordTableUtils.mergeMutipleLine(table, startRowIndex, endIndex);
+            // Set diagonal border
+            XWPFTableCell cellRow00 = table.getRow(startRowIndex).getCell(0);
+            WordTableUtils.setDiagonalBorder(cellRow00);
+            WordTableUtils.setCellWidth(cellRow00, table.getWidth());
+        } else if (mode == 3) {
+            XWPFTableRow row = table.getRow(startRowIndex);
+            WordTableUtils.cleanRowTextContent(row);
+            XWPFTableCell cell = row.getCell((row.getTableCells().size() - 1) / 2);
+            XWPFParagraph xwpfParagraph = cell.addParagraph();
+            xwpfParagraph.createRun().setText("以下空白");
         }
     }
 }
