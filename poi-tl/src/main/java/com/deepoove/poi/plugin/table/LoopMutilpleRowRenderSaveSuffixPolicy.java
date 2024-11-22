@@ -158,6 +158,8 @@ public class LoopMutilpleRowRenderSaveSuffixPolicy extends AbstractLoopRowTableR
                             for (int i = rowIndex; i < rowIndex + headerNumber + template_row_number; i++) {
                                 WordTableUtils.copyLineContent(table.getRow(i), nextTable.insertNewTableRow(temp), temp++);
                             }
+                            WordTableUtils.copyTableTblPr(table, nextTable);
+                            nextTable.getCTTbl().setTblGrid(table.getCTTbl().getTblGrid());
                         } else {
                             xmlCursor.toParent();
                             nextTable = WordTableUtils.copyTable(xwpfDocument, table, xmlCursor);

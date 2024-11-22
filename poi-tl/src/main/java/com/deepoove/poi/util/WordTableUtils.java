@@ -1030,6 +1030,7 @@ public class WordTableUtils {
      *
      * @param table {@link XWPFTable table}
      */
+    @SuppressWarnings("unchecked")
     public static void setBottomBorder(XWPFTable table, CTBorder border) {
         if (table == null) {
             return;
@@ -1066,6 +1067,16 @@ public class WordTableUtils {
         if (border == null) {
             return;
         }
+
+        // Set global border style
+        CTTblPr tblPr = table.getCTTbl().getTblPr();
+        if (tblPr == null) tblPr = table.getCTTbl().addNewTblPr();
+        CTTblBorders ctTblBorders = tblPr.isSetTblBorders() ? tblPr.getTblBorders() : tblPr.addNewTblBorders();
+        CTBorder globalBottomBorder = ctTblBorders.isSetBottom() ? ctTblBorders.getBottom() : ctTblBorders.addNewBottom();
+        globalBottomBorder.setVal(border.getVal());
+        globalBottomBorder.setColor(border.getColor());
+        globalBottomBorder.setSz(border.getSz());
+        globalBottomBorder.setSpace(border.getSpace());
 
         // Set each cell in the row
         for (XWPFTableCell cell : row.getTableCells()) {
