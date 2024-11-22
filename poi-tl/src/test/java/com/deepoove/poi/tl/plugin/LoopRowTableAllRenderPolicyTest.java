@@ -7,6 +7,7 @@ import com.deepoove.poi.plugin.table.LoopFullTableInsertFillRenderPolicy;
 import com.deepoove.poi.plugin.table.LoopRowTableAllRenderPolicy;
 import com.deepoove.poi.plugin.table.LoopRowTableRenderPolicy;
 import com.deepoove.poi.util.WordTableUtils;
+import com.deepoove.poi.xwpf.NiceXWPFDocument;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -78,11 +79,11 @@ public class LoopRowTableAllRenderPolicyTest {
         test.put("org_email", "4398430@ee.com");
         test.put("org_queryPhone", "56486");
         test.put("org_address", "56486");
-        test.put("conclusion", "符合");
         List<Map<String, Object>> data = new ArrayList<>();
         test.put("test", data);
         test.put("test_number", 29);
         test.put("test_reduce", 0);
+        test.put("conclusion", "结论");
         for (int i = 1; i <= number; i++) {
             Map<String, Object> e1 = new HashMap<>();
             data.add(e1);
@@ -182,7 +183,7 @@ public class LoopRowTableAllRenderPolicyTest {
         for (Integer condition : conditions) {
             Map<String, Object> stringObjectMap = init2(condition);
             stringObjectMap.put("test_number", 25);
-            stringObjectMap.put("test_mode", 2);
+            stringObjectMap.put("test_mode", 3);
             stringObjectMap.put("test_rendermode", 4);
             // stringObjectMap.put("test_reduce", 1);
             stringObjectMap.put("test_remove_next_line", 4);
@@ -193,6 +194,10 @@ public class LoopRowTableAllRenderPolicyTest {
                 .build();
             XWPFTemplate template = XWPFTemplate.compile(resource, config).render(stringObjectMap);
             WordTableUtils.setMinHeightParagraph(template.getXWPFDocument());
+            NiceXWPFDocument xwpfDocument = template.getXWPFDocument();
+            // 最后几行内容为空，删除元素避免产生新页
+            WordTableUtils.removeLastBlankParagraph(xwpfDocument);
+            WordTableUtils.setMinHeightParagraph(xwpfDocument);
             template.writeToFile("target/out_loop_table" + condition + ".docx");
         }
     }
@@ -273,7 +278,7 @@ public class LoopRowTableAllRenderPolicyTest {
             Map<String, Object> stringObjectMap = init2(condition);
             stringObjectMap.put("test_first_number", 24);
             stringObjectMap.put("test_number", 28);
-            stringObjectMap.put("test_mode", 2);
+            stringObjectMap.put("test_mode", 1);
             stringObjectMap.put("test_rendermode", 6);
             stringObjectMap.put("test_remove_next_line", 4);
             stringObjectMap.put("blank_desc", "以下空白");
@@ -389,7 +394,7 @@ public class LoopRowTableAllRenderPolicyTest {
         resource = "src/test/resources/util/double_mutiple_copy_picture.docx";
         // resource = "D:\\DingTalkAppData\\DingTalk\\download\\外墙节能构造及保温层厚度（钻芯法）检测报告.docx";
         conditions.add(8);
-        conditions.add(14);
+        conditions.add(13);
         conditions.add(20);
         conditions.add(23);
         conditions.add(80);
@@ -439,8 +444,11 @@ public class LoopRowTableAllRenderPolicyTest {
         for (int i = 1; i <= number; i++) {
             Map<String, Object> e1 = new HashMap<>();
             data.add(e1);
-            e1.put("inspeItemName", "检测项目" + i);
             e1.put("wt_no", 100 + random.nextInt(10));
+            if (i == 3) {
+                continue;
+            }
+            e1.put("inspeItemName", "检测项目" + i);
             e1.put("wtrq", "2024-11-21 10:00:00");
             e1.put("report_no", "19849884" + i);
             e1.put("jcEgName", "测试工程");

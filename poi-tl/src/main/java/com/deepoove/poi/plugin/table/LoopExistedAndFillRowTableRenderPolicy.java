@@ -22,9 +22,13 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * loop table row
+ * TODO 重构，支持复制表头
+ * 定义每页的行数，默认读取模板中的空白行
+ * 复制模板行样式
+ * 自定义是否填充空白行
+ * 删除渲染模式1：{@link LoopExistedRowTableRenderPolicy LoopExistedRowTableRenderPolicy}
  *
- * @author Sayi
+ * @author zqh
  */
 public class LoopExistedAndFillRowTableRenderPolicy extends AbstractLoopRowTableRenderPolicy implements RenderPolicy {
 
@@ -74,15 +78,34 @@ public class LoopExistedAndFillRowTableRenderPolicy extends AbstractLoopRowTable
             int templateRowIndex = this.getTemplateRowIndex(tagCell) + headerNumber - 1;
             int allRowNumber = table.getRows().size() - 1;
             int oldRowNumber = allRowNumber;
-            TemplateResolver resolver = new TemplateResolver(template.getConfig().copy(prefix, suffix));
             XWPFTableRow templateRow = null;
             int index = 0;
             Map<String, Object> globalEnv = template.getEnvModel().getEnv();
             Map<String, Object> original = new HashMap<>(globalEnv);
+
+            TemplateResolver resolver = new TemplateResolver(template.getConfig().copy(prefix, suffix));
             Configure config = template.getConfig();
             RenderDataCompute dataCompute = config.getRenderDataComputeFactory()
                 .newCompute(EnvModel.of(template.getEnvModel().getRoot(), globalEnv));
             DocumentProcessor documentProcessor = new DocumentProcessor(template, resolver, dataCompute);
+
+            // Clear the content of this template line and move the nearest line up one space
+            // Default template to fill a full page of the table
+            int pageLine = oldRowNumber + 1;
+            int reduce = 0;
+            boolean isFill = true;
+            int mode = 1;
+            try {
+                Object n = globalEnv.get(eleTemplate.getTagName() + "_number");
+                pageLine = n == null ? pageLine : Integer.parseInt(n.toString());
+                Object temp = globalEnv.get(eleTemplate.getTagName() + "_reduce");
+                reduce = temp != null ? Integer.parseInt(temp.toString()) : 0;
+                temp = globalEnv.get(eleTemplate.getTagName() + "_nofill");
+                isFill = temp == null;
+                temp = globalEnv.get(eleTemplate.getTagName() + "_mode");
+                mode = temp != null ? Integer.parseInt(temp.toString()) : mode;
+            } catch (NumberFormatException ignore) {
+            }
             if (data instanceof Iterable) {
                 Iterator<?> iterator = ((Iterable<?>) data).iterator();
                 int insertPosition;
@@ -99,14 +122,6 @@ public class LoopExistedAndFillRowTableRenderPolicy extends AbstractLoopRowTable
                         templateRow = table.getRow(templateRowIndex);
                     }
                     XWPFTableRow currentLine = table.getRow(insertPosition);
-                    if (isSaveNextLine) {
-                        // Move the next line to the next line
-                        if (templateRowIndex + 1 > allRowNumber) {
-                            allRowNumber += 1;
-                            table.insertNewTableRow(templateRowIndex + 1);
-                        }
-                        WordTableUtils.copyLineContent(templateRow, table.getRow(templateRowIndex + 1), templateRowIndex + 1);
-                    }
                     WordTableUtils.copyLineContent(currentLine, templateRow, templateRowIndex);
 
                     EnvIterator.makeEnv(globalEnv, ++index, hasNext);
@@ -121,18 +136,7 @@ public class LoopExistedAndFillRowTableRenderPolicy extends AbstractLoopRowTable
                 }
             }
 
-            // Clear the content of this template line and move the nearest line up one space
             int newAdd = allRowNumber - oldRowNumber;
-            // 默认模板给表格写满一页
-            int pageLine = oldRowNumber + 1;
-            int reduce = 0;
-            try {
-                Object n = globalEnv.get(eleTemplate.getTagName() + "_number");
-                pageLine = n == null ? pageLine : Integer.parseInt(n.toString());
-                Object r = globalEnv.get(eleTemplate.getTagName() + "_reduce");
-                reduce = r != null ? Integer.parseInt(r.toString()) : 0;
-            } catch (NumberFormatException ignore) {
-            }
             if (templateRow != null) {
                 if (isSaveNextLine) {
                     XWPFTableRow row = table.getRow(templateRowIndex + 1);
@@ -163,6 +167,7 @@ public class LoopExistedAndFillRowTableRenderPolicy extends AbstractLoopRowTable
                 }
             }
 
+            globalEnv.clear();
             globalEnv.putAll(original);
             afterloop(table, data);
         } catch (Exception e) {

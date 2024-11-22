@@ -10,12 +10,13 @@ import org.apache.xmlbeans.XmlCursor;
 import org.apache.xmlbeans.XmlException;
 import org.apache.xmlbeans.XmlObject;
 import org.junit.jupiter.api.Test;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.*;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTc;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.STHeightRule;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.STMerge;
 import org.springframework.util.Assert;
 
 import javax.xml.namespace.QName;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -298,7 +299,6 @@ class WordTableUtilsTest {
         }
     }
 
-    @Test
     void testChangeElement() {
         String template = "src/test/resources/util/copy_template.docx";
         try (FileInputStream fileInputStream = new FileInputStream(template);

@@ -2,7 +2,6 @@ package com.deepoove.poi.plugin.table;
 
 import com.deepoove.poi.XWPFTemplate;
 import com.deepoove.poi.config.Configure;
-import com.deepoove.poi.data.RenderData;
 import com.deepoove.poi.exception.RenderException;
 import com.deepoove.poi.policy.RenderPolicy;
 import com.deepoove.poi.render.compute.EnvModel;
@@ -14,7 +13,6 @@ import com.deepoove.poi.template.ElementTemplate;
 import com.deepoove.poi.template.MetaTemplate;
 import com.deepoove.poi.template.run.RunTemplate;
 import com.deepoove.poi.util.TableTools;
-import com.deepoove.poi.util.TlBeanUtil;
 import com.deepoove.poi.util.WordTableUtils;
 import com.deepoove.poi.xwpf.NiceXWPFDocument;
 import org.apache.poi.xwpf.usermodel.*;
@@ -131,7 +129,7 @@ public class LoopMutilpleRowRenderPolicy extends AbstractLoopRowTableRenderPolic
                 firstPage = index < firstNumber;
                 if (index == 0 || index == firstNumber || ((index > firstNumber) && (index - firstNumber) % perPageNumber == 0)) {
                     if (index != 0) {
-                        removeMutipleLine(template_row_number, table, templateRowIndex);
+                        removeMultipleLine(template_row_number, table, templateRowIndex);
                     }
                     // Set the bottom border of the table to the left border style
                     drawBottomBorder(currentPage, isDrawBorderOfFirstPage, table);
@@ -217,43 +215,17 @@ public class LoopMutilpleRowRenderPolicy extends AbstractLoopRowTableRenderPolic
             if (table != nextTable) {
                 WordTableUtils.removeTable(xwpfDocument, nextTable);
             }
-            removeMutipleLine(template_row_number, table, templateRowIndex + insertLine);
+            removeMultipleLine(template_row_number, table, templateRowIndex + insertLine);
             afterloop(table, data);
             drawBottomBorder(currentPage, isDrawBorderOfFirstPage, table);
+            globalEnv.clear();
             globalEnv.putAll(original);
         } catch (Exception e) {
             throw new RenderException("HackLoopTable for " + eleTemplate + " error: " + e.getMessage(), e);
         }
     }
 
-    private static void removeMutipleLine(int template_row_number, XWPFTable table, int templateRowIndex) {
-        for (int i = templateRowIndex + template_row_number - 1; i >= templateRowIndex; i--) {
-            table.removeRow(templateRowIndex);
-        }
-    }
-
     protected void afterloop(XWPFTable table, Object data) {
     }
-
-    /**
-     * Fill the blank row
-     *
-     * @param insertLine The number of rows per page
-     * @param table      XWPFTable
-     * @param startIndex Start writing the position of blank lines
-     */
-    protected void fillBlankRow(int insertLine, XWPFTable table, int startIndex) {
-        if (insertLine <= 0) {
-            return;
-        }
-        XWPFTableRow tempRow = table.insertNewTableRow(startIndex);
-        tempRow = WordTableUtils.copyLineContent(table.getRow(startIndex + 1), tempRow, startIndex);
-        WordTableUtils.cleanRowTextContent(tempRow);
-        for (int i = 1; i < insertLine; i++) {
-            XWPFTableRow nextRow = table.insertNewTableRow(startIndex + 1);
-            WordTableUtils.copyLineContent(tempRow, nextRow, ++startIndex);
-        }
-    }
-
 }
 

@@ -102,7 +102,7 @@ public class IterableTemplateTest {
 
         XWPFTable table1 = document.getTables().get(1);
         assertEquals("Deepoove", table1.getRow(1).getCell(2).getText());
-        assertEquals("", table1.getRow(2).getCell(1).getText());
+        assertEquals("addr: Hangzhou,China.addr: Shanghai,China.", table1.getRow(2).getCell(1).getText());
 
         document.close();
 
@@ -129,7 +129,11 @@ public class IterableTemplateTest {
 
             }
         });
-        Map<String, Object> datas = Collections.singletonMap("users", users);
+        Map<String, Object> datas = new HashMap<String, Object>() {
+            {
+                put("users", users);
+            }
+        };
 
         XWPFTemplate template = XWPFTemplate.compile("src/test/resources/template/iterable_hyperlink.docx");
         template.render(datas);
@@ -138,10 +142,10 @@ public class IterableTemplateTest {
         assertEquals("结束。", document.getParagraphArray(1).getText());
         assertEquals("开始，结束。", document.getParagraphArray(3).getText());
         assertEquals(
-                "Hello, My perfect, http://deepoove.com,Sayi."
-                + "addr:http://deepoove.comHangzhou,China.addr:http://deepoove.comShanghai,China."
-                + "Hello, My perfect, http://deepoove.com,Deepoove website..",
-                document.getParagraphArray(6).getText());
+            "Hello, My perfect, http://deepoove.com,Sayi.addr:http://deepoove.comHangzhou,China.addr" +
+                ":http://deepoove.comShanghai,China.Hello, My perfect, http://deepoove.com,Deepoove website." +
+                ".addr:http://deepoove.comHangzhou,China.addr:http://deepoove.comShanghai,China.",
+            document.getParagraphArray(6).getText());
         document.close();
     }
 
@@ -150,8 +154,8 @@ public class IterableTemplateTest {
     @DisplayName("using all gramer together")
     public void testTogetherBasic() throws Exception {
         RowRenderData row0 = Rows
-                .of(new HyperlinkTextRenderData("张三", "http://deepoove.com"), new TextRenderData("1E915D", "研究生"))
-                .create();
+            .of(new HyperlinkTextRenderData("张三", "http://deepoove.com"), new TextRenderData("1E915D", "研究生"))
+            .create();
 
         RowRenderData row1 = Rows.of("李四", "博士").create();
 

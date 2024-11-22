@@ -52,12 +52,13 @@ public class LoopIncludeSubTableRenderPolicy  extends AbstractLoopRowTableRender
     public void render(ElementTemplate eleTemplate, Object data, XWPFTemplate template) {
         RunTemplate runTemplate = (RunTemplate) eleTemplate;
         XWPFRun run = runTemplate.getRun();
+        if (!TableTools.isInsideTable(run)) {
+            throw new IllegalStateException("The template tag " + runTemplate.getSource() + " must be inside a table");
+        }
         try {
-            if (!TableTools.isInsideTable(run)) {
-                throw new IllegalStateException("The template tag " + runTemplate.getSource() + " must be inside a table");
-            }
             XWPFTableCell tagCell = (XWPFTableCell) ((XWPFParagraph) run.getParent()).getBody();
-            int templateRowIndex = getTemplateRowIndex(tagCell);
+            int headerNumber = WordTableUtils.findCellVMergeNumber(tagCell);
+            int templateRowIndex = this.getTemplateRowIndex(tagCell) + headerNumber - 1;
             XWPFTable table = tagCell.getTableRow().getTable();
             run.setText("", 0);
 

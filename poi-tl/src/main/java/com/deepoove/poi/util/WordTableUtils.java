@@ -124,6 +124,7 @@ public class WordTableUtils {
      * @param currentLine      current line
      * @param nextLine         next line
      * @param templateRowIndex next line row index
+     * @return next line
      */
     public static XWPFTableRow copyLineContent(XWPFTableRow currentLine, XWPFTableRow nextLine, int templateRowIndex) {
         if (currentLine == null || nextLine == null) {
@@ -927,9 +928,8 @@ public class WordTableUtils {
         CTTc ctTc = cell.getCTTc();
         CTTcPr ctTcPr = ctTc.isSetTcPr() ? ctTc.getTcPr() : ctTc.addNewTcPr();
         CTTcBorders ctTcBorders = ctTcPr.isSetTcBorders() ? ctTcPr.getTcBorders() : ctTcPr.addNewTcBorders();
-        if (!ctTcBorders.isSetTr2Bl()) {
-            ctTcBorders.addNewTr2Bl().setVal(stBorder);
-        }
+        CTBorder ctBorder = ctTcBorders.isSetTr2Bl() ? ctTcBorders.getTr2Bl() : ctTcBorders.addNewTr2Bl();
+        ctBorder.setVal(stBorder);
     }
 
     /**
@@ -1030,7 +1030,6 @@ public class WordTableUtils {
      *
      * @param table {@link XWPFTable table}
      */
-    @SuppressWarnings("unchecked")
     public static void setBottomBorder(XWPFTable table, CTBorder border) {
         if (table == null) {
             return;

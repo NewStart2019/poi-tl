@@ -135,7 +135,7 @@ public class LoopMutilpleRowRenderSaveSuffixPolicy extends AbstractLoopRowTableR
                 firstPage = index < firstNumber;
                 if (index == 0 || index == firstNumber || ((index > firstNumber) && (index - firstNumber) % perPageNumber == 0)) {
                     if (index != 0) {
-                        removeMutipleLine(template_row_number, table, templateRowIndex);
+                        removeMultipleLine(template_row_number, table, templateRowIndex);
                     }
                     // Set the bottom border of the table to the left border style
                     drawBottomBorder(currentPage, isDrawBorderOfFirstPage, table);
@@ -194,7 +194,7 @@ public class LoopMutilpleRowRenderSaveSuffixPolicy extends AbstractLoopRowTableR
                     if (insertLine >= tableExternalFooterLine) {
                         insertLine = insertLine - tableExternalFooterLine - reduce;
                         this.fillBlankRow(insertLine, table, templateRowIndex);
-                        removeMutipleLine(template_row_number, table, templateRowIndex + insertLine);
+                        removeMultipleLine(template_row_number, table, templateRowIndex + insertLine);
                         if (paragraph != null) {
                             WordTableUtils.removeParagraph(paragraph);
                         }
@@ -207,27 +207,27 @@ public class LoopMutilpleRowRenderSaveSuffixPolicy extends AbstractLoopRowTableR
                         // The first table filling section
                         this.fillBlankRow(insertLine, table, templateRowIndex);
                         blankDeal(insertLine, mode, table, templateRowIndex, true);
-                        removeMutipleLine(template_row_number, table, templateRowIndex + insertLine);
+                        removeMultipleLine(template_row_number, table, templateRowIndex + insertLine);
                         boolean isNoRemain = insertLine == 0;
                         // The second table filling section
                         insertLine = pageLine - tableExternalFooterLine - reduce;
                         this.fillBlankRow(insertLine, nextTable, headerNumber);
-                        removeMutipleLine(template_row_number, nextTable, headerNumber + insertLine);
+                        removeMultipleLine(template_row_number, nextTable, headerNumber + insertLine);
                         blankDeal(insertLine, mode, nextTable, headerNumber, isNoRemain);
                         drawBottomBorder(currentPage, isDrawBorderOfFirstPage, nextTable);
                     }
                 } else if ((dataCount - firstNumber) % perPageNumber == 0) {
-                    removeMutipleLine(template_row_number, table, templateRowIndex);
+                    removeMultipleLine(template_row_number, table, templateRowIndex);
 
                     insertLine = pageLine - (dataCount - firstNumber) % perPageNumber * template_row_number - tableExternalFooterLine - reduce;
                     this.fillBlankRow(insertLine, nextTable, headerNumber);
-                    removeMutipleLine(template_row_number, nextTable, headerNumber + insertLine);
+                    removeMultipleLine(template_row_number, nextTable, headerNumber + insertLine);
                     blankDeal(insertLine, mode, nextTable, headerNumber, true);
                     drawBottomBorder(currentPage, isDrawBorderOfFirstPage, nextTable);
                 } else if ((perPageNumber - (dataCount - firstNumber) % perPageNumber) * template_row_number >= tableExternalFooterLine) {
                     insertLine = pageLine - (dataCount - firstNumber) % perPageNumber * template_row_number - tableExternalFooterLine - reduce;
                     this.fillBlankRow(insertLine, table, templateRowIndex);
-                    removeMutipleLine(template_row_number, table, templateRowIndex + insertLine);
+                    removeMultipleLine(template_row_number, table, templateRowIndex + insertLine);
                     if (paragraph != null) {
                         WordTableUtils.removeParagraph(paragraph);
                     }
@@ -241,17 +241,17 @@ public class LoopMutilpleRowRenderSaveSuffixPolicy extends AbstractLoopRowTableR
                     // The first table filling section
                     this.fillBlankRow(insertLine, table, templateRowIndex);
                     blankDeal(insertLine, mode, table, templateRowIndex, true);
-                    removeMutipleLine(template_row_number, table, templateRowIndex + insertLine);
+                    removeMultipleLine(template_row_number, table, templateRowIndex + insertLine);
                     boolean isNoRemain = insertLine == 0;
                     // The second table filling section
                     insertLine = pageLine - tableExternalFooterLine - reduce;
                     this.fillBlankRow(insertLine, nextTable, headerNumber);
-                    removeMutipleLine(template_row_number, nextTable, headerNumber + insertLine);
+                    removeMultipleLine(template_row_number, nextTable, headerNumber + insertLine);
                     blankDeal(insertLine, mode, nextTable, headerNumber, isNoRemain);
                     drawBottomBorder(currentPage, isDrawBorderOfFirstPage, nextTable);
                 }
             } else {
-                removeMutipleLine(template_row_number, table, templateRowIndex);
+                removeMultipleLine(template_row_number, table, templateRowIndex);
                 if (paragraph != null) {
                     WordTableUtils.removeParagraph(paragraph);
                 }
@@ -286,34 +286,7 @@ public class LoopMutilpleRowRenderSaveSuffixPolicy extends AbstractLoopRowTableR
         }
     }
 
-    private static void removeMutipleLine(int template_row_number, XWPFTable table, int templateRowIndex) {
-        for (int i = templateRowIndex + template_row_number - 1; i >= templateRowIndex; i--) {
-            table.removeRow(templateRowIndex);
-        }
-    }
-
     protected void afterloop(XWPFTable table, Object data) {
     }
-
-    /**
-     * Fill the blank row
-     *
-     * @param insertLine The number of rows per page
-     * @param table      XWPFTable
-     * @param startIndex Start writing the position of blank lines
-     */
-    protected void fillBlankRow(int insertLine, XWPFTable table, int startIndex) {
-        if (insertLine <= 0) {
-            return;
-        }
-        XWPFTableRow tempRow = table.insertNewTableRow(startIndex);
-        tempRow = WordTableUtils.copyLineContent(table.getRow(startIndex + 1), tempRow, startIndex);
-        WordTableUtils.cleanRowTextContent(tempRow);
-        for (int i = 1; i < insertLine; i++) {
-            XWPFTableRow nextRow = table.insertNewTableRow(startIndex + 1);
-            WordTableUtils.copyLineContent(tempRow, nextRow, ++startIndex);
-        }
-    }
-
 }
 
