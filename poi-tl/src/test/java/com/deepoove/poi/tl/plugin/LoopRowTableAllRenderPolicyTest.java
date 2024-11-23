@@ -149,21 +149,30 @@ public class LoopRowTableAllRenderPolicyTest {
     @Test
     public void testLoopFillRow() throws Exception {
         policy = new LoopRowTableAllRenderPolicy(false, true);
-        resource = "src/test/resources/template/render_insert_fill_2.docx";
+        resource = "src/test/resources/template/render_insert_fill_3.docx";
         ArrayList<Integer> conditions = new ArrayList<>();
         conditions.add(10);
+        conditions.add(21);
         conditions.add(23);
-        conditions.add(28);
-        conditions.add(31);
-        conditions.add(54);
+        conditions.add(25);
+        conditions.add(40);
+        conditions.add(45);
+        conditions.add(48);
+        conditions.add(49);
+        conditions.add(50);
+        conditions.add(69);
+        conditions.add(73);
+        conditions.add(75);
+        conditions.add(77);
         conditions.add(80);
         for (Integer condition : conditions) {
             Map<String, Object> stringObjectMap = init2(condition);
-            stringObjectMap.put("test_number", 31);
-            stringObjectMap.put("test_reduce", 1);
-            stringObjectMap.put("test_mode", 1);
+            stringObjectMap.put("test_number", 21);
+            // stringObjectMap.put("test_reduce", 1);
+            // stringObjectMap.put("test_nofill", 1);
+            stringObjectMap.put("test_mode", 2);
             stringObjectMap.put("test_header", 3);
-            stringObjectMap.put("test_footer", 5);
+            stringObjectMap.put("test_footer", 4);
             stringObjectMap.put("blank_desc", "以下空白");
             stringObjectMap.put("test_rendermode", 3);
             Configure config = Configure.builder()

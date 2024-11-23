@@ -222,6 +222,10 @@ public abstract class AbstractLoopRowTableRenderPolicy implements RenderPolicy {
      * @param mergeLines    merge rows
      */
     protected void blankDeal(XWPFTable table, int mode, int startRowIndex, int mergeLines) {
+        blankDeal(table, mode, startRowIndex, mergeLines, true);
+    }
+
+    protected void blankDeal(XWPFTable table, int mode, int startRowIndex, int mergeLines, boolean isWriteBlank) {
         if (table == null || startRowIndex < 0 || mergeLines <= 0) {
             return;
         }
@@ -233,7 +237,7 @@ public abstract class AbstractLoopRowTableRenderPolicy implements RenderPolicy {
             XWPFTableCell cellRow00 = table.getRow(startRowIndex).getCell(0);
             WordTableUtils.setDiagonalBorder(cellRow00);
             WordTableUtils.setCellWidth(cellRow00, table.getWidth());
-        } else if (mode == 3) {
+        } else if (mode == 3 && isWriteBlank) {
             XWPFTableRow row = table.getRow(startRowIndex);
             WordTableUtils.cleanRowTextContent(row);
             XWPFTableCell cell = row.getCell((row.getTableCells().size() - 1) / 2);

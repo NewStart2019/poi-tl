@@ -28,7 +28,6 @@ import com.deepoove.poi.resolver.TemplateResolver;
 import com.deepoove.poi.template.ElementTemplate;
 import com.deepoove.poi.template.MetaTemplate;
 import com.deepoove.poi.template.run.RunTemplate;
-import com.deepoove.poi.util.ReflectionUtils;
 import com.deepoove.poi.util.TableTools;
 
 /**
@@ -43,7 +42,7 @@ import com.deepoove.poi.util.TableTools;
  * @author llzero54
  * @author li.ming
  */
-public class MultipleRowTableRenderPolicy implements RenderPolicy {
+public class MultipleRowTableRenderPolicy extends AbstractLoopRowTableRenderPolicy implements RenderPolicy {
 
     private final static String DEFAULT_MULTIPLE_PREFIX = "$(";
 
@@ -94,7 +93,7 @@ public class MultipleRowTableRenderPolicy implements RenderPolicy {
             // 获取模板所在的起始行
             int position = WordTableUtils.findRowIndex(tagCell.getTableRow());
             List<XWPFTableRow> tempRows = getAllTemplateRow(table, position);
-            if (null != data && data instanceof Iterable) {
+            if (data instanceof Iterable) {
                 // 保存第行模板，以便在后续操作中获取光标
                 final XWPFTableRow firstTempRow = tempRows.get(0);
                 Iterator<?> dataIt = ((Iterable<?>) data).iterator();
@@ -117,6 +116,7 @@ public class MultipleRowTableRenderPolicy implements RenderPolicy {
                         XmlCursor newCursor = firstTempRow.getCtRow().newCursor();
                         newCursor.toPrevSibling();
                         XmlObject object = newCursor.getObject();
+                        newCursor.close();
                         XWPFTableRow newRow = new XWPFTableRow((CTRow) object, table);
                         newRow.getCtRow().set(object);
                         WordTableUtils.setTableRow(table, newRow, position);

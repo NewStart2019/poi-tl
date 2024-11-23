@@ -11,8 +11,6 @@ import com.deepoove.poi.render.processor.EnvIterator;
 import com.deepoove.poi.resolver.TemplateResolver;
 import com.deepoove.poi.template.ElementTemplate;
 import com.deepoove.poi.template.MetaTemplate;
-import com.deepoove.poi.template.run.RunTemplate;
-import com.deepoove.poi.util.TableTools;
 import com.deepoove.poi.util.WordTableUtils;
 import com.deepoove.poi.xwpf.NiceXWPFDocument;
 import org.apache.poi.xwpf.usermodel.*;
@@ -20,43 +18,37 @@ import org.apache.xmlbeans.XmlCursor;
 
 import java.util.*;
 
-public class LoopMutilpleRowRenderSaveSuffixPolicy extends AbstractLoopRowTableRenderPolicy implements RenderPolicy {
+public class LoopCopyHeaderMutilpleRowRenderPolicy extends AbstractLoopRowTableRenderPolicy implements RenderPolicy {
 
-    public LoopMutilpleRowRenderSaveSuffixPolicy() {
+    public LoopCopyHeaderMutilpleRowRenderPolicy() {
         this(false);
     }
 
-    public LoopMutilpleRowRenderSaveSuffixPolicy(boolean onSameLine) {
+    public LoopCopyHeaderMutilpleRowRenderPolicy(boolean onSameLine) {
         this("[", "]", onSameLine);
     }
 
-    public LoopMutilpleRowRenderSaveSuffixPolicy(String prefix, String suffix) {
+    public LoopCopyHeaderMutilpleRowRenderPolicy(String prefix, String suffix) {
         this(prefix, suffix, false);
     }
 
-    public LoopMutilpleRowRenderSaveSuffixPolicy(String prefix, String suffix, boolean onSameLine) {
+    public LoopCopyHeaderMutilpleRowRenderPolicy(String prefix, String suffix, boolean onSameLine) {
         this.prefix = prefix;
         this.suffix = suffix;
         this.onSameLine = onSameLine;
     }
 
-    public LoopMutilpleRowRenderSaveSuffixPolicy(AbstractLoopRowTableRenderPolicy policy) {
+    public LoopCopyHeaderMutilpleRowRenderPolicy(AbstractLoopRowTableRenderPolicy policy) {
         super(policy);
     }
 
     @Override
     public void render(ElementTemplate eleTemplate, Object data, XWPFTemplate template) {
-        RunTemplate runTemplate = (RunTemplate) eleTemplate;
-        XWPFRun run = runTemplate.getRun();
         try {
-            if (!TableTools.isInsideTable(run)) {
-                throw new RenderException("The template tag " + runTemplate.getSource() + " must be inside a table");
-            }
-            XWPFTableCell tagCell = (XWPFTableCell) ((XWPFParagraph) run.getParent()).getBody();
+            XWPFTableCell tagCell = this.dealPlaceTag(eleTemplate);
             int headerNumber = WordTableUtils.findCellVMergeNumber(tagCell);
             int templateRowIndex = this.getTemplateRowIndex(tagCell) + headerNumber - 1;
             XWPFTable table = tagCell.getTableRow().getTable();
-            run.setText("", 0);
 
             int dataCount;
             if (data instanceof Collection) {
@@ -75,8 +67,6 @@ public class LoopMutilpleRowRenderSaveSuffixPolicy extends AbstractLoopRowTableR
             Object n = globalEnv.get(eleTemplate.getTagName() + "_number");
             int mode = 1;
             boolean isDrawBorderOfFirstPage = false;
-            int tableExternalFooterLine = 0;
-            boolean isFill = true;
             try {
                 if (n == null) {
                     // Subtract the default number of rows in the header by 1
@@ -94,10 +84,6 @@ public class LoopMutilpleRowRenderSaveSuffixPolicy extends AbstractLoopRowTableR
                 reduce = temp != null ? Integer.parseInt(temp.toString()) : reduce;
                 temp = globalEnv.get(eleTemplate.getTagName() + "_fpdb");
                 isDrawBorderOfFirstPage = temp != null;
-                temp = globalEnv.get(eleTemplate.getTagName() + "_external_footer");
-                tableExternalFooterLine = temp != null ? Integer.parseInt(temp.toString()) : tableExternalFooterLine;
-                temp = globalEnv.get(eleTemplate.getTagName() + "_nofill");
-                isFill = temp == null;
             } catch (NumberFormatException ignore) {
             }
             if (template_row_number > firstPageLine) {
@@ -183,106 +169,51 @@ public class LoopMutilpleRowRenderSaveSuffixPolicy extends AbstractLoopRowTableR
                         documentProcessor.process(templates);
                     });
                 }
+
                 removeCurrentLineData(globalEnv, root);
+
             }
 
-            if (isFill) {
-                int insertLine;
-                if (firstPage) {
-                    insertLine = firstPageLine - index * template_row_number;
-                    // You can finish writing the remaining part at the end of the first page
-                    if (insertLine >= tableExternalFooterLine) {
-                        insertLine = insertLine - tableExternalFooterLine - reduce;
-                        this.fillBlankRow(insertLine, table, templateRowIndex);
-                        removeMultipleLine(template_row_number, table, templateRowIndex + insertLine);
-                        if (paragraph != null) {
-                            WordTableUtils.removeParagraph(paragraph);
-                        }
-                        if (table != nextTable) {
-                            WordTableUtils.removeTable(xwpfDocument, nextTable);
-                        }
-                        blankDeal(insertLine, mode, table, templateRowIndex, true);
-                        drawBottomBorder(currentPage, isDrawBorderOfFirstPage, table);
-                    } else {
-                        // The first table filling section
-                        this.fillBlankRow(insertLine, table, templateRowIndex);
-                        blankDeal(insertLine, mode, table, templateRowIndex, true);
-                        removeMultipleLine(template_row_number, table, templateRowIndex + insertLine);
-                        boolean isNoRemain = insertLine == 0;
-                        // The second table filling section
-                        insertLine = pageLine - tableExternalFooterLine - reduce;
-                        this.fillBlankRow(insertLine, nextTable, headerNumber);
-                        removeMultipleLine(template_row_number, nextTable, headerNumber + insertLine);
-                        blankDeal(insertLine, mode, nextTable, headerNumber, isNoRemain);
-                        drawBottomBorder(currentPage, isDrawBorderOfFirstPage, nextTable);
-                    }
-                } else if ((dataCount - firstNumber) % perPageNumber == 0) {
-                    removeMultipleLine(template_row_number, table, templateRowIndex);
-
-                    insertLine = pageLine - (dataCount - firstNumber) % perPageNumber * template_row_number - tableExternalFooterLine - reduce;
-                    this.fillBlankRow(insertLine, nextTable, headerNumber);
-                    removeMultipleLine(template_row_number, nextTable, headerNumber + insertLine);
-                    blankDeal(insertLine, mode, nextTable, headerNumber, true);
-                    drawBottomBorder(currentPage, isDrawBorderOfFirstPage, nextTable);
-                } else if ((perPageNumber - (dataCount - firstNumber) % perPageNumber) * template_row_number >= tableExternalFooterLine) {
-                    insertLine = pageLine - (dataCount - firstNumber) % perPageNumber * template_row_number - tableExternalFooterLine - reduce;
-                    this.fillBlankRow(insertLine, table, templateRowIndex);
-                    removeMultipleLine(template_row_number, table, templateRowIndex + insertLine);
-                    if (paragraph != null) {
-                        WordTableUtils.removeParagraph(paragraph);
-                    }
-                    if (table != nextTable) {
-                        WordTableUtils.removeTable(xwpfDocument, nextTable);
-                    }
-                    blankDeal(insertLine, mode, table, templateRowIndex, true);
-                    drawBottomBorder(currentPage, isDrawBorderOfFirstPage, table);
-                } else {
-                    insertLine = pageLine - (dataCount - firstNumber) % perPageNumber * template_row_number;
-                    // The first table filling section
-                    this.fillBlankRow(insertLine, table, templateRowIndex);
-                    blankDeal(insertLine, mode, table, templateRowIndex, true);
-                    removeMultipleLine(template_row_number, table, templateRowIndex + insertLine);
-                    boolean isNoRemain = insertLine == 0;
-                    // The second table filling section
-                    insertLine = pageLine - tableExternalFooterLine - reduce;
-                    this.fillBlankRow(insertLine, nextTable, headerNumber);
-                    removeMultipleLine(template_row_number, nextTable, headerNumber + insertLine);
-                    blankDeal(insertLine, mode, nextTable, headerNumber, isNoRemain);
-                    drawBottomBorder(currentPage, isDrawBorderOfFirstPage, nextTable);
-                }
+            if (paragraph != null) {
+                WordTableUtils.removeParagraph(paragraph);
+            }
+            int insertLine;
+            if (firstPage) {
+                insertLine = firstPageLine - index * template_row_number - reduce;
+            } else if ((dataCount - firstNumber) % perPageNumber == 0) {
+                insertLine = 0;
             } else {
-                removeMultipleLine(template_row_number, table, templateRowIndex);
-                if (paragraph != null) {
-                    WordTableUtils.removeParagraph(paragraph);
-                }
-                if (table != nextTable) {
-                    WordTableUtils.removeTable(xwpfDocument, nextTable);
-                }
-                drawBottomBorder(currentPage, isDrawBorderOfFirstPage, table);
+                insertLine = pageLine - (dataCount - firstNumber) % perPageNumber * template_row_number - reduce;
             }
+            this.fillBlankRow(insertLine, table, templateRowIndex);
+
+            // Default blank line filling, fill blank lines with a reverse slash by mode equal 2
+            // Fill in the following blanks for Mode 3 mode fill "以下空白"
+            if (insertLine > 0) {
+                if (mode == 2) {
+                    WordTableUtils.mergeMutipleLine(table, templateRowIndex, templateRowIndex + insertLine - 1);
+                    // Set diagonal border
+                    XWPFTableCell cellRow00 = table.getRow(templateRowIndex).getCell(0);
+                    WordTableUtils.setDiagonalBorder(cellRow00);
+                    WordTableUtils.setCellWidth(cellRow00, table.getWidth());
+                } else if (mode == 3) {
+                    XWPFTableRow row = table.getRow(templateRowIndex);
+                    XWPFTableCell cell = row.getCell((row.getTableCells().size() - 1) / 2);
+                    XWPFParagraph xwpfParagraph = cell.addParagraph();
+                    xwpfParagraph.createRun().setText("以下空白");
+                }
+            }
+
+            if (table != nextTable) {
+                WordTableUtils.removeTable(xwpfDocument, nextTable);
+            }
+            removeMultipleLine(template_row_number, table, templateRowIndex + insertLine);
             afterloop(table, data);
+            drawBottomBorder(currentPage, isDrawBorderOfFirstPage, table);
+            globalEnv.clear();
             globalEnv.putAll(original);
         } catch (Exception e) {
             throw new RenderException("HackLoopTable for " + eleTemplate + " error: " + e.getMessage(), e);
-        }
-    }
-
-    // Default blank line filling, fill blank lines with a reverse slash by mode equal 2
-    // Fill in the following blanks for Mode 3 mode fill "以下空白"
-    private static void blankDeal(int insertLine, int mode, XWPFTable table, int templateRowIndex, boolean isWriteBlank) {
-        if (insertLine > 0) {
-            if (mode == 2) {
-                WordTableUtils.mergeMutipleLine(table, templateRowIndex, templateRowIndex + insertLine - 1);
-                // Set diagonal border
-                XWPFTableCell cellRow00 = table.getRow(templateRowIndex).getCell(0);
-                WordTableUtils.setDiagonalBorder(cellRow00);
-                WordTableUtils.setCellWidth(cellRow00, table.getWidth());
-            } else if (mode == 3 && isWriteBlank) {
-                XWPFTableRow row = table.getRow(templateRowIndex);
-                XWPFTableCell cell = row.getCell((row.getTableCells().size() - 1) / 2);
-                XWPFParagraph xwpfParagraph = cell.addParagraph();
-                xwpfParagraph.createRun().setText("以下空白");
-            }
         }
     }
 

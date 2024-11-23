@@ -49,7 +49,7 @@ public class LoopRowTableAllRenderPolicy extends AbstractLoopRowTableRenderPolic
         AbstractLoopRowTableRenderPolicy policy;
         switch (rendermode) {
             case 1:
-                policy = new LoopExistedRowTableRenderPolicy(this);
+                policy = new MultipleRowTableRenderPolicy();
                 break;
             case 2:
                 policy = new LoopExistedAndFillRowTableRenderPolicy(this);
@@ -67,10 +67,10 @@ public class LoopRowTableAllRenderPolicy extends AbstractLoopRowTableRenderPolic
                 policy = new LoopCopyHeaderRowRenderPolicy(this);
                 break;
             case 7:
-                policy = new LoopMutilpleRowRenderPolicy(this);
+                policy = new LoopCopyHeaderMutilpleRowRenderPolicy(this);
                 break;
             case 8:
-                policy = new LoopMutilpleRowRenderSaveSuffixPolicy(this);
+                policy = new LoopCopyHeaderMutilpleRowRenderSaveSuffixPolicy(this);
                 break;
             default:
                 policy = new LoopRowTableRenderPolicy(this);
