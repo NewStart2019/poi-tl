@@ -145,7 +145,6 @@ public class LoopRowTableAllRenderPolicyTest {
         }
     }
 
-    // TODO 解决空白行填充 没有解决 垂直归并的问题
     @Test
     public void testLoopFillRow() throws Exception {
         policy = new LoopRowTableAllRenderPolicy(false, true);
@@ -187,27 +186,31 @@ public class LoopRowTableAllRenderPolicyTest {
     }
 
     @Test
-    public void testLoopTableRow() throws Exception {
+    public void testLoopFullTableRow() throws Exception {
         LoopFullTableInsertFillRenderPolicy hackLoopTableRenderPolicy2 = new LoopFullTableInsertFillRenderPolicy(false);
         resource = "src/test/resources/template/render_insert_fill.docx";
         ArrayList<Integer> conditions = new ArrayList<>();
-        conditions.add(10);
+        conditions.add(0);
+        conditions.add(11);
+        conditions.add(12);
+        conditions.add(15);
+        conditions.add(23);
+        conditions.add(24);
         conditions.add(25);
         conditions.add(30);
-        conditions.add(50);
-        conditions.add(60);
-        conditions.add(80);
         for (Integer condition : conditions) {
             Map<String, Object> stringObjectMap = init2(condition);
-            stringObjectMap.put("test_number", 25);
-            stringObjectMap.put("test_mode", 3);
+            stringObjectMap.put("test_number", 24);
+            stringObjectMap.put("test_mode", 2);
             stringObjectMap.put("test_rendermode", 4);
+            stringObjectMap.put("test_row_number", 2);
+            stringObjectMap.put("test_vmerge", 2);
             // stringObjectMap.put("test_reduce", 1);
-            stringObjectMap.put("test_remove_next_line", 4);
+            // stringObjectMap.put("test_remove_next_line", 4);
             stringObjectMap.put("blank_desc", "以下空白");
             Configure config = Configure.builder()
                 .useSpringEL(false)
-                .bind("test", hackLoopTableRenderPolicy2)
+                .bind("test", policy)
                 .build();
             XWPFTemplate template = XWPFTemplate.compile(resource, config).render(stringObjectMap);
             WordTableUtils.setMinHeightParagraph(template.getXWPFDocument());
@@ -215,7 +218,7 @@ public class LoopRowTableAllRenderPolicyTest {
             // 最后几行内容为空，删除元素避免产生新页
             WordTableUtils.removeLastBlankParagraph(xwpfDocument);
             WordTableUtils.setMinHeightParagraph(xwpfDocument);
-            template.writeToFile("target/out_loop_table" + condition + ".docx");
+            template.writeToFile("target/out_loop_full_table" + condition + ".docx");
         }
     }
 

@@ -22,7 +22,7 @@ import org.openxmlformats.schemas.wordprocessingml.x2006.main.STMerge;
 
 import java.util.*;
 
-public class LoopIncludeSubTableRenderPolicy  extends AbstractLoopRowTableRenderPolicy implements RenderPolicy {
+public class LoopIncludeSubTableRenderPolicy extends AbstractLoopRowTableRenderPolicy implements RenderPolicy {
 
     public LoopIncludeSubTableRenderPolicy() {
         this(false);
@@ -50,17 +50,11 @@ public class LoopIncludeSubTableRenderPolicy  extends AbstractLoopRowTableRender
 
     @Override
     public void render(ElementTemplate eleTemplate, Object data, XWPFTemplate template) {
-        RunTemplate runTemplate = (RunTemplate) eleTemplate;
-        XWPFRun run = runTemplate.getRun();
-        if (!TableTools.isInsideTable(run)) {
-            throw new IllegalStateException("The template tag " + runTemplate.getSource() + " must be inside a table");
-        }
         try {
-            XWPFTableCell tagCell = (XWPFTableCell) ((XWPFParagraph) run.getParent()).getBody();
+            XWPFTableCell tagCell = this.dealPlaceTag(eleTemplate);
             int headerNumber = WordTableUtils.findCellVMergeNumber(tagCell);
             int templateRowIndex = this.getTemplateRowIndex(tagCell) + headerNumber - 1;
             XWPFTable table = tagCell.getTableRow().getTable();
-            run.setText("", 0);
 
             if (!(data instanceof Iterable)) {
                 table.removeRow(templateRowIndex);
