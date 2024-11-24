@@ -1,7 +1,11 @@
 package com.deepoove.poi.plugin.table;
 
+import com.deepoove.poi.XWPFTemplate;
+import com.deepoove.poi.config.Configure;
 import com.deepoove.poi.data.RenderData;
 import com.deepoove.poi.policy.RenderPolicy;
+import com.deepoove.poi.render.compute.EnvModel;
+import com.deepoove.poi.render.compute.RenderDataCompute;
 import com.deepoove.poi.render.processor.DocumentProcessor;
 import com.deepoove.poi.resolver.TemplateResolver;
 import com.deepoove.poi.template.ElementTemplate;
@@ -10,6 +14,7 @@ import com.deepoove.poi.template.run.RunTemplate;
 import com.deepoove.poi.util.TableTools;
 import com.deepoove.poi.util.TlBeanUtil;
 import com.deepoove.poi.util.WordTableUtils;
+import com.deepoove.poi.xwpf.NiceXWPFDocument;
 import org.apache.poi.xwpf.usermodel.*;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTcPr;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTVMerge;
@@ -24,6 +29,10 @@ public abstract class AbstractLoopRowTableRenderPolicy implements RenderPolicy {
     protected String suffix;
     protected boolean onSameLine;
     protected boolean isSaveNextLine;
+    protected NiceXWPFDocument xwpfDocument;
+    protected TemplateResolver resolver;
+    protected DocumentProcessor documentProcessor;
+
 
     public AbstractLoopRowTableRenderPolicy() {
     }
@@ -33,6 +42,9 @@ public abstract class AbstractLoopRowTableRenderPolicy implements RenderPolicy {
         this.suffix = policy.getSuffix();
         this.onSameLine = policy.isOnSameLine();
         this.isSaveNextLine = policy.isSaveNextLine();
+        this.xwpfDocument = policy.getXwpfDocument();
+        this.resolver = policy.getResolver();
+        this.documentProcessor = policy.getDocumentProcessor();
     }
 
     public int getTemplateRowIndex(XWPFTableCell tagCell) {
@@ -72,6 +84,30 @@ public abstract class AbstractLoopRowTableRenderPolicy implements RenderPolicy {
         isSaveNextLine = saveNextLine;
     }
 
+    public NiceXWPFDocument getXwpfDocument() {
+        return xwpfDocument;
+    }
+
+    public void setXwpfDocument(NiceXWPFDocument xwpfDocument) {
+        this.xwpfDocument = xwpfDocument;
+    }
+
+    public TemplateResolver getResolver() {
+        return resolver;
+    }
+
+    public void setResolver(TemplateResolver resolver) {
+        this.resolver = resolver;
+    }
+
+    public DocumentProcessor getDocumentProcessor() {
+        return documentProcessor;
+    }
+
+    public void setDocumentProcessor(DocumentProcessor documentProcessor) {
+        this.documentProcessor = documentProcessor;
+    }
+
     // Processing placeholder symbol labels，return the template tag cell
     protected XWPFTableCell dealPlaceTag(ElementTemplate eleTemplate) {
         RunTemplate runTemplate = (RunTemplate) eleTemplate;
@@ -83,6 +119,16 @@ public abstract class AbstractLoopRowTableRenderPolicy implements RenderPolicy {
         XWPFTableCell tagCell = (XWPFTableCell) ((XWPFParagraph) run.getParent()).getBody();
         run.setText("", 0);
         return tagCell;
+    }
+
+    // Initialize the document processing environment
+    protected void initDeal(XWPFTemplate template, Map<String, Object> globalEnv) throws CloneNotSupportedException {
+        this.xwpfDocument = template.getXWPFDocument();
+        Configure config = template.getConfig();
+        RenderDataCompute dataCompute = config.getRenderDataComputeFactory()
+            .newCompute(EnvModel.of(template.getEnvModel().getRoot(), globalEnv));
+        this.resolver = new TemplateResolver(template.getConfig().copy(prefix, suffix));
+        this.documentProcessor = new DocumentProcessor(template, resolver, dataCompute);
     }
 
     /**

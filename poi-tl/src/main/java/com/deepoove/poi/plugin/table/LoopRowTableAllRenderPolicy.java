@@ -61,7 +61,7 @@ public class LoopRowTableAllRenderPolicy extends AbstractLoopRowTableRenderPolic
                 policy = new LoopFullTableInsertFillRenderPolicy(this);
                 break;
             case 5:
-                policy = new LoopIncludeSubTableRenderPolicy(this);
+                policy = new LoopFullTableIncludeSubRenderPolicy(this);
                 break;
             case 6:
                 policy = new LoopCopyHeaderRowRenderPolicy(this);

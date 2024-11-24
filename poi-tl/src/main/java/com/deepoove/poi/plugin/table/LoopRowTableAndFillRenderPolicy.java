@@ -70,12 +70,7 @@ public class LoopRowTableAndFillRenderPolicy extends AbstractLoopRowTableRenderP
                 Iterator<?> iterator = ((Iterable<?>) data).iterator();
                 int insertPosition;
 
-                Configure config = template.getConfig();
-                RenderDataCompute dataCompute = config.getRenderDataComputeFactory()
-                    .newCompute(EnvModel.of(template.getEnvModel().getRoot(), globalEnv));
-                TemplateResolver resolver = new TemplateResolver(template.getConfig().copy(prefix, suffix));
-                DocumentProcessor documentProcessor = new DocumentProcessor(template, resolver, dataCompute);
-
+                this.initDeal(template, globalEnv);
                 boolean firstFlag = true;
                 boolean hasNext = iterator.hasNext();
                 while (hasNext) {

@@ -1,26 +1,21 @@
 package com.deepoove.poi.plugin.table;
 
 import com.deepoove.poi.XWPFTemplate;
-import com.deepoove.poi.config.Configure;
 import com.deepoove.poi.exception.RenderException;
 import com.deepoove.poi.policy.RenderPolicy;
 import com.deepoove.poi.render.compute.EnvModel;
-import com.deepoove.poi.render.compute.RenderDataCompute;
-import com.deepoove.poi.render.processor.DocumentProcessor;
 import com.deepoove.poi.render.processor.EnvIterator;
-import com.deepoove.poi.resolver.TemplateResolver;
 import com.deepoove.poi.template.ElementTemplate;
-import com.deepoove.poi.template.MetaTemplate;
-import com.deepoove.poi.template.run.RunTemplate;
-import com.deepoove.poi.util.TableTools;
 import com.deepoove.poi.util.WordTableUtils;
 import com.deepoove.poi.xwpf.NiceXWPFDocument;
-import org.apache.poi.xwpf.usermodel.*;
+import org.apache.poi.xwpf.usermodel.XWPFParagraph;
+import org.apache.poi.xwpf.usermodel.XWPFTable;
+import org.apache.poi.xwpf.usermodel.XWPFTableCell;
+import org.apache.poi.xwpf.usermodel.XWPFTableRow;
 import org.apache.xmlbeans.XmlCursor;
 
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 public class LoopFullTableInsertFillRenderPolicy extends AbstractLoopRowTableRenderPolicy implements RenderPolicy {
@@ -64,12 +59,8 @@ public class LoopFullTableInsertFillRenderPolicy extends AbstractLoopRowTableRen
             }
 
             Map<String, Object> globalEnv = template.getEnvModel().getEnv();
+            this.initDeal(template, globalEnv);
             Map<String, Object> original = new HashMap<>(globalEnv);
-            Configure config = template.getConfig();
-            RenderDataCompute dataCompute = config.getRenderDataComputeFactory()
-                .newCompute(EnvModel.of(template.getEnvModel().getRoot(), globalEnv));
-            TemplateResolver resolver = new TemplateResolver(template.getConfig().copy(prefix, suffix));
-            DocumentProcessor documentProcessor = new DocumentProcessor(template, resolver, dataCompute);
 
             int templateRowNumber = 1;
             int pageLine = 0;
@@ -153,7 +144,7 @@ public class LoopFullTableInsertFillRenderPolicy extends AbstractLoopRowTableRen
                     XWPFTableRow currentRow = table.getRow(currentIndex);
                     XWPFTableRow nextRow = table.insertNewTableRow(tempTemplateRowIndex + i);
                     nextRow = WordTableUtils.copyLineContent(currentRow, nextRow, tempTemplateRowIndex + i);
-                    if (isVMerge){
+                    if (isVMerge) {
                         if (!firstFlag) {
                             this.setVMerge(currentRow);
                         } else {
@@ -175,22 +166,8 @@ public class LoopFullTableInsertFillRenderPolicy extends AbstractLoopRowTableRen
                     insertLine = pageLine - dataCount % perPageNumber * templateRowNumber - reduce;
                 }
                 this.fillBlankRow(insertLine, table, tempTemplateRowIndex);
-                if (insertLine > 0) {
-                    if (mode == 2) {
-                        WordTableUtils.mergeMutipleLine(table, tempTemplateRowIndex, tempTemplateRowIndex + insertLine - 1);
-                        // Set diagonal border
-                        XWPFTableCell cellRow00 = table.getRow(tempTemplateRowIndex).getCell(0);
-                        WordTableUtils.setDiagonalBorder(cellRow00);
-                        WordTableUtils.setCellWidth(cellRow00, table.getWidth());
-                    } else if (mode == 3) {
-                        XWPFTableRow row = table.getRow(tempTemplateRowIndex);
-                        XWPFTableCell cell = row.getCell((row.getTableCells().size() - 1) / 2);
-                        XWPFParagraph xwpfParagraph = cell.addParagraph();
-                        xwpfParagraph.createRun().setText("以下空白");
-                    }
-                    tempTemplateRowIndex += insertLine;
-                }
-
+                this.blankDeal(table, mode, tempTemplateRowIndex, insertLine);
+                tempTemplateRowIndex += insertLine;
                 if (paragraph != null) {
                     WordTableUtils.removeParagraph(paragraph);
                 }

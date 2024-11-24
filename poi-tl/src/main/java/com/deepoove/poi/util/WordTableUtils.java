@@ -32,31 +32,36 @@ public class WordTableUtils {
     private static final Logger logger = LoggerFactory.getLogger(WordTableUtils.class);
 
     public static XWPFTable copyTable(XWPFDocument doc, XWPFTable sourceTable) {
-        return copyTable(doc, sourceTable, null, false);
+        return copyTable(doc, sourceTable, null, true, false);
     }
 
     public static XWPFTable copyTable(XWPFDocument doc, XWPFTable sourceTable, boolean isTail) {
-        return copyTable(doc, sourceTable, null, isTail);
+        return copyTable(doc, sourceTable, null, true, isTail);
     }
 
     public static XWPFTable copyTable(XWPFDocument doc, XWPFTable sourceTable, XmlCursor xmlCursor) {
-        return copyTable(doc, sourceTable, xmlCursor, false);
+        return copyTable(doc, sourceTable, xmlCursor, true, false);
+    }
+
+    public static XWPFTable copyToXmlCursorBefore(XWPFDocument doc, XWPFTable sourceTable, XmlCursor xmlCursor) {
+        return copyTable(doc, sourceTable, xmlCursor, false, false);
     }
 
     /**
      * <p>Copy the specified table after the specified {@link XmlCursor xmlCursor}. If <b>{@link XmlCursor xmlCursor}</b> parameter is <b>empty</b>,
-     * it will be added by default after the position of the <b>current</b> tbale.</p>
+     * it will be added by default before the position of the <b>current</b> tbale.</p>
      * <p>If isTail is True, the new table will be placed at the end of the document.</p>
      * <p>If the {@link XmlCursor xmlCursor} parameter is created externally, remember to release the resource yourself</p>
      *
      * @param doc         {@link XWPFDocument doc}
      * @param sourceTable {@link XWPFTable sourceTable}
-     * @param xmlCursor   {@link XmlCursor xmlCursor} Add a table after the specified XMLCursor
+     * @param xmlCursor   {@link XmlCursor xmlCursor}
      * @param isTail      boolean, whether to place the new table at the end of the document
      * @return {@link XWPFTable}
      */
     @SuppressWarnings("unchecked")
-    public static XWPFTable copyTable(XWPFDocument doc, XWPFTable sourceTable, XmlCursor xmlCursor, boolean isTail) {
+    public static XWPFTable copyTable(XWPFDocument doc, XWPFTable sourceTable, XmlCursor xmlCursor
+        , boolean isAfter, boolean isTail) {
         if (doc == null || sourceTable == null) {
             throw new RuntimeException("The parameters passed in cannot be empty!");
         }
@@ -65,7 +70,9 @@ public class WordTableUtils {
         if (xmlCursor == null) {
             xmlCursor = sourceTable.getCTTbl().newCursor();
         }
-        xmlCursor.toNextSibling();
+        if (isAfter) {
+            xmlCursor.toNextSibling();
+        }
         if (isTail) {
             while (xmlCursor.toNextSibling()) ;
         }

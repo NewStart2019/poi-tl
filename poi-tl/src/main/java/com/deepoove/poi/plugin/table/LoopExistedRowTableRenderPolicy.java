@@ -16,14 +16,10 @@
 package com.deepoove.poi.plugin.table;
 
 import com.deepoove.poi.XWPFTemplate;
-import com.deepoove.poi.config.Configure;
 import com.deepoove.poi.exception.RenderException;
 import com.deepoove.poi.policy.RenderPolicy;
 import com.deepoove.poi.render.compute.EnvModel;
-import com.deepoove.poi.render.compute.RenderDataCompute;
-import com.deepoove.poi.render.processor.DocumentProcessor;
 import com.deepoove.poi.render.processor.EnvIterator;
-import com.deepoove.poi.resolver.TemplateResolver;
 import com.deepoove.poi.template.ElementTemplate;
 import com.deepoove.poi.util.WordTableUtils;
 import org.apache.poi.xwpf.usermodel.XWPFTable;
@@ -82,13 +78,7 @@ public class LoopExistedRowTableRenderPolicy extends AbstractLoopRowTableRenderP
             int index = 0;
             Map<String, Object> globalEnv = template.getEnvModel().getEnv();
             Map<String, Object> original = new HashMap<>(globalEnv);
-
-            TemplateResolver resolver = new TemplateResolver(template.getConfig().copy(prefix, suffix));
-            Configure config = template.getConfig();
-            RenderDataCompute dataCompute = config.getRenderDataComputeFactory()
-                .newCompute(EnvModel.of(template.getEnvModel().getRoot(), globalEnv));
-            DocumentProcessor documentProcessor = new DocumentProcessor(template, resolver, dataCompute);
-
+            this.initDeal(template, globalEnv);
             // Clear the content of this template line and move the nearest line up one space
             // Default template to fill a full page of the table
             int pageLine = allRowNumber + 1;

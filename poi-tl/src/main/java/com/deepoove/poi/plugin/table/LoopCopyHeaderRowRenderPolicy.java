@@ -103,14 +103,8 @@ public class LoopCopyHeaderRowRenderPolicy extends AbstractLoopRowTableRenderPol
             } catch (NumberFormatException ignore) {
             }
 
-            Configure config = template.getConfig();
-            RenderDataCompute dataCompute = config.getRenderDataComputeFactory()
-                .newCompute(EnvModel.of(template.getEnvModel().getRoot(), globalEnv));
-
-            TemplateResolver resolver = new TemplateResolver(template.getConfig().copy(prefix, suffix));
-            DocumentProcessor documentProcessor = new DocumentProcessor(template, resolver, dataCompute);
             // Delete blank XWPFParagraph after the table
-            NiceXWPFDocument xwpfDocument = template.getXWPFDocument();
+            this.initDeal(template, globalEnv);
             WordTableUtils.removeLastBlankParagraph(xwpfDocument);
             Iterator<?> iterator = ((Iterable<?>) data).iterator();
             boolean hasNext = iterator.hasNext();

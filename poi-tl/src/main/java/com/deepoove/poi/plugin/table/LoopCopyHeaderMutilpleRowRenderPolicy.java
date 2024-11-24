@@ -93,14 +93,8 @@ public class LoopCopyHeaderMutilpleRowRenderPolicy extends AbstractLoopRowTableR
                 throw new RenderException("The size of each page should be a multiple of the number of lines in the template for multi line rendering!");
             }
 
-            Configure config = template.getConfig();
-            RenderDataCompute dataCompute = config.getRenderDataComputeFactory()
-                .newCompute(EnvModel.of(template.getEnvModel().getRoot(), globalEnv));
-            TemplateResolver resolver = new TemplateResolver(template.getConfig().copy(prefix, suffix));
-            DocumentProcessor documentProcessor = new DocumentProcessor(template, resolver, dataCompute);
-
             // Delete blank XWPFParagraph after the table
-            NiceXWPFDocument xwpfDocument = template.getXWPFDocument();
+            this.initDeal(template, globalEnv);
             WordTableUtils.removeLastBlankParagraph(xwpfDocument);
             Iterator<?> iterator = ((Iterable<?>) data).iterator();
             boolean hasNext = iterator.hasNext();
@@ -164,6 +158,7 @@ public class LoopCopyHeaderMutilpleRowRenderPolicy extends AbstractLoopRowTableR
                     XWPFTableRow currentRow = table.getRow(insertPosition + i);
                     XWPFTableRow nextRow = table.insertNewTableRow(templateRowIndex + i);
                     nextRow = WordTableUtils.copyLineContent(currentRow, nextRow, templateRowIndex + i);
+                    // TODO 是否设置多行模板的跨列，默认是不设置
                     currentRow.getTableCells().forEach(cell -> {
                         List<MetaTemplate> templates = resolver.resolveBodyElements(cell.getBodyElements());
                         documentProcessor.process(templates);

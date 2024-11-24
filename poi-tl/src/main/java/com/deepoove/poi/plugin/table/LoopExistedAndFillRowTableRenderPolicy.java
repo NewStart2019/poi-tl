@@ -68,11 +68,7 @@ public class LoopExistedAndFillRowTableRenderPolicy extends AbstractLoopRowTable
             Map<String, Object> globalEnv = template.getEnvModel().getEnv();
             Map<String, Object> original = new HashMap<>(globalEnv);
 
-            TemplateResolver resolver = new TemplateResolver(template.getConfig().copy(prefix, suffix));
-            Configure config = template.getConfig();
-            RenderDataCompute dataCompute = config.getRenderDataComputeFactory()
-                .newCompute(EnvModel.of(template.getEnvModel().getRoot(), globalEnv));
-            DocumentProcessor documentProcessor = new DocumentProcessor(template, resolver, dataCompute);
+            this.initDeal(template, globalEnv);
 
             // Clear the content of this template line and move the nearest line up one space
             // Default template to fill a full page of the table

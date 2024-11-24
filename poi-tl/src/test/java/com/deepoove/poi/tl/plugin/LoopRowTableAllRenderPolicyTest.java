@@ -188,7 +188,7 @@ public class LoopRowTableAllRenderPolicyTest {
     @Test
     public void testLoopFullTableRow() throws Exception {
         LoopFullTableInsertFillRenderPolicy hackLoopTableRenderPolicy2 = new LoopFullTableInsertFillRenderPolicy(false);
-        resource = "src/test/resources/template/render_insert_fill.docx";
+        resource = "src/test/resources/template/render_insert_fill_mutiple_template.docx";
         ArrayList<Integer> conditions = new ArrayList<>();
         conditions.add(0);
         conditions.add(11);
@@ -257,9 +257,11 @@ public class LoopRowTableAllRenderPolicyTest {
 
 
     @Test
-    public void testLoopSubTableRow() throws Exception {
-        resource = "src/test/resources/template/render_insert_fill.docx";
+    public void testLoopFullTableIncludeSubTableRow() throws Exception {
+        // resource = "src/test/resources/template/render_insert_fill.docx";
+        resource = "src/test/resources/template/render_insert_fill_mutiple_template.docx";
         ArrayList<Integer> conditions = new ArrayList<>();
+        conditions.add(0);
         conditions.add(10);
         conditions.add(25);
         conditions.add(30);
@@ -267,17 +269,26 @@ public class LoopRowTableAllRenderPolicyTest {
         conditions.add(60);
         conditions.add(80);
         for (Integer condition : conditions) {
-            Map<String, Object> stringObjectMap = init3(3, condition);
-            stringObjectMap.put("test_number", 25);
-            stringObjectMap.put("test_mode", 2);
+            Map<String, Object> stringObjectMap;
+            if (condition == 0) {
+                stringObjectMap = init3(0, condition);
+            } else {
+                stringObjectMap = init3(3, condition);
+            }
             stringObjectMap.put("test_rendermode", 5);
-            stringObjectMap.put("test_remove_next_line", 4);
+            stringObjectMap.put("test_number", 24);
+            stringObjectMap.put("test_mode", 3);
+            stringObjectMap.put("test_row_number",
+                resource.contains("render_insert_fill_mutiple_template") ? 2 : 1);
+            // stringObjectMap.put("test_vmerge", 2);
+            // stringObjectMap.put("test_remove_next_line", 4);
             stringObjectMap.put("blank_desc", "以下空白");
             Configure config = Configure.builder()
                 .useSpringEL(false)
                 .bind("test", policy)
                 .build();
             XWPFTemplate template = XWPFTemplate.compile(resource, config).render(stringObjectMap);
+            WordTableUtils.removeLastBlankParagraph(template.getXWPFDocument());
             WordTableUtils.setMinHeightParagraph(template.getXWPFDocument());
             template.writeToFile("target/out_loop_sub_table" + condition + ".docx");
         }
