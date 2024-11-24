@@ -1,28 +1,18 @@
 package com.deepoove.poi.plugin.table;
 
 import com.deepoove.poi.XWPFTemplate;
-import com.deepoove.poi.config.Configure;
-import com.deepoove.poi.data.RenderData;
 import com.deepoove.poi.exception.RenderException;
 import com.deepoove.poi.policy.RenderPolicy;
 import com.deepoove.poi.render.compute.EnvModel;
-import com.deepoove.poi.render.compute.RenderDataCompute;
-import com.deepoove.poi.render.processor.DocumentProcessor;
 import com.deepoove.poi.render.processor.EnvIterator;
-import com.deepoove.poi.resolver.TemplateResolver;
 import com.deepoove.poi.template.ElementTemplate;
 import com.deepoove.poi.template.MetaTemplate;
 import com.deepoove.poi.template.run.RunTemplate;
 import com.deepoove.poi.util.TableTools;
-import com.deepoove.poi.util.TlBeanUtil;
 import com.deepoove.poi.util.UnitUtils;
 import com.deepoove.poi.util.WordTableUtils;
-import com.deepoove.poi.xwpf.NiceXWPFDocument;
 import org.apache.poi.xwpf.usermodel.*;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTcPr;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTVMerge;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.STHeightRule;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.STMerge;
 
 import java.util.*;
 
@@ -155,16 +145,7 @@ public class LoopCopyHeaderRowRenderPolicy extends AbstractLoopRowTableRenderPol
                 insertPosition = templateRowIndex++;
                 XWPFTableRow currentRow = table.getRow(insertPosition);
                 if (!firstFlag) {
-                    // update VMerge cells for non-first row
-                    List<XWPFTableCell> tableCells = currentRow.getTableCells();
-                    for (XWPFTableCell cell : tableCells) {
-                        CTTcPr tcPr = TableTools.getTcPr(cell);
-                        CTVMerge vMerge = tcPr.getVMerge();
-                        if (null == vMerge) continue;
-                        if (STMerge.RESTART == vMerge.getVal()) {
-                            vMerge.setVal(STMerge.CONTINUE);
-                        }
-                    }
+                    this.setVMerge(currentRow);
                 } else {
                     firstFlag = false;
                 }

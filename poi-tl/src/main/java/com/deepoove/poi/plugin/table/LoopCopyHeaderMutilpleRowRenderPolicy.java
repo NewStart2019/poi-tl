@@ -1,19 +1,17 @@
 package com.deepoove.poi.plugin.table;
 
 import com.deepoove.poi.XWPFTemplate;
-import com.deepoove.poi.config.Configure;
 import com.deepoove.poi.exception.RenderException;
 import com.deepoove.poi.policy.RenderPolicy;
 import com.deepoove.poi.render.compute.EnvModel;
-import com.deepoove.poi.render.compute.RenderDataCompute;
-import com.deepoove.poi.render.processor.DocumentProcessor;
 import com.deepoove.poi.render.processor.EnvIterator;
-import com.deepoove.poi.resolver.TemplateResolver;
 import com.deepoove.poi.template.ElementTemplate;
 import com.deepoove.poi.template.MetaTemplate;
 import com.deepoove.poi.util.WordTableUtils;
-import com.deepoove.poi.xwpf.NiceXWPFDocument;
-import org.apache.poi.xwpf.usermodel.*;
+import org.apache.poi.xwpf.usermodel.XWPFParagraph;
+import org.apache.poi.xwpf.usermodel.XWPFTable;
+import org.apache.poi.xwpf.usermodel.XWPFTableCell;
+import org.apache.poi.xwpf.usermodel.XWPFTableRow;
 import org.apache.xmlbeans.XmlCursor;
 
 import java.util.*;
@@ -203,16 +201,12 @@ public class LoopCopyHeaderMutilpleRowRenderPolicy extends AbstractLoopRowTableR
                 WordTableUtils.removeTable(xwpfDocument, nextTable);
             }
             removeMultipleLine(template_row_number, table, templateRowIndex + insertLine);
-            afterloop(table, data);
             drawBottomBorder(currentPage, isDrawBorderOfFirstPage, table);
             globalEnv.clear();
             globalEnv.putAll(original);
         } catch (Exception e) {
             throw new RenderException("HackLoopTable for " + eleTemplate + " error: " + e.getMessage(), e);
         }
-    }
-
-    protected void afterloop(XWPFTable table, Object data) {
     }
 }
 

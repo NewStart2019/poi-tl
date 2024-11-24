@@ -33,9 +33,6 @@ import org.apache.poi.xwpf.usermodel.*;
 import org.apache.xmlbeans.XmlCursor;
 import org.apache.xmlbeans.XmlObject;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTRow;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTcPr;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTVMerge;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.STMerge;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -123,16 +120,7 @@ public class LoopRowTableRenderPolicy extends AbstractLoopRowTableRenderPolicy i
                     XmlObject object = newCursor.getObject();
                     nextRow = new XWPFTableRow((CTRow) object, table);
                     if (!firstFlag) {
-                        // update VMerge cells for non-first row
-                        List<XWPFTableCell> tableCells = nextRow.getTableCells();
-                        for (XWPFTableCell cell : tableCells) {
-                            CTTcPr tcPr = TableTools.getTcPr(cell);
-                            CTVMerge vMerge = tcPr.getVMerge();
-                            if (null == vMerge) continue;
-                            if (STMerge.RESTART == vMerge.getVal()) {
-                                vMerge.setVal(STMerge.CONTINUE);
-                            }
-                        }
+                        this.setVMerge(nextRow);
                     } else {
                         firstFlag = false;
                     }

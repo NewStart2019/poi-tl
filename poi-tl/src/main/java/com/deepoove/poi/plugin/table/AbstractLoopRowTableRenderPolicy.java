@@ -23,6 +23,7 @@ import org.openxmlformats.schemas.wordprocessingml.x2006.main.STMerge;
 import java.util.List;
 import java.util.Map;
 
+@SuppressWarnings("unused")
 public abstract class AbstractLoopRowTableRenderPolicy implements RenderPolicy {
 
     protected String prefix;
