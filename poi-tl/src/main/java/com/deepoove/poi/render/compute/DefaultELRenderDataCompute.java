@@ -49,7 +49,7 @@ public class DefaultELRenderDataCompute implements RenderDataCompute {
                         return val;
                     }
                 } catch (Exception e) {
-                    log.error("Spel calculate error: " + el + " in class:", e.getMessage());
+                    log.error("Spel calculate error: " + el + " in class: {}", e.getMessage());
                 }
             }
             return elObject.eval(el);
