@@ -73,7 +73,7 @@ public class SpELRenderDataCompute implements RenderDataCompute {
                         return val;
                     }
                 } catch (Exception e) {
-                    log.error("Spel calculate error: " + el + " in class:", e);
+                    log.error("Spel calculate error: " + el + " in class:", e.getMessage());
                 }
             }
             return parser.parseExpression(el).getValue(context);

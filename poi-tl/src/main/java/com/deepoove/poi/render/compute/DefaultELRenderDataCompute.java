@@ -17,6 +17,8 @@ package com.deepoove.poi.render.compute;
 
 import com.deepoove.poi.exception.ExpressionEvalException;
 import com.deepoove.poi.expression.DefaultEL;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * default expression compute
@@ -24,7 +26,7 @@ import com.deepoove.poi.expression.DefaultEL;
  * @author Sayi
  */
 public class DefaultELRenderDataCompute implements RenderDataCompute {
-
+    private static final Logger log = LoggerFactory.getLogger(DefaultELRenderDataCompute.class);
     private DefaultEL elObject;
     private DefaultEL envObject;
     private boolean isStrict;
@@ -47,7 +49,7 @@ public class DefaultELRenderDataCompute implements RenderDataCompute {
                         return val;
                     }
                 } catch (Exception e) {
-                    // ignore
+                    log.error("Spel calculate error: " + el + " in class:", e.getMessage());
                 }
             }
             return elObject.eval(el);

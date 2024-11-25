@@ -65,6 +65,7 @@ public class LoopCopyHeaderMutilpleRowRenderPolicy extends AbstractLoopRowTableR
             Object n = globalEnv.get(eleTemplate.getTagName() + "_number");
             int mode = 1;
             boolean isDrawBorderOfFirstPage = false;
+            boolean isVMerge = false;
             try {
                 if (n == null) {
                     // Subtract the default number of rows in the header by 1
@@ -82,6 +83,8 @@ public class LoopCopyHeaderMutilpleRowRenderPolicy extends AbstractLoopRowTableR
                 reduce = temp != null ? Integer.parseInt(temp.toString()) : reduce;
                 temp = globalEnv.get(eleTemplate.getTagName() + "_fpdb");
                 isDrawBorderOfFirstPage = temp != null;
+                temp = globalEnv.get(eleTemplate.getTagName() + "_vmerge");
+                isVMerge = temp != null;
             } catch (NumberFormatException ignore) {
             }
             if (template_row_number > firstPageLine) {
@@ -102,6 +105,7 @@ public class LoopCopyHeaderMutilpleRowRenderPolicy extends AbstractLoopRowTableR
             int firstNumber = firstPageLine / template_row_number;
             int perPageNumber = pageLine / template_row_number;
             int currentPage = 1;
+            boolean firstFlag = true;
             XWPFTable nextTable = table;
             int templateRowIndex2 = templateRowIndex;
             int insertPosition;
@@ -144,6 +148,7 @@ public class LoopCopyHeaderMutilpleRowRenderPolicy extends AbstractLoopRowTableR
                             templateRowIndex = templateRowIndex2;
                         }
                         xmlCursor.close();
+                        firstFlag = true;
                         currentPage++;
                     }
                 }
@@ -156,11 +161,14 @@ public class LoopCopyHeaderMutilpleRowRenderPolicy extends AbstractLoopRowTableR
                     XWPFTableRow currentRow = table.getRow(insertPosition + i);
                     XWPFTableRow nextRow = table.insertNewTableRow(templateRowIndex + i);
                     nextRow = WordTableUtils.copyLineContent(currentRow, nextRow, templateRowIndex + i);
-                    // TODO 是否设置多行模板的跨列，默认是不设置
-                    currentRow.getTableCells().forEach(cell -> {
-                        List<MetaTemplate> templates = resolver.resolveBodyElements(cell.getBodyElements());
-                        documentProcessor.process(templates);
-                    });
+                    if (isVMerge) {
+                        if (!firstFlag) {
+                            this.setVMerge(currentRow);
+                        } else {
+                            firstFlag = false;
+                        }
+                    }
+                    this.renderMultipleRow(table, insertPosition + i, insertPosition + i, resolver, documentProcessor);
                 }
 
                 removeCurrentLineData(globalEnv, root);

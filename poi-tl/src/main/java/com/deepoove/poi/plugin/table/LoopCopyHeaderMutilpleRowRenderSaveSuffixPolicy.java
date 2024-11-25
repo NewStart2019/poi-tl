@@ -67,6 +67,7 @@ public class LoopCopyHeaderMutilpleRowRenderSaveSuffixPolicy extends AbstractLoo
             boolean isDrawBorderOfFirstPage = false;
             int tableExternalFooterLine = 0;
             boolean isFill = true;
+            boolean isVMerge = false;
             try {
                 if (n == null) {
                     // Subtract the default number of rows in the header by 1
@@ -88,6 +89,8 @@ public class LoopCopyHeaderMutilpleRowRenderSaveSuffixPolicy extends AbstractLoo
                 tableExternalFooterLine = temp != null ? Integer.parseInt(temp.toString()) : tableExternalFooterLine;
                 temp = globalEnv.get(eleTemplate.getTagName() + "_nofill");
                 isFill = temp == null;
+                temp = globalEnv.get(eleTemplate.getTagName() + "_vmerge");
+                isVMerge = temp != null;
             } catch (NumberFormatException ignore) {
             }
             if (template_row_number > firstPageLine) {
@@ -108,6 +111,7 @@ public class LoopCopyHeaderMutilpleRowRenderSaveSuffixPolicy extends AbstractLoo
             int firstNumber = firstPageLine / template_row_number;
             int perPageNumber = pageLine / template_row_number;
             int currentPage = 1;
+            boolean firstFlag = true;
             XWPFTable nextTable = table;
             int templateRowIndex2 = templateRowIndex;
             int insertPosition;
@@ -162,10 +166,14 @@ public class LoopCopyHeaderMutilpleRowRenderSaveSuffixPolicy extends AbstractLoo
                     XWPFTableRow currentRow = table.getRow(insertPosition + i);
                     XWPFTableRow nextRow = table.insertNewTableRow(templateRowIndex + i);
                     nextRow = WordTableUtils.copyLineContent(currentRow, nextRow, templateRowIndex + i);
-                    currentRow.getTableCells().forEach(cell -> {
-                        List<MetaTemplate> templates = resolver.resolveBodyElements(cell.getBodyElements());
-                        documentProcessor.process(templates);
-                    });
+                    if (isVMerge) {
+                        if (!firstFlag) {
+                            this.setVMerge(currentRow);
+                        } else {
+                            firstFlag = false;
+                        }
+                    }
+                    this.renderMultipleRow(table, insertPosition + i, insertPosition + i, resolver, documentProcessor);
                 }
                 removeCurrentLineData(globalEnv, root);
             }

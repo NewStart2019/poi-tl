@@ -24,7 +24,7 @@ import java.util.List;
 
 /**
  * copy → clean → remove → find → set → merge
- * TODO updat doc property id， DrawingSupport.updateDocPrId(table);
+ * TODO update doc property id， DrawingSupport.updateDocPrId(table);
  */
 @SuppressWarnings("unused")
 public class WordTableUtils {
