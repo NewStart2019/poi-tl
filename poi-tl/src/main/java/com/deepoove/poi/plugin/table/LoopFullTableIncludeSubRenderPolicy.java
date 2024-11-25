@@ -133,6 +133,7 @@ public class LoopFullTableIncludeSubRenderPolicy extends AbstractLoopRowTableRen
                                             currentTable.removeRow(tempTemplateRowIndex);
                                         }
                                         this.renderMultipleRow(currentTable, tempTemplateRowIndex, -1, resolver, documentProcessor);
+                                        WordTableUtils.setBottomBorder(currentTable, null);
                                     }
                                     if (currentPage <= tableCount) {
                                         // set page break
@@ -190,6 +191,7 @@ public class LoopFullTableIncludeSubRenderPolicy extends AbstractLoopRowTableRen
                                 currentTable.removeRow(tempTemplateRowIndex);
                             }
                             this.renderMultipleRow(currentTable, tempTemplateRowIndex, -1, resolver, documentProcessor);
+                            WordTableUtils.setBottomBorder(currentTable, null);
                             this.removeCurrentLineData(globalEnv, root);
                         }
                     }

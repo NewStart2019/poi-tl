@@ -1,18 +1,21 @@
 package com.deepoove.poi.tl.render;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
-import java.util.*;
-
+import com.deepoove.poi.XWPFTemplate;
+import com.deepoove.poi.data.*;
+import com.deepoove.poi.data.style.Style;
+import com.deepoove.poi.tl.source.XWPFTestSupport;
+import com.deepoove.poi.xwpf.NiceXWPFDocument;
+import org.apache.poi.xwpf.usermodel.IBodyElement;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFTable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import com.deepoove.poi.XWPFTemplate;
-import com.deepoove.poi.data.*;
-import com.deepoove.poi.data.style.Style;
-import com.deepoove.poi.tl.source.XWPFTestSupport;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.*;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @DisplayName("Foreach template test case")
 public class IterableTemplateTest {
@@ -214,4 +217,13 @@ public class IterableTemplateTest {
         template.writeToFile("target/out_iterable_foreach_all.docx");
     }
 
+
+    @Test
+    public void testDoubleIterable() throws Exception {
+        String resource = "src/test/resources/util/read_template.docx";
+        NiceXWPFDocument niceXWPFDocument = new NiceXWPFDocument(Files.newInputStream(Paths.get(resource)));
+        List<IBodyElement> bodyElements = niceXWPFDocument.getBodyElements();
+        niceXWPFDocument.removeBodyElement(1);
+        niceXWPFDocument.write(Files.newOutputStream(Paths.get("src/test/resources/util/read_template_new.docx")));
+    }
 }

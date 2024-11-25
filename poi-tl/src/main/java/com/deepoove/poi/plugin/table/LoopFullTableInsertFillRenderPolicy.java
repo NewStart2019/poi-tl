@@ -115,6 +115,7 @@ public class LoopFullTableInsertFillRenderPolicy extends AbstractLoopRowTableRen
                             table.removeRow(tempTemplateRowIndex);
                         }
                         this.renderMultipleRow(table, tempTemplateRowIndex, -1, resolver, documentProcessor);
+                        WordTableUtils.setBottomBorder(table, null);
                     }
                     table = nextTable;
                     if (currentTableIndex <= tableCount) {
@@ -189,6 +190,7 @@ public class LoopFullTableInsertFillRenderPolicy extends AbstractLoopRowTableRen
                 table.removeRow(tempTemplateRowIndex);
             }
             this.renderMultipleRow(table, tempTemplateRowIndex, -1, resolver, documentProcessor);
+            WordTableUtils.setBottomBorder(table, null);
             afterloop(table, data);
         } catch (Exception e) {
             throw new RenderException("HackLoopTable for " + eleTemplate + " error: " + e.getMessage(), e);
