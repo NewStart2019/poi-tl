@@ -74,7 +74,7 @@ public class DefaultRender implements Render {
         } finally {
             watch.stop();
         }
-        LOGGER.info("Successfully Render template in {} millis", TimeUnit.NANOSECONDS.toMillis(watch.getNanoTime()));
+        LOGGER.info("Successfully render template in {} millis", TimeUnit.NANOSECONDS.toMillis(watch.getNanoTime()));
     }
 
     public Visitor getProcessor() {

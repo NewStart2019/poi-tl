@@ -287,6 +287,9 @@ public class WordTableUtils {
             return;
         }
         cleanParagraphContent(target);
+        if (isIncludeStyle) {
+            target.getCTP().setPPr(source.getCTPPr());
+        }
         if (CollectionUtils.isEmpty(source.getRuns())) {
             return;
         }
@@ -316,9 +319,6 @@ public class WordTableUtils {
                 }
             }
             copyRun(run, newRun, isIncludeStyle);
-        }
-        if (isIncludeStyle) {
-            target.getCTP().setPPr(source.getCTPPr());
         }
     }
 
@@ -996,6 +996,27 @@ public class WordTableUtils {
             pageBreakRun.addBreak(BreakType.PAGE);
         }
         return pageBreakPara;
+    }
+
+    /**
+     * Create a section break before the specified label, with <b>xmlCursor</b> is blank and added at the end by default
+     *
+     * @param doc       {@link XWPFDocument doc}  required
+     * @param type      {@link STSectionMark.Enum type} required
+     * @param xmlCursor {@link XmlCursor xmlCursor}
+     */
+    public static void setSectionBreak(XWPFDocument doc, STSectionMark.Enum type, XmlCursor xmlCursor) {
+        if (doc == null || type == null) {
+            return;
+        }
+        XWPFParagraph paragraph = xmlCursor == null ? doc.createParagraph() : doc.insertNewParagraph(xmlCursor);
+        CTSectType ctSectType = CTSectType.Factory.newInstance();
+        ctSectType.setVal(type);
+
+        CTP ctp = paragraph.getCTP();
+        CTPPr ctpPr = ctp.isSetPPr() ? ctp.getPPr() : ctp.addNewPPr();
+        CTSectPr ctSectPr = ctpPr.isSetSectPr() ? ctpPr.getSectPr() : ctpPr.addNewSectPr();
+        ctSectPr.setType(ctSectType);
     }
 
     /**

@@ -8,10 +8,19 @@ import com.deepoove.poi.plugin.table.LoopRowTableAllRenderPolicy;
 import com.deepoove.poi.plugin.table.LoopRowTableRenderPolicy;
 import com.deepoove.poi.util.WordTableUtils;
 import com.deepoove.poi.xwpf.NiceXWPFDocument;
+import org.apache.poi.xwpf.usermodel.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTP;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTSectPr;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTSectType;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.STSectionMark;
 
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
 
 @DisplayName("Example for HackLoop Table")
@@ -523,5 +532,56 @@ public class LoopRowTableAllRenderPolicyTest {
             WordTableUtils.setMinHeightParagraph(template.getXWPFDocument());
             template.writeToFile("target/out_mutiple_suffix" + condition + ".docx");
         }
+    }
+
+    @Test
+    void testDeleteTable() throws IOException {
+        resource = "D:\\DingTalkAppData\\DingTalk\\download\\保温层厚度修订版.docx";
+        NiceXWPFDocument niceXWPFDocument = new NiceXWPFDocument(Files.newInputStream(Paths.get(resource)));
+
+        // 遍历所有段落
+        for (IBodyElement element : niceXWPFDocument.getBodyElements()) {
+            if (element.getElementType() == BodyElementType.PARAGRAPH) {
+                XWPFParagraph paragraph = (XWPFParagraph) element;
+                System.out.println(paragraph.getText());
+                // 如果段落包含分节符，则表示这一节结束
+                if (paragraph.getCTP().getPPr() != null && paragraph.getCTP().getPPr().getSectPr() != null) {
+                    CTSectPr sectPr = paragraph.getCTP().getPPr().getSectPr();
+                    CTSectType type = sectPr.getType();
+                    System.out.println("------ Section Break ------");
+                }
+            } else if (element.getElementType() == BodyElementType.TABLE) {
+                XWPFTable table = (XWPFTable) element;
+                System.out.println(table.getText());
+            } else if (element.getElementType() == BodyElementType.CONTENTCONTROL) {
+                XWPFSDT sdt = (XWPFSDT) element;
+                System.out.println(sdt.getContent().getText());
+            }
+        }
+
+        // 创建一个新的Word文档
+        XWPFDocument document = new XWPFDocument();
+
+        // 添加一些文本
+        XWPFParagraph paragraph = document.createParagraph();
+        XWPFRun run = paragraph.createRun();
+        run.setText("这是第一部分的内容。");
+
+        // 在这里插入分节符
+        WordTableUtils.setSectionBreak(document, STSectionMark.NEXT_PAGE, null);
+
+        // 继续添加更多文本
+        paragraph = document.createParagraph();
+        run = paragraph.createRun();
+        run.setText("这是第二部分的内容。");
+
+        // 保存文档
+        try (FileOutputStream out = new FileOutputStream("C:\\Users\\Administrator\\Desktop\\b.docx")) {
+            document.write(out);
+        }
+
+        // 关闭文档
+        document.close();
+        // niceXWPFDocument.write(new FileOutputStream("C:\\Users\\Administrator\\Desktop\\a.docx"));
     }
 }
