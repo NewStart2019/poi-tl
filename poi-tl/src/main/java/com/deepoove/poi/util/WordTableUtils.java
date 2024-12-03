@@ -124,9 +124,9 @@ public class WordTableUtils {
      * Copy the content of the current line to the next line. If the next line is a newly added line,
      * then directly copy the entire XML of the current line to the next line. Otherwise, just copy
      * the content to the next line.
-     * <p><b>Tips</b> </p>
-     * <p>Cross table copying of the same file has not been tested, please use with caution</p>
-     * <p>Cross table replication of different files has not been tested, please use with caution</p>
+     * <p><b>Tips:</b> </p>
+     * <li>Cross table copying of the same file has not been tested, please use with caution</li>
+     * <li>Cross table replication of different files has not been tested, please use with caution</li>
      *
      * @param currentLine      current line
      * @param nextLine         next line
@@ -635,6 +635,21 @@ public class WordTableUtils {
         return findVerticalMergedRows(table, rowIndex, colIndex);
     }
 
+    public static XWPFTableCell findMaxWidthCellInRow(XWPFTableRow row) {
+        if (row == null) {
+            return null;
+        }
+        int maxWidth = 0;
+        List<XWPFTableCell> tableCells = row.getTableCells();
+        XWPFTableCell tableCell = tableCells.get(0);
+        for (XWPFTableCell tempCell : tableCells) {
+            if (tableCell.getWidth() < tempCell.getWidth()){
+                tableCell = tempCell;
+            }
+        }
+        return tableCell;
+    }
+
     public static XWPFTableRow findLastLine(XWPFTable table) {
         if (table == null) {
             return null;
@@ -886,7 +901,7 @@ public class WordTableUtils {
      *
      * @param row         {@link XWPFTableRow row}
      * @param heightTwips height in twips
-     * @param type        {@link STHeightRule.Enum type} , default is {@link STHeightRule.Enum EXACT}
+     * @param type        {@link STHeightRule.Enum type} , default is {@link STHeightRule.Enum EXACT}: indicates a fixed height
      */
     public static void setTableRowHeight(XWPFTableRow row, long heightTwips, STHeightRule.Enum type) {
         CTRow ctRow = row.getCtRow();
@@ -897,7 +912,7 @@ public class WordTableUtils {
             type = STHeightRule.EXACT;
         }
         // Set the row height rule to a fixed row height
-        height.setHRule(type);  // EXCT: indicates a fixed height
+        height.setHRule(type);
     }
 
     public static void setTableCellWidth(XWPFTableCell cell, String width) {

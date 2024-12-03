@@ -264,7 +264,7 @@ public abstract class AbstractLoopRowTableRenderPolicy implements RenderPolicy {
      * Blank line processing
      *
      * @param table         {@link XWPFTable table}
-     * @param mode          mode， 1:blank line, 2:diagonal line, 3:text "以下空白"
+     * @param mode          mode， 1:blank line, 2:diagonal line, 3:Middle width cell writing "以下空白", 4: Maximum width cell writing  "以下空白"
      * @param startRowIndex template row index
      * @param mergeLines    merge rows
      */
@@ -288,6 +288,12 @@ public abstract class AbstractLoopRowTableRenderPolicy implements RenderPolicy {
             XWPFTableRow row = table.getRow(startRowIndex);
             WordTableUtils.cleanRowTextContent(row);
             XWPFTableCell cell = row.getCell((row.getTableCells().size() - 1) / 2);
+            XWPFParagraph xwpfParagraph = cell.addParagraph();
+            xwpfParagraph.createRun().setText("以下空白");
+        } else if (mode == 4 && isWriteBlank) {
+            XWPFTableRow row = table.getRow(startRowIndex);
+            WordTableUtils.cleanRowTextContent(row);
+            XWPFTableCell cell = WordTableUtils.findMaxWidthCellInRow(row);
             XWPFParagraph xwpfParagraph = cell.addParagraph();
             xwpfParagraph.createRun().setText("以下空白");
         }
