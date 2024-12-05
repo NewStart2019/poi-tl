@@ -6,7 +6,6 @@ import com.deepoove.poi.policy.RenderPolicy;
 import com.deepoove.poi.render.compute.EnvModel;
 import com.deepoove.poi.render.processor.EnvIterator;
 import com.deepoove.poi.template.ElementTemplate;
-import com.deepoove.poi.template.MetaTemplate;
 import com.deepoove.poi.util.WordTableUtils;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.apache.poi.xwpf.usermodel.XWPFTable;
@@ -14,7 +13,10 @@ import org.apache.poi.xwpf.usermodel.XWPFTableCell;
 import org.apache.poi.xwpf.usermodel.XWPFTableRow;
 import org.apache.xmlbeans.XmlCursor;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 
 public class LoopCopyHeaderMutilpleRowRenderPolicy extends AbstractLoopRowTableRenderPolicy implements RenderPolicy {
 
@@ -187,24 +189,7 @@ public class LoopCopyHeaderMutilpleRowRenderPolicy extends AbstractLoopRowTableR
                 insertLine = pageLine - (dataCount - firstNumber) % perPageNumber * template_row_number - reduce;
             }
             this.fillBlankRow(insertLine, table, templateRowIndex);
-
-            // Default blank line filling, fill blank lines with a reverse slash by mode equal 2
-            // Fill in the following blanks for Mode 3 mode fill "以下空白"
-            if (insertLine > 0) {
-                if (mode == 2) {
-                    WordTableUtils.mergeMutipleLine(table, templateRowIndex, templateRowIndex + insertLine - 1);
-                    // Set diagonal border
-                    XWPFTableCell cellRow00 = table.getRow(templateRowIndex).getCell(0);
-                    WordTableUtils.setDiagonalBorder(cellRow00);
-                    WordTableUtils.setCellWidth(cellRow00, table.getWidth());
-                } else if (mode == 3) {
-                    XWPFTableRow row = table.getRow(templateRowIndex);
-                    XWPFTableCell cell = row.getCell((row.getTableCells().size() - 1) / 2);
-                    XWPFParagraph xwpfParagraph = cell.addParagraph();
-                    xwpfParagraph.createRun().setText("以下空白");
-                }
-            }
-
+            blankDeal(table, mode, templateRowIndex, insertLine);
             if (table != nextTable) {
                 WordTableUtils.removeTable(xwpfDocument, nextTable);
             }
