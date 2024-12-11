@@ -17,6 +17,9 @@ import org.openxmlformats.schemas.wordprocessingml.x2006.main.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.awt.*;
+import java.awt.font.FontRenderContext;
+import java.awt.geom.AffineTransform;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.math.BigInteger;
@@ -60,8 +63,7 @@ public class WordTableUtils {
      * @return {@link XWPFTable}
      */
     @SuppressWarnings("unchecked")
-    public static XWPFTable copyTable(XWPFDocument doc, XWPFTable sourceTable, XmlCursor xmlCursor
-        , boolean isAfter, boolean isTail) {
+    public static XWPFTable copyTable(XWPFDocument doc, XWPFTable sourceTable, XmlCursor xmlCursor, boolean isAfter, boolean isTail) {
         if (doc == null || sourceTable == null) {
             throw new RuntimeException("The parameters passed in cannot be empty!");
         }
@@ -643,7 +645,7 @@ public class WordTableUtils {
         List<XWPFTableCell> tableCells = row.getTableCells();
         XWPFTableCell tableCell = tableCells.get(0);
         for (XWPFTableCell tempCell : tableCells) {
-            if (tableCell.getWidth() < tempCell.getWidth()){
+            if (tableCell.getWidth() < tempCell.getWidth()) {
                 tableCell = tempCell;
             }
         }
@@ -772,11 +774,29 @@ public class WordTableUtils {
         return maxColCount;
     }
 
-    public double findFontSize(XWPFRun run) {
+    /**
+     * <p>Get the font size of the run</p>
+     *
+     * @param run {@link XWPFRun run}
+     * @return font size
+     */
+    public static double findFontSize(XWPFRun run) {
         if (run == null) {
             return 0;
         }
-        return run.getFontSizeAsDouble();
+        Double fontSizeAsDouble = run.getFontSizeAsDouble();
+        if (fontSizeAsDouble == null) {
+            CTRPr rPr = run.getCTR().getRPr();
+            if (rPr != null && CollectionUtils.isNotEmpty(rPr.getSzCsList())) {
+                Object val = rPr.getSzCsList().get(0).getVal();
+                if (val instanceof BigInteger) {
+                    fontSizeAsDouble = ((BigInteger) val).doubleValue() / 2;
+                } else {
+                    fontSizeAsDouble = Double.parseDouble((String) val);
+                }
+            }
+        }
+        return fontSizeAsDouble == null ? 0 : fontSizeAsDouble;
     }
 
     /**
@@ -1393,5 +1413,84 @@ public class WordTableUtils {
             row.getCtRow().setTcArray(i, row.getCtRow().getTcArray(i - 1));
             row.getCtRow().setTcArray(i - 1, tempCell.getCTTc());
         }
+    }
+
+    public static double adjustFontSize(XWPFTableCell cell, String content, double cellWidth, double cellHeight) {
+        if (cell.getParagraphs().isEmpty()) {
+            return 12;
+        }
+        XWPFParagraph paragraph = cell.getParagraphs().get(0);
+        if (paragraph.getRuns().isEmpty()) {
+            return 12;
+        }
+        XWPFRun run = paragraph.getRuns().isEmpty() ? paragraph.createRun() : paragraph.getRuns().get(0);
+        // Default font size (e.g. 12 dots)
+        double tempFontSize = findFontSize(run);
+        double fontSize = tempFontSize == 0 ? 12 : tempFontSize;
+
+        CTP ctp = paragraph.getCTP();
+        int indentSize = 0;
+        double lineSize = fontSize * 20;
+        int beforeSize = 0;
+        int afterSize = 0;
+        if (ctp.isSetPPr()) {
+            CTPPr pPr = ctp.getPPr();
+            if (pPr.isSetInd()) {
+                CTInd ind = pPr.getInd();
+                if (ind.getFirstLine() != null) {
+                    if (ind.getFirstLine() instanceof BigInteger) {
+                        indentSize = ((BigInteger) ind.getFirstLine()).intValue();
+                    } else {
+                        indentSize = Integer.parseInt((String) ind.getFirstLine());
+                    }
+                }
+            }
+            if (pPr.isSetSpacing()) {
+                CTSpacing spacing = pPr.getSpacing();
+                if (spacing.getLine() != null) {
+                    if (spacing.getLine() instanceof BigInteger) {
+                        lineSize = ((BigInteger) spacing.getLine()).intValue();
+                    } else {
+                        lineSize = Double.parseDouble((String) spacing.getLine());
+                    }
+                }
+                if (spacing.getBeforeLines() != null) {
+                    beforeSize = spacing.getBeforeLines().intValue();
+                }
+                if (spacing.getAfterLines() != null) {
+                    afterSize = spacing.getAfterLines().intValue();
+                }
+            }
+        }
+        cellHeight = cellHeight - beforeSize - afterSize;
+
+        // Adaptability of computational content
+        String fontFamily = run.getFontFamily();
+        fontFamily = fontFamily == null ? "SimSun" : fontFamily;
+        AffineTransform affineTransform = new AffineTransform();
+        FontRenderContext frc = new FontRenderContext(affineTransform, true, true);
+        int style = Font.PLAIN;
+        CTRPr rPr = run.getCTR().getRPr();
+        if (rPr != null) {
+            if (CollectionUtils.isNotEmpty(rPr.getBList())) {
+                style = Font.BOLD;
+            }
+            if (CollectionUtils.isNotEmpty(rPr.getIList())) {
+                style = Font.ITALIC;
+            }
+        }
+        String styleID = paragraph.getStyleID();
+        Font font = new Font(fontFamily, style, (int) fontSize);
+        double totalWidth = font.getStringBounds(content, frc).getWidth() * 20 + indentSize;
+        // If the height of the entire row is greater than the height of the table cells, the font size will be reduced
+        while ((int) Math.ceil(totalWidth / cellWidth) * lineSize > cellHeight) {
+            fontSize -= 0.5;
+            font = new Font(fontFamily, style, (int) fontSize);
+            totalWidth = font.getStringBounds(content, frc).getWidth() * 20 + indentSize;
+            if (fontSize < 1) {
+                break;
+            }
+        }
+        return fontSize;
     }
 }

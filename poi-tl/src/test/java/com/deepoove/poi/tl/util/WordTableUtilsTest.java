@@ -1,5 +1,7 @@
 package com.deepoove.poi.tl.util;
 
+import com.deepoove.poi.data.style.Style;
+import com.deepoove.poi.util.StyleUtils;
 import com.deepoove.poi.util.UnitUtils;
 import com.deepoove.poi.util.WordTableUtils;
 import com.deepoove.poi.xwpf.NiceXWPFDocument;
@@ -10,10 +12,7 @@ import org.apache.xmlbeans.XmlCursor;
 import org.apache.xmlbeans.XmlException;
 import org.apache.xmlbeans.XmlObject;
 import org.junit.jupiter.api.Test;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTc;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.STHeightRule;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.STMerge;
-import org.springframework.util.Assert;
 
 import javax.xml.namespace.QName;
 import java.io.FileInputStream;
@@ -428,4 +427,32 @@ class WordTableUtilsTest {
         document.write(Files.newOutputStream(Paths.get("target/out_copy_border.docx")));
     }
 
+    @Test
+    void testCalculateFontSize() throws IOException {
+        String template = "src/test/resources/util//copy_border.docx";
+        template = "C:\\Users\\Administrator\\Desktop\\道路照明（现用）.docx";
+        FileInputStream fileInputStream = new FileInputStream(template);
+        NiceXWPFDocument document = new NiceXWPFDocument(fileInputStream);
+        XWPFTable table = document.getTables().get(0);
+        XWPFTableRow row = table.getRow(3);
+        int cellHeight = row.getHeight();
+        XWPFTableCell cell = row.getCell(2);
+        int cellWidth = cell.getWidth();
+
+        // String content = "这是需要自适应的长文本内容，测试动态字体调整功能测试动态字体调整功能123。";
+        String content = "铜遂人才共育园（科能技校园）项目（一期用地一期建设）施工";
+        double fontSize = WordTableUtils.adjustFontSize(cell, content, cellWidth, cellHeight);
+        XWPFParagraph paragraph = cell.getParagraphs().get(0);
+        XWPFRun run = paragraph.getRuns().isEmpty() ? paragraph.createRun() : paragraph.getRuns().get(0);
+        Style style = Style.builder().buildFontSize(fontSize).build();
+        run.setText(content, 0);
+        StyleUtils.styleRun(run, style);
+
+        // 保存文档
+        try (FileOutputStream out = new FileOutputStream("target/adjusted-table.docx")) {
+            document.write(out);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }

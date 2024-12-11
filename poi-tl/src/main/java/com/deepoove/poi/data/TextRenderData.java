@@ -34,6 +34,8 @@ public class TextRenderData implements RenderData {
      */
     protected String text;
 
+    protected boolean isAutoScale;
+
     public TextRenderData() {
     }
 
@@ -65,6 +67,14 @@ public class TextRenderData implements RenderData {
 
     public void setText(String text) {
         this.text = text;
+    }
+
+    public boolean isAutoScale() {
+        return isAutoScale;
+    }
+
+    public void setAutoScale(boolean autoScale) {
+        isAutoScale = autoScale;
     }
 
     @Override
