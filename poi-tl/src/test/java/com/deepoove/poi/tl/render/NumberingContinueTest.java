@@ -35,7 +35,7 @@ public class NumberingContinueTest {
         List<String> subsublist;
 
         public SubList() {
-            subsublist = Arrays.asList("1", "2", "3");
+            subsublist = Arrays.asList("one", "two", "three");
         }
     }
 

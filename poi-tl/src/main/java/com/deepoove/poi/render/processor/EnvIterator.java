@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 import com.deepoove.poi.render.compute.EnvModel;
+import com.deepoove.poi.util.TlBeanUtil;
 
 public class EnvIterator {
 
@@ -41,6 +42,9 @@ public class EnvIterator {
             Object root = iterator.next();
             hasNext = iterator.hasNext();
             EnvIterator.makeEnv(globalEnv, ++index, hasNext);
+            if (root instanceof String || TlBeanUtil.isPrimitive(root)){
+                globalEnv.put("item", root);
+            }
             consumer.accept(EnvModel.of(root, globalEnv));
         }
     }
