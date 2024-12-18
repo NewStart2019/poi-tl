@@ -935,7 +935,7 @@ public class WordTableUtils {
         height.setHRule(type);
     }
 
-    public static void setTableCellWidth(XWPFTableCell cell, String width) {
+    public static void setCellWidth(XWPFTableCell cell, String width) {
         CTTcPr tcPr = cell.getCTTc().isSetTcPr() ? cell.getCTTc().getTcPr() : cell.getCTTc().addNewTcPr();
         CTTblWidth tblWidth = tcPr.isSetTcW() ? tcPr.getTcW() : tcPr.addNewTcW();
         tblWidth.setType(STTblWidth.DXA);
@@ -946,8 +946,20 @@ public class WordTableUtils {
         CTTblWidth tblWidth = CTTblWidth.Factory.newInstance();
         tblWidth.setType(STTblWidth.DXA);
         tblWidth.setW(BigInteger.valueOf(width));
-        CTTcPr tcPr = cell.getCTTc().isSetTcPr() ? cell.getCTTc().getTcPr() : cell.getCTTc().addNewTcPr();
+        CTTcPr tcPr = TableTools.getTcPr(cell);
         tcPr.setTcW(tblWidth);
+    }
+
+    /**
+     * <p>Set vertical merge</p>
+     *
+     * @param cell  {@link XWPFTableCell cell}
+     * @param merge {@link STMerge.Enum merge}
+     */
+    public static void setCellVmerge(XWPFTableCell cell, STMerge.Enum merge) {
+        CTTcPr tcPr = TableTools.getTcPr(cell);
+        CTVMerge vMerge = tcPr.isSetVMerge() ? tcPr.getVMerge() : tcPr.addNewVMerge();
+        vMerge.setVal(merge);
     }
 
     public static void setDiagonalBorder(XWPFTableCell cell) {

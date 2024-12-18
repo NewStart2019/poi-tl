@@ -89,7 +89,7 @@ public class MultipleRowTableRenderPolicy extends AbstractLoopRowTableRenderPoli
             XWPFTableCell tagCell = (XWPFTableCell) ((XWPFParagraph) run.getParent()).getBody();
             final XWPFTable table = tagCell.getTableRow().getTable();
             run.setText("", 0);
-            TemplateResolver resolver = new TemplateResolver(template.getConfig().copy(prefix, suffix));
+            this.resolver = new TemplateResolver(template.getConfig().copy(prefix, suffix));
             // 获取模板所在的起始行
             int position = WordTableUtils.findRowIndex(tagCell.getTableRow());
             List<XWPFTableRow> tempRows = getAllTemplateRow(table, position);

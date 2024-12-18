@@ -97,12 +97,13 @@ public class LoopRowTableRenderPolicy extends AbstractLoopRowTableRenderPolicy i
             Configure config = template.getConfig();
             RenderDataCompute dataCompute = config.getRenderDataComputeFactory()
                 .newCompute(EnvModel.of(template.getEnvModel().getRoot(), globalEnv));
+            this.resolver = new TemplateResolver(template.getConfig().copy(prefix, suffix));
+
             if (data instanceof Iterable) {
                 Iterator<?> iterator = ((Iterable<?>) data).iterator();
                 XWPFTableRow templateRow = table.getRow(templateRowIndex);
                 int insertPosition = templateRowIndex;
 
-                TemplateResolver resolver = new TemplateResolver(template.getConfig().copy(prefix, suffix));
                 boolean firstFlag = true;
                 int index = 0;
                 boolean hasNext = iterator.hasNext();

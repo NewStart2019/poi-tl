@@ -11,6 +11,7 @@ import org.apache.poi.xwpf.usermodel.*;
 import org.apache.xmlbeans.XmlCursor;
 import org.apache.xmlbeans.XmlException;
 import org.apache.xmlbeans.XmlObject;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.STHeightRule;
 
@@ -428,6 +429,7 @@ class WordTableUtilsTest {
     }
 
     @Test
+    @Disabled
     void testCalculateFontSize() throws IOException {
         String template = "src/test/resources/util//copy_border.docx";
         template = "C:\\Users\\Administrator\\Desktop\\道路照明（现用）.docx";

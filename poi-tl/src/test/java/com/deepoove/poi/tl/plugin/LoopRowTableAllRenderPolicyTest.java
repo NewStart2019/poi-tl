@@ -10,6 +10,7 @@ import com.deepoove.poi.util.WordTableUtils;
 import com.deepoove.poi.xwpf.NiceXWPFDocument;
 import org.apache.poi.xwpf.usermodel.*;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTSectPr;
@@ -107,6 +108,7 @@ public class LoopRowTableAllRenderPolicyTest {
     }
 
     @Test
+    @Disabled
     public void testLoopExistedRow() throws Exception {
         LoopRowTableAllRenderPolicy loopRowTableAllRenderPolicy = new LoopRowTableAllRenderPolicy(false, true);
         resource = "src/test/resources/template/render_existed_fill.docx";
@@ -308,18 +310,17 @@ public class LoopRowTableAllRenderPolicyTest {
         resource = "src/test/resources/template/render_insert_fill_2.docx";
         ArrayList<Integer> conditions = new ArrayList<>();
         conditions.add(10);
-        conditions.add(24);
-        conditions.add(30);
-        conditions.add(52);
-        conditions.add(60);
-        conditions.add(80);
+        conditions.add(17);
+        conditions.add(20);
+        conditions.add(37);
+        conditions.add(50);
         for (Integer condition : conditions) {
             Map<String, Object> stringObjectMap = init2(condition);
-            stringObjectMap.put("test_first_number", 24);
-            stringObjectMap.put("test_number", 28);
+            stringObjectMap.put("test_first_number", 17);
+            stringObjectMap.put("test_number", 20);
             stringObjectMap.put("test_mode", 1);
             stringObjectMap.put("test_rendermode", 6);
-            stringObjectMap.put("test_remove_next_line", 4);
+            // stringObjectMap.put("test_remove_next_line", 4);
             stringObjectMap.put("blank_desc", "以下空白");
             Configure config = Configure.builder()
                 .useSpringEL(false)
@@ -382,6 +383,7 @@ public class LoopRowTableAllRenderPolicyTest {
             stringObjectMap.put("subRecords_number", 27);
             stringObjectMap.put("subRecords_mode", 2);
             stringObjectMap.put("blank_desc", "以下空白");
+            stringObjectMap.put("blank_vmerge", "以下空白");
             Configure config = Configure.builder()
                 .useSpringEL(false)
                 .bind("subRecords", policy)

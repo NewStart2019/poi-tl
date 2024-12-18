@@ -20,6 +20,7 @@ import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTcPr;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTVMerge;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.STMerge;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -235,6 +236,42 @@ public abstract class AbstractLoopRowTableRenderPolicy implements RenderPolicy {
     }
 
     /**
+     * Set the cross row attribute of a non first row cell to CONTINUE, and set the cross row attribute of the first
+     * row cell to RESTART
+     *
+     * @param firstFlag whether it is the first row flag
+     * @param row       {@link XWPFTableRow row}
+     * @param colMerge  cross row attribute list, each element is Boolean
+     */
+    protected void setVMerge(boolean firstFlag, XWPFTableRow row, List<Boolean> colMerge) {
+        if (row == null) {
+            return;
+        }
+        List<XWPFTableCell> tableCells = row.getTableCells();
+        if (firstFlag) {
+            for (int i = 0; i < tableCells.size(); i++) {
+                XWPFTableCell cell = tableCells.get(i);
+                Boolean b = colMerge.get(i);
+                if (b) {
+                    CTTcPr tcPr = TableTools.getTcPr(cell);
+                    CTVMerge vMerge = tcPr.isSetVMerge() ? tcPr.getVMerge() : tcPr.addNewVMerge();
+                    vMerge.setVal(STMerge.RESTART);
+                }
+            }
+        } else {
+            for (int i = 0; i < tableCells.size(); i++) {
+                XWPFTableCell cell = tableCells.get(i);
+                Boolean b = colMerge.get(i);
+                CTTcPr tcPr = TableTools.getTcPr(cell);
+                CTVMerge vMerge = tcPr.isSetVMerge() ? tcPr.getVMerge() : tcPr.addNewVMerge();
+                if (b || STMerge.RESTART == vMerge.getVal()) {
+                    vMerge.setVal(STMerge.CONTINUE);
+                }
+            }
+        }
+    }
+
+    /**
      * Rendering Multi line Template
      *
      * @param table             {@link XWPFTable table}
@@ -299,5 +336,47 @@ public abstract class AbstractLoopRowTableRenderPolicy implements RenderPolicy {
             xwpfParagraph.setAlignment(ParagraphAlignment.CENTER);
             xwpfParagraph.createRun().setText("以下空白");
         }
+    }
+
+    /**
+     * Starting from the template row, set the cross column attribute of the table if this column has a "merge" label
+     *
+     * @param table            {@link XWPFTable table}
+     * @param templateRowIndex template row index
+     */
+    protected void setTemplateRowVMergeCol(XWPFTable table, int templateRowIndex) {
+        List<XWPFTableCell> cells = table.getRow(templateRowIndex).getTableCells();
+        for (XWPFTableCell cell : cells) {
+            List<MetaTemplate> templates = resolver.resolveBodyElements(cell.getBodyElements());
+            for (MetaTemplate t : templates) {
+                if (t instanceof RunTemplate) {
+                    RunTemplate t1 = (RunTemplate) t;
+                    if (t1.getTagName().equals("vmerge")) {
+                        WordTableUtils.setCellVmerge(cell, STMerge.RESTART);
+                        t1.getRun().setText("");
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    protected List<Boolean> getTemplateVMergeCol(XWPFTable table, int templateRowIndex) {
+        List<XWPFTableCell> cells = table.getRow(templateRowIndex).getTableCells();
+        List<Boolean> colMerge = new ArrayList<>(cells.size());
+        for (XWPFTableCell cell : cells) {
+            List<MetaTemplate> templates = resolver.resolveBodyElements(cell.getBodyElements());
+            boolean flag = false;
+            for (MetaTemplate t : templates) {
+                if (t instanceof ElementTemplate) {
+                    flag = ((ElementTemplate) t).getTagName().equals("merge");
+                    if (flag) {
+                        break;
+                    }
+                }
+            }
+            colMerge.add(flag);
+        }
+        return colMerge;
     }
 }
