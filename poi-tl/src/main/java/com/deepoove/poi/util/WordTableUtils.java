@@ -492,13 +492,16 @@ public class WordTableUtils {
                     List<XWPFRun> runs = paragraph.getRuns();
                     boolean isEmpty = true;
                     for (XWPFRun run : runs) {
-                        if (StringUtils.isNotBlank(run.text())) {
+                        // Do not remove paragraphs if there are images or text present
+                        if (StringUtils.isNotBlank(run.text()) || CollectionUtils.isNotEmpty(run.getEmbeddedPictures())) {
                             isEmpty = false;
                             break;
                         }
                     }
                     if (isEmpty) {
                         xwpfDocument.removeBodyElement(i);
+                    } else {
+                        break;
                     }
                 }
             } else {
