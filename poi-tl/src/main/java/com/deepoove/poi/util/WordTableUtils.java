@@ -1326,7 +1326,14 @@ public class WordTableUtils {
         }
     }
 
-    public static void umMergeCell(XWPFTableCell cellRow) {
+    /**
+     * cancel cell merge by specified cell
+     *
+     * @param cellRow    {@link XWPFTableCell cell}
+     * @param isUnhmerge whether to cancel the horizontal merge
+     * @param isUnvmerge whether to cancel the vertical merge
+     */
+    public static void umMergeCell(XWPFTableCell cellRow, boolean isUnhmerge, boolean isUnvmerge) {
         if (cellRow == null) {
             return;
         }
@@ -1334,13 +1341,10 @@ public class WordTableUtils {
         if (tcPr == null) {
             return;
         }
-        if (tcPr.isSetHMerge()) {
+        if (tcPr.isSetHMerge() && isUnhmerge) {
             tcPr.unsetHMerge();
         }
-        if (tcPr.isSetVMerge()) {
-            tcPr.unsetVMerge();
-        }
-        if (tcPr.isSetGridSpan()) {
+        if (tcPr.isSetGridSpan() && isUnhmerge) {
             CTDecimalNumber gridSpan = tcPr.getGridSpan();
             if (gridSpan != null && gridSpan.getVal() != null) {
                 int gridSpanValue = gridSpan.getVal().intValue();
@@ -1348,6 +1352,10 @@ public class WordTableUtils {
                     tcPr.unsetGridSpan();
                 }
             }
+        }
+
+        if (tcPr.isSetVMerge() && isUnvmerge) {
+            tcPr.unsetVMerge();
         }
     }
 

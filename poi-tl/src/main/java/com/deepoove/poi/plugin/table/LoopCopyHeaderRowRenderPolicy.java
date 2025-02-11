@@ -115,7 +115,8 @@ public class LoopCopyHeaderRowRenderPolicy extends AbstractLoopRowTableRenderPol
                 firstPage = index < firstPageLine;
                 if (index == 0 || index == firstPageLine || (index - firstPageLine) % pageLine == 0) {
                     if (index != 0) {
-                        table.removeRow(templateRowIndex);
+                        this.removeMultipleLine(template_row_number + (isRemoveNextLine ? 1 : 0),
+                            table, templateRowIndex);
                     }
                     drawBottomBorder(currentPage, isDrawBorderOfFirstPage, table);
                     // 存在下一页，创建表格
@@ -175,7 +176,7 @@ public class LoopCopyHeaderRowRenderPolicy extends AbstractLoopRowTableRenderPol
                 insertLine = pageLine - (dataCount - firstPageLine) % pageLine - reduce;
             }
             this.fillBlankRow(insertLine, table, templateRowIndex);
-            this.blankDeal(table, mode, templateRowIndex + 1, insertLine);
+            this.blankDeal(table, mode, templateRowIndex, insertLine);
 
             if (paragraph != null) {
                 WordTableUtils.removeParagraph(paragraph);
@@ -183,7 +184,8 @@ public class LoopCopyHeaderRowRenderPolicy extends AbstractLoopRowTableRenderPol
             if (table != nextTable) {
                 WordTableUtils.removeTable(xwpfDocument, nextTable);
             }
-            this.removeMultipleLine(template_row_number, table, templateRowIndex + insertLine);
+            this.removeMultipleLine(template_row_number + (isRemoveNextLine ? 1 : 0),
+                table, templateRowIndex + insertLine);
             this.drawBottomBorder(currentPage, isDrawBorderOfFirstPage, table);
             globalEnv.putAll(original);
             afterloop(table, data);

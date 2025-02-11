@@ -499,7 +499,7 @@ public class LoopRowTableAllRenderPolicyTest {
         return test;
     }
 
-
+    // TODO 多行模板：列归并和不归并冲突，所以自定义归并和不归并列有问题，暂时无法解决
     @Test
     public void testLoopMutilpleRowRenderSaveSuffixPolicy() throws Exception {
         // 测试支持多行表头和单行表头
