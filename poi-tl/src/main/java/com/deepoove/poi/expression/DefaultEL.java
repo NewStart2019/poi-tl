@@ -50,4 +50,7 @@ public class DefaultEL {
         return dot.eval(this);
     }
 
+    public void clearCache(){
+        cache.clear();
+    }
 }

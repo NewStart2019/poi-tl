@@ -80,11 +80,6 @@ public class SectionTableRenderPolicyTest {
             .addPlugin('$', new RemoveTableRowRenderPolicy("——"))
             .useSpringEL(false)
             .build();
-        XWPFTemplate template = XWPFTemplate.compile(resource, config);
-        initFieldByDocument(template.getElementTemplates(), data, "——");
-        template.render(data);
-        template.writeToFile("target/out_grid_bu.docx");
-
         resource = "src/test/resources/template/delete_row.docx";
         XWPFTemplate template2 = XWPFTemplate.compile(resource, config);
         initFieldByDocument(template2.getElementTemplates(), data, "——");

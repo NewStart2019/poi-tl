@@ -22,7 +22,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * default expression compute
- * 
+ *
  * @author Sayi
  */
 public class DefaultELRenderDataCompute implements RenderDataCompute {
@@ -60,4 +60,12 @@ public class DefaultELRenderDataCompute implements RenderDataCompute {
         }
     }
 
+    public void clearCache() {
+        if (null != envObject) {
+            envObject.clearCache();
+        }
+        if (null != elObject) {
+            elObject.clearCache();
+        }
+    }
 }

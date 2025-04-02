@@ -16,6 +16,7 @@
 package com.deepoove.poi.render.processor;
 
 import com.deepoove.poi.XWPFTemplate;
+import com.deepoove.poi.render.compute.DefaultELRenderDataCompute;
 import com.deepoove.poi.render.compute.RenderDataCompute;
 import com.deepoove.poi.resolver.Resolver;
 import com.deepoove.poi.template.ChartTemplate;
@@ -73,4 +74,10 @@ public abstract class DefaultTemplateProcessor implements Visitor {
         // no-op
     }
 
+    public void clearCache(){
+        if (this.renderDataCompute instanceof DefaultELRenderDataCompute) {
+            DefaultELRenderDataCompute defaultELRenderDataCompute = (DefaultELRenderDataCompute) this.renderDataCompute;
+            defaultELRenderDataCompute.clearCache();
+        }
+    }
 }

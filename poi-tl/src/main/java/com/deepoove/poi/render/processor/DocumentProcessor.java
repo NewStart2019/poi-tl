@@ -110,4 +110,8 @@ public class DocumentProcessor implements Visitor {
         chartTemplate.accept(elementProcessor);
     }
 
+
+    public void clearElementProcessorInCache(){
+        elementProcessor.clearCache();
+    }
 }

@@ -65,4 +65,8 @@ public class ElementProcessor extends DefaultTemplateProcessor {
         DelegatePolicy.invoke(policy, eleTemplate, renderDataCompute.compute(eleTemplate.getTagName()), template);
     }
 
+    @Override
+    public void clearCache() {
+        super.clearCache();
+    }
 }

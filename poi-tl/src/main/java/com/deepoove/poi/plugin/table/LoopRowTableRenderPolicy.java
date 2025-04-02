@@ -136,6 +136,8 @@ public class LoopRowTableRenderPolicy extends AbstractLoopRowTableRenderPolicy i
                     });
 
                     this.removeCurrentLineData(globalEnv, root);
+                    // 清除默认计算的缓存变量
+                    documentProcessor.clearElementProcessorInCache();
                 }
             }
 

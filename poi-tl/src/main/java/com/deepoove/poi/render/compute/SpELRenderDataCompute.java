@@ -83,4 +83,7 @@ public class SpELRenderDataCompute implements RenderDataCompute {
         }
     }
 
+    public void clearCache() {
+       // TODO Auto-generated method stub
+    }
 }

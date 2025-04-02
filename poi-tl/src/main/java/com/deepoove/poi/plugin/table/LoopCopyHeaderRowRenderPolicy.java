@@ -164,7 +164,9 @@ public class LoopCopyHeaderRowRenderPolicy extends AbstractLoopRowTableRenderPol
                 EnvIterator.makeEnv(globalEnv, ++index, index < dataCount);
                 EnvModel.of(root, globalEnv);
                 this.renderMultipleRow(table, insertPosition, insertPosition, resolver, documentProcessor);
-                removeCurrentLineData(globalEnv, root);
+                this.removeCurrentLineData(globalEnv, root);
+                // 清除默认计算的缓存变量
+                documentProcessor.clearElementProcessorInCache();
             }
 
             int insertLine;
