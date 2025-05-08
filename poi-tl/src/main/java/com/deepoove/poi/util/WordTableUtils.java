@@ -360,12 +360,15 @@ public class WordTableUtils {
         cleanRowTextContent(table.getRow(rowIndex));
     }
 
+    /**
+     * @param templateRow
+     */
     public static void cleanRowTextContent(XWPFTableRow templateRow) {
         List<XWPFTableCell> tableCells = templateRow.getTableCells();
         tableCells.forEach(cell -> {
             List<XWPFParagraph> paragraphs = cell.getParagraphs();
             for (int i = paragraphs.size() - 1; i >= 0; i--) {
-                cell.removeParagraph(i);
+                cleanParagraphContent(paragraphs.get(i));
             }
         });
     }
@@ -375,7 +378,7 @@ public class WordTableUtils {
     }
 
     /**
-     * Clear the content of XWPFParagraph
+     * Clear the content of XWPFParagraph, but does not remove the XWPFRun of paragraph.
      *
      * @param paragraph {@link XWPFParagraph paragraph}
      */
@@ -383,8 +386,58 @@ public class WordTableUtils {
         if (paragraph == null) {
             return;
         }
-        for (int i = paragraph.getRuns().size() - 1; i >= 0; i--) {
-            paragraph.removeRun(i);
+        List<XWPFRun> runs = paragraph.getRuns();
+        for (int i = runs.size() - 1; i >= 0; i--) {
+            XWPFRun xwpfRun = runs.get(i);
+
+            CTR ctr = xwpfRun.getCTR();
+            cleanXWPFRunContent(xwpfRun);
+            // 添加一个空的 <w:t> 节点，防止后续操作出错（可选）
+            CTText text = ctr.addNewT();
+            text.setStringValue("");
+        }
+    }
+
+    /**
+     * Clean up XWPFRun content
+     * @param run {@link XWPFRun run}
+     */
+    public static void cleanXWPFRunContent(XWPFRun run) {
+        if (run == null) {
+            return;
+        }
+        CTR ctr = run.getCTR();
+        if (ctr == null) {
+            return;
+        }
+
+        // Remove all sub elements such as<w:t>,<w: br/>,<w: tab/>, etc
+        for (int temp = ctr.sizeOfTArray() - 1; temp >= 0; temp--) {
+            ctr.removeT(temp);
+        }
+        for (int temp = ctr.sizeOfBrArray() - 1; temp >= 0; temp--) {
+            ctr.removeBr(temp);
+        }
+        for (int temp = ctr.sizeOfTabArray() - 1; temp >= 0; temp--) {
+            ctr.removeTab(temp);
+        }
+        for (int temp = ctr.sizeOfContentPartArray() - 1; temp >= 0; temp--) {
+            ctr.removeContentPart(temp);
+        }
+        for (int temp = ctr.sizeOfDelTextArray() - 1; temp >= 0; temp--) {
+            ctr.removeDelText(temp);
+        }
+        for (int temp = ctr.sizeOfInstrTextArray() - 1; temp >= 0; temp--) {
+            ctr.removeInstrText(temp);
+        }
+        for (int temp = ctr.sizeOfDelInstrTextArray() - 1; temp >= 0; temp--) {
+            ctr.removeDelInstrText(temp);
+        }
+        for (int temp = ctr.sizeOfNoBreakHyphenArray() - 1; temp >= 0; temp--) {
+            ctr.removeNoBreakHyphen(temp);
+        }
+        for (int temp = ctr.sizeOfSoftHyphenArray() - 1; temp >= 0; temp--) {
+            ctr.removeSoftHyphen(temp);
         }
     }
 
@@ -593,6 +646,62 @@ public class WordTableUtils {
     }
 
     /**
+     * <p>Get the number of cross columns.</p>
+     * <p>Note: The number of cross columns is 1 by default</p>
+     * <p> If the input parameter is empty, return 0 </p>
+     *
+     * @param cell {@link XWPFTableCell cell}
+     * @return int
+     */
+    public static int findTableCellGridSpan(XWPFTableCell cell) {
+        if (cell == null) {
+            return 0;
+        }
+        CTTc ctTc = cell.getCTTc();
+        if (!ctTc.isSetTcPr()) {
+            return 1;
+        }
+        CTTcPr tcPr = ctTc.getTcPr();
+        if (!tcPr.isSetGridSpan()) {
+            return 1;
+        } else {
+            CTDecimalNumber gridSpan = tcPr.getGridSpan();
+            return gridSpan.getVal().intValue();
+        }
+    }
+
+    /**
+     * Query the specified row, specify the column position, including the number of cross columns
+     *
+     * @param table    {@link XWPFTable table}
+     * @param startRow row index
+     * @param colIndex col index
+     * @return int
+     */
+    public static int findHorizontalMergedCells(XWPFTable table, int startRow, int colIndex) {
+        if (table == null) {
+            return 0;
+        }
+        List<XWPFTableRow> rows = table.getRows();
+        if (startRow < 0 || startRow >= rows.size()) {
+            return 0;
+        }
+        List<XWPFTableCell> tableCells = rows.get(startRow).getTableCells();
+        if (colIndex < 0 || colIndex >= tableCells.size()) {
+            return 0;
+        }
+        int count = 0;
+        for (int i = 0; i < tableCells.size(); i++) {
+            XWPFTableCell cell = tableCells.get(i);
+            count += findTableCellGridSpan(cell);
+            if (i == colIndex) {
+                break;
+            }
+        }
+        return count;
+    }
+
+    /**
      * obtain the count of vertically merged rows (Issue: If the columns are misaligned, the handling method has problems)
      *
      * @param table    {@link XWPFTable table}
@@ -604,26 +713,41 @@ public class WordTableUtils {
         if (table == null) {
             return 1;
         }
+        // Calculate the number of cross columns in a specified cell
+        int realColNumber = findHorizontalMergedCells(table, startRow, colIndex);
         int i = startRow + 1;
         int size = table.getRows().size();
         for (; i < size; i++) {
             if (table.getRow(i).getCell(colIndex) == null) {
                 break;
             }
-            XWPFTableCell xwpfTableCell = table.getRow(i).getCell(colIndex);
-            if (xwpfTableCell == null || xwpfTableCell.getCTTc() == null) {
-                break;
+            List<XWPFTableCell> tableCells = table.getRow(i).getTableCells();
+            int tempRealColNumber = 0;
+            // If the corresponding position is found without crossing columns, end the loop
+            boolean flag = false;
+            for (int col = 0; col < tableCells.size(); col++) {
+                XWPFTableCell cell = tableCells.get(col);
+                tempRealColNumber += findTableCellGridSpan(cell);
+                // Same number of columns
+                if (tempRealColNumber == realColNumber) {
+                    CTTc ctTc = cell.getCTTc();
+                    if (!ctTc.isSetTcPr()) {
+                        flag = true;
+                        break;
+                    }
+                    CTTcPr tcPr = ctTc.getTcPr();
+                    if (!tcPr.isSetVMerge()) {
+                        flag = true;
+                        break;
+                    }
+                    CTVMerge vMerge = tcPr.getVMerge();
+                    if (vMerge == null || vMerge.getVal() == STMerge.RESTART) {
+                        flag = true;
+                        break;
+                    }
+                }
             }
-            CTTc ctTc = xwpfTableCell.getCTTc();
-            if (!ctTc.isSetTcPr()) {
-                break;
-            }
-            CTTcPr tcPr = ctTc.getTcPr();
-            if (!tcPr.isSetVMerge()) {
-                break;
-            }
-            CTVMerge vMerge = tcPr.getVMerge();
-            if (vMerge == null || vMerge.getVal() == STMerge.RESTART) {
+            if (flag) {
                 break;
             }
         }

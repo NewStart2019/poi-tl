@@ -222,6 +222,21 @@ class WordTableUtilsTest {
             XWPFTable table = document.getTables().get(0);
             int verticalMergedRows = WordTableUtils.findVerticalMergedRows(table, 0, 0);
             assertEquals(3, verticalMergedRows);
+
+            verticalMergedRows = WordTableUtils.findVerticalMergedRows(table, 0, 2);
+            assertEquals(3, verticalMergedRows);
+
+            verticalMergedRows = WordTableUtils.findVerticalMergedRows(table, 0, 3);
+            assertEquals(3, verticalMergedRows);
+
+            verticalMergedRows = WordTableUtils.findVerticalMergedRows(table, 0, 4);
+            assertEquals(1, verticalMergedRows);
+
+            verticalMergedRows = WordTableUtils.findVerticalMergedRows(table, 0, 5);
+            assertEquals(1, verticalMergedRows);
+
+            verticalMergedRows = WordTableUtils.findVerticalMergedRows(table, 0, 6);
+            assertEquals(3, verticalMergedRows);
         }
     }
 

@@ -325,16 +325,38 @@ public abstract class AbstractLoopRowTableRenderPolicy implements RenderPolicy {
             XWPFTableRow row = table.getRow(startRowIndex);
             WordTableUtils.cleanRowTextContent(row);
             XWPFTableCell cell = row.getCell((row.getTableCells().size() - 1) / 2);
-            XWPFParagraph xwpfParagraph = cell.addParagraph();
+            XWPFParagraph xwpfParagraph;
+            if (cell.getParagraphs() == null || cell.getParagraphs().isEmpty()){
+                xwpfParagraph = cell.addParagraph();
+            } else {
+                xwpfParagraph = cell.getParagraphs().get(0);
+            }
             xwpfParagraph.setAlignment(ParagraphAlignment.CENTER);
-            xwpfParagraph.createRun().setText("以下空白");
+            XWPFRun run;
+            if (xwpfParagraph.getRuns() == null || xwpfParagraph.getRuns().isEmpty()){
+                run = xwpfParagraph.createRun();
+            } else {
+                run = xwpfParagraph.getRuns().get(0);
+            }
+            run.setText("以下空白");
         } else if (mode == 4 && isWriteBlank) {
             XWPFTableRow row = table.getRow(startRowIndex);
             WordTableUtils.cleanRowTextContent(row);
             XWPFTableCell cell = WordTableUtils.findMaxWidthCellInRow(row);
-            XWPFParagraph xwpfParagraph = cell.addParagraph();
+            XWPFParagraph xwpfParagraph;
+            if (cell.getParagraphs() == null || cell.getParagraphs().isEmpty()){
+                xwpfParagraph = cell.addParagraph();
+            } else {
+                xwpfParagraph = cell.getParagraphs().get(0);
+            }
             xwpfParagraph.setAlignment(ParagraphAlignment.CENTER);
-            xwpfParagraph.createRun().setText("以下空白");
+            XWPFRun run;
+            if (xwpfParagraph.getRuns() == null || xwpfParagraph.getRuns().isEmpty()){
+                run = xwpfParagraph.createRun();
+            } else {
+                run = xwpfParagraph.getRuns().get(0);
+            }
+            run.setText("以下空白");
         }
     }
 

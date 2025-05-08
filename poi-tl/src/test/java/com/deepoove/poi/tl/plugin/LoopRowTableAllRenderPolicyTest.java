@@ -318,7 +318,7 @@ public class LoopRowTableAllRenderPolicyTest {
             Map<String, Object> stringObjectMap = init2(condition);
             stringObjectMap.put("test_first_number", 17);
             stringObjectMap.put("test_number", 20);
-            stringObjectMap.put("test_mode", 1);
+            stringObjectMap.put("test_mode", 4);
             stringObjectMap.put("test_rendermode", 6);
             // stringObjectMap.put("test_remove_next_line", 4);
             stringObjectMap.put("blank_desc", "以下空白");
