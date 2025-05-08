@@ -176,8 +176,10 @@ public class LoopCopyHeaderMutilpleRowRenderSaveSuffixPolicy extends AbstractLoo
                     this.renderMultipleRow(table, insertPosition + i, insertPosition + i, resolver, documentProcessor);
                 }
                 this.removeCurrentLineData(globalEnv, root);
-                // 清除默认计算的缓存变量
-                documentProcessor.clearElementProcessorInCache();
+                // Clear cache for default calculation method
+                if (documentProcessor != null){
+                    documentProcessor.clearElementProcessorInCache();
+                }
             }
 
             if (isFill) {

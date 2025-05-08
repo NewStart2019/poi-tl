@@ -70,6 +70,7 @@ public class LoopRowTableAllRenderPolicyTest {
     @Test
     public void testDefaultLoopTablePolicyExample() throws Exception {
         LoopRowTableRenderPolicy hackLoopSameLineTableRenderPolicy = new LoopRowTableRenderPolicy(true);
+        init();
         Configure config = Configure.builder()
             .useSpringEL(false)
             .bind("goods", policy)
@@ -338,6 +339,7 @@ public class LoopRowTableAllRenderPolicyTest {
         test.put("org_email", "4398430@ee.com");
         test.put("org_queryPhone", "56486");
         test.put("org_address", "56486");
+        test.put("is_check", "56486");
         test.put("conclusion", "符合");
         List<Map<String, Object>> data = new ArrayList<>();
         test.put("subRecords", data);

@@ -155,8 +155,10 @@ public class LoopFullTableInsertFillRenderPolicy extends AbstractLoopRowTableRen
                     this.renderMultipleRow(table, currentIndex, currentIndex, resolver, documentProcessor);
                 }
                 this.removeCurrentLineData(globalEnv, root);
-                // 清除默认计算的缓存变量
-                documentProcessor.clearElementProcessorInCache();
+                // Clear cache for default calculation method
+                if (documentProcessor != null){
+                    documentProcessor.clearElementProcessorInCache();
+                }
             }
 
             if (isFill && dataCount > 0) {

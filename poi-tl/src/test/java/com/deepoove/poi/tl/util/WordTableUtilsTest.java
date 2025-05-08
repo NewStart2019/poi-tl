@@ -13,7 +13,7 @@ import org.apache.xmlbeans.XmlException;
 import org.apache.xmlbeans.XmlObject;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.STHeightRule;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.*;
 
 import javax.xml.namespace.QName;
 import java.io.FileInputStream;
@@ -255,12 +255,147 @@ class WordTableUtilsTest {
             // XWPFRun run2 = paragraph2.createRun();
             // run2.setText("这是第二行文本");
 
-            XWPFParagraph paragraph = document.createParagraph();
-            XWPFRun run = paragraph.createRun();
+            // 2. 非结构化文本 - 性别复选框（使用 □ ☑）
+            XWPFParagraph genderParagraph = document.createParagraph();
+            genderParagraph.createRun().setText("Select Gender:");
 
-            run.setText("这是第一行文本");
-            run.addBreak(BreakType.COLUMN); // 添加换行
-            run.setText("这是同一段落中的第二行文本");
+            // 男性复选框
+            XWPFRun maleCheckbox = genderParagraph.createRun();
+            maleCheckbox.setText("\u25A1"); // 未选中
+            // maleCheckbox.setFontSize(12); // 设置字体大小
+            maleCheckbox.setFontFamily("Wingdings 2"); // 确保字体支持符号
+
+            // 女性复选框
+            XWPFRun femaleCheckbox = genderParagraph.createRun();
+            // femaleCheckbox.setFontSize(12); // 设置字体大小
+            // femaleCheckbox.setText("☑ Female");
+            femaleCheckbox.setText("R"); // 选中
+            femaleCheckbox.setFontFamily("Wingdings 2"); // 确保字体支持符号
+
+            // 简单结构化文本
+            {
+                XWPFParagraph paragraph = document.createParagraph();
+                XWPFRun run = paragraph.createRun();
+                run.setText("Below is a structured document tag:");
+
+                // 创建 SDT (结构化文档标签块)
+                CTSdtRun sdtRun = paragraph.getCTP().addNewSdt();
+                CTSdtPr sdtPr = sdtRun.addNewSdtPr();
+                CTString alias = sdtPr.addNewAlias();
+                alias.setVal("Sample SDT");
+
+                CTSdtContentRun sdtContent = sdtRun.addNewSdtContent();
+                CTR ctr = sdtContent.addNewR();
+                CTText ctText = ctr.addNewT();
+                ctText.setStringValue("This is SDT content.");
+            }
+
+
+            // 1. 富文本（Rich Text）
+            {
+                XWPFParagraph richTextParagraph = document.createParagraph();
+                XWPFRun richTextRun = richTextParagraph.createRun();
+                richTextRun.setText("This is Complex Rich Text SDT:");
+
+                CTSdtRun sdtRichText = richTextParagraph.getCTP().addNewSdt();
+                CTSdtPr sdtPr2 = sdtRichText.addNewSdtPr();
+                sdtPr2.addNewAlias().setVal("Complex Rich Text");
+
+                // 设置富文本内容
+                CTSdtContentRun sdtContent2 = sdtRichText.addNewSdtContent();
+
+                XWPFRun contentRun1 = richTextParagraph.createRun();
+                contentRun1.setText("Bold Text");
+                contentRun1.setBold(true);
+
+                XWPFRun contentRun2 = richTextParagraph.createRun();
+                contentRun2.setText(" | Italic Text");
+                contentRun2.setItalic(true);
+
+                XWPFRun contentRun3 = richTextParagraph.createRun();
+                contentRun3.setText(" | Underlined Text");
+                contentRun3.setUnderline(UnderlinePatterns.SINGLE);
+
+                XWPFRun contentRun4 = richTextParagraph.createRun();
+                contentRun4.setText(" | Colored Text");
+                contentRun4.setColor("FF5733");
+
+                // 将富文本内容添加到SDT中
+                sdtContent2.getDomNode().appendChild(contentRun1.getCTR().getDomNode().cloneNode(true));
+                sdtContent2.getDomNode().appendChild(contentRun2.getCTR().getDomNode().cloneNode(true));
+                sdtContent2.getDomNode().appendChild(contentRun3.getCTR().getDomNode().cloneNode(true));
+                sdtContent2.getDomNode().appendChild(contentRun4.getCTR().getDomNode().cloneNode(true));
+            }
+
+            // 2. 日期选择器
+            {
+                XWPFParagraph dateParagraph = document.createParagraph();
+                XWPFRun dateRun = dateParagraph.createRun();
+                dateRun.setText("This is Date Picker SDT:");
+
+                CTSdtRun sdtDate = dateParagraph.getCTP().addNewSdt();
+                sdtDate.addNewSdtContent().addNewR().addNewT().setStringValue("2025-05-08");
+            }
+
+
+            // 3. 下拉列表
+            {
+                // 在文档中创建一个新的段落。
+                XWPFParagraph dropdownParagraph = document.createParagraph();
+                // 在段落中创建一个新的 SDT
+                CTSdtRun sdtDropdown = dropdownParagraph.getCTP().addNewSdt();
+                // 添加 SDT 属性（CTSdtPr）
+                CTSdtPr dropdownPr = sdtDropdown.addNewSdtPr();
+                // 为 SDT 设置一个别名（Alias）
+                dropdownPr.addNewAlias().setVal("Multi-Option Dropdown");
+
+                // 创建数据绑定（绑定到 XML 数据源）: 这个数据绑定通常用于高级需求，绑定到外部 XML 数据。
+                CTDataBinding dataBinding = dropdownPr.addNewDataBinding();
+                // 定义 XPath 路径，指向下拉选项数据。
+                dataBinding.setXpath("/options/option");
+
+                // 设置下拉框选项: 这里添加了三个选项：Option 1, Option 2, Option 3。
+                CTSdtDropDownList ctSdtDropDownList = dropdownPr.addNewDropDownList();
+                CTSdtListItem listItem1 = ctSdtDropDownList.addNewListItem();
+                listItem1.setDisplayText("Option 1");
+                listItem1.setValue("Option 1");
+
+                CTSdtListItem listItem2 = ctSdtDropDownList.addNewListItem();
+                listItem2.setDisplayText("Option 2");
+                listItem2.setValue("Option 2");
+
+                CTSdtListItem listItem3 = ctSdtDropDownList.addNewListItem();
+                listItem3.setDisplayText("Option 3");
+                listItem3.setValue("Option 3");
+
+                // 设置下拉框默认值
+                CTSdtContentRun ctSdtContentRun = sdtDropdown.addNewSdtContent();
+                CTR ctr = ctSdtContentRun.addNewR();
+                CTText ctText = ctr.addNewT();
+                ctText.setStringValue("Option 1");
+            }
+
+            // 4. 复选框
+            {
+                XWPFParagraph checkboxParagraph = document.createParagraph();
+                CTSdtRun sdtCheckbox1 = checkboxParagraph.getCTP().addNewSdt();
+
+                // 设置复选框文本
+                CTSdtContentRun contentRun3 = sdtCheckbox1.addNewSdtContent();
+                CTR ctr3 = contentRun3.addNewR();
+                CTText ctText3 = ctr3.addNewT();
+                ctText3.setStringValue("☑ 男 \u25A1 女");
+            }
+
+            // 5. 单选框
+            {
+                XWPFParagraph radioParagraph = document.createParagraph();
+                XWPFRun radioRun = radioParagraph.createRun();
+                radioRun.setText("This is Radio Button SDT:");
+
+                CTSdtRun sdtRadio = radioParagraph.getCTP().addNewSdt();
+                sdtRadio.addNewSdtContent().addNewR().addNewT().setStringValue("◉ Radio");
+            }
 
             try (FileOutputStream out = new FileOutputStream(out_file)) {
                 document.write(out);

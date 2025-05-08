@@ -87,8 +87,10 @@ public class LoopRowTableAndFillRenderPolicy extends AbstractLoopRowTableRenderP
                     EnvModel.of(root, globalEnv);
                     this.renderMultipleRow(table, insertPosition, insertPosition, resolver, documentProcessor);
                     this.removeCurrentLineData(globalEnv, root);
-                    // 清除默认计算的缓存变量
-                    documentProcessor.clearElementProcessorInCache();
+                    // Clear cache for default calculation method
+                    if (documentProcessor != null){
+                        documentProcessor.clearElementProcessorInCache();
+                    }
                 }
             }
 

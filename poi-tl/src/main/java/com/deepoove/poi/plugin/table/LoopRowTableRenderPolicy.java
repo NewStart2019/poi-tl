@@ -23,6 +23,7 @@ import com.deepoove.poi.render.compute.EnvModel;
 import com.deepoove.poi.render.compute.RenderDataCompute;
 import com.deepoove.poi.render.processor.DocumentProcessor;
 import com.deepoove.poi.render.processor.EnvIterator;
+import com.deepoove.poi.render.processor.Visitor;
 import com.deepoove.poi.resolver.TemplateResolver;
 import com.deepoove.poi.template.ElementTemplate;
 import com.deepoove.poi.template.MetaTemplate;
@@ -81,6 +82,10 @@ public class LoopRowTableRenderPolicy extends AbstractLoopRowTableRenderPolicy i
     @Override
     public void render(ElementTemplate eleTemplate, Object data, XWPFTemplate template) {
         RunTemplate runTemplate = (RunTemplate) eleTemplate;
+        Visitor processor = template.getRenderer().getProcessor();
+        if (processor instanceof DocumentProcessor){
+            documentProcessor = (DocumentProcessor) processor;
+        }
         XWPFRun run = runTemplate.getRun();
         try {
             if (!TableTools.isInsideTable(run)) {
@@ -137,7 +142,9 @@ public class LoopRowTableRenderPolicy extends AbstractLoopRowTableRenderPolicy i
 
                     this.removeCurrentLineData(globalEnv, root);
                     // 清除默认计算的缓存变量
-                    documentProcessor.clearElementProcessorInCache();
+                    if (documentProcessor != null){
+                        documentProcessor.clearElementProcessorInCache();
+                    }
                 }
             }
 

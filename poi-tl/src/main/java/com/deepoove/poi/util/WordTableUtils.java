@@ -906,6 +906,7 @@ public class WordTableUtils {
      * <p>Get the font size of the run</p>
      * <p><b>Tips:</b></p>
      * <p>&nbsp;&nbsp;&nbsp;&nbsp;If {@link XWPFRun run} is empty, return 0</p>
+     * <p>&nbsp;&nbsp;&nbsp;&nbsp;If font size is not set, return 0</p>
      *
      * @param run {@link XWPFRun run}
      * @return font size

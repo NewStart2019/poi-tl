@@ -357,4 +357,12 @@ public class XWPFTemplate implements Closeable {
         isRendered = rendered;
         return this;
     }
+
+    public Render getRenderer() {
+        return renderer;
+    }
+
+    public void setRenderer(Render renderer) {
+        this.renderer = renderer;
+    }
 }

@@ -174,8 +174,10 @@ public class LoopCopyHeaderMutilpleRowRenderPolicy extends AbstractLoopRowTableR
                 }
 
                 this.removeCurrentLineData(globalEnv, root);
-                // 清除默认计算的缓存变量
-                documentProcessor.clearElementProcessorInCache();
+                // Clear cache for default calculation method
+                if (documentProcessor != null){
+                    documentProcessor.clearElementProcessorInCache();
+                }
             }
 
             if (paragraph != null) {
