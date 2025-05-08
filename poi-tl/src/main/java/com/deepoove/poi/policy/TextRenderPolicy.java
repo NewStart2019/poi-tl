@@ -68,7 +68,7 @@ public class TextRenderPolicy extends AbstractRenderPolicy<TextRenderData> {
             String text = Optional.ofNullable(data.getText()).orElse("");
             String[] fragment = text.split(REGEX_LINE_CHARACTOR, -1);
             boolean lineAtTable = TableTools.isInsideTable(run);
-            // 是否开启自动缩放
+            // if you enable automatic scaling
             if (lineAtTable && data.isAutoScale()) {
                 XWPFTableCell cell = (XWPFTableCell) ((XWPFParagraph) run.getParent()).getBody();
                 int width = cell.getWidth();

@@ -400,6 +400,7 @@ public class WordTableUtils {
 
     /**
      * Clean up XWPFRun content
+     *
      * @param run {@link XWPFRun run}
      */
     public static void cleanXWPFRunContent(XWPFRun run) {
@@ -903,6 +904,8 @@ public class WordTableUtils {
 
     /**
      * <p>Get the font size of the run</p>
+     * <p><b>Tips:</b></p>
+     * <p>&nbsp;&nbsp;&nbsp;&nbsp;If {@link XWPFRun run} is empty, return 0</p>
      *
      * @param run {@link XWPFRun run}
      * @return font size
@@ -922,6 +925,9 @@ public class WordTableUtils {
                     fontSizeAsDouble = Double.parseDouble((String) val);
                 }
             }
+        } else {
+            // complex script font size
+            fontSizeAsDouble = run.getComplexScriptFontSizeAsDouble();
         }
         return fontSizeAsDouble == null ? 0 : fontSizeAsDouble;
     }
