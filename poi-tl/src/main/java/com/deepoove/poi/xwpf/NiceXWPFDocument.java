@@ -571,6 +571,12 @@ public class NiceXWPFDocument extends XWPFDocument {
         }
     }
 
+    public byte[] toByteArray() throws IOException {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        this.write(out);
+        return out.toByteArray();
+    }
+
     /**
      * Finds that for example the 2nd entry in the body list is the 1st paragraph
      */

@@ -13,6 +13,7 @@ import org.springframework.expression.spel.SpelParserConfiguration;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 
+import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -200,6 +201,15 @@ public class ExcelTemplateRenderer {
     public void save(String outputFilePath) {
         try (FileOutputStream fos = new FileOutputStream(outputFilePath)) {
             workbook.write(fos);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public byte[] getBytes() {
+        try (ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
+            workbook.write(bos);
+            return bos.toByteArray();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
