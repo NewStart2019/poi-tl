@@ -1,6 +1,7 @@
 package com.deepoove.poi.util;
 
 import com.deepoove.poi.data.RenderData;
+import com.deepoove.poi.exception.RenderException;
 import com.deepoove.poi.render.compute.ReadMapAccessor;
 import org.apache.poi.ss.usermodel.*;
 import org.slf4j.Logger;
@@ -13,6 +14,7 @@ import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -24,6 +26,8 @@ public class ExcelTemplateRenderer {
 
     private static final Logger log = LoggerFactory.getLogger(ExcelTemplateRenderer.class);
     private final ExpressionParser parser;
+
+    private Workbook workbook;
 
     // 动态行数据名称 占位符号 [$xxxx]
     private static final Pattern DYNAMIC_ROW_DATA_PLACEHOLDOR = Pattern.compile("(\\[\\s*\\$.*?\\s*\\])");
@@ -38,19 +42,23 @@ public class ExcelTemplateRenderer {
         this.parser = new SpelExpressionParser(config);
     }
 
-    public void render(String templatePath, String outputFilePath, Map<String, Object> model, String loopPlaceholder)
+    public void render(String templatePath, Map<String, Object> model)
         throws Exception {
-        try (InputStream is = Files.newInputStream(Paths.get(templatePath));
-             Workbook workbook = WorkbookFactory.create(is)) {
+        InputStream inputStream = Files.newInputStream(Paths.get(templatePath));
+        this.render(inputStream, model);
+        inputStream.close();
+    }
 
-            for (int sheetIndex = 0; sheetIndex < workbook.getNumberOfSheets(); sheetIndex++) {
-                Sheet sheet = workbook.getSheetAt(sheetIndex);
-                processSheet(sheet, model);
-            }
+    public void render(InputStream inputStream, Map<String, Object> model)
+        throws Exception {
+        if (inputStream == null) {
+            throw new RenderException("InputStream is null, unable to render. ");
+        }
+        this.workbook = WorkbookFactory.create(inputStream);
 
-            try (FileOutputStream fos = new FileOutputStream(outputFilePath)) {
-                workbook.write(fos);
-            }
+        for (int sheetIndex = 0; sheetIndex < workbook.getNumberOfSheets(); sheetIndex++) {
+            Sheet sheet = workbook.getSheetAt(sheetIndex);
+            processSheet(sheet, model);
         }
     }
 
@@ -65,8 +73,8 @@ public class ExcelTemplateRenderer {
             if (sheet.getLastRowNum() < rowNumber) {
                 break;
             }
-            if (row == null){
-                rowNumber ++;
+            if (row == null) {
+                rowNumber++;
                 continue;
             }
             /**
@@ -119,7 +127,7 @@ public class ExcelTemplateRenderer {
             if (dataList == null) {
                 if (isDynamicRow) {
                     ExcelUtils.removeOneRowAndShift(sheet, row);
-                    rowNumber --;
+                    rowNumber--;
                 }
                 rowNumber++;
                 continue;
@@ -181,6 +189,18 @@ public class ExcelTemplateRenderer {
         } catch (Exception e) {
             log.error("Error replacing placeholders 【{}】 in Excel template: {}", el, e.getMessage());
             return null;
+        }
+    }
+
+    public Workbook getWorkBook() {
+        return workbook;
+    }
+
+    public void save(String outputFilePath) {
+        try (FileOutputStream fos = new FileOutputStream(outputFilePath)) {
+            workbook.write(fos);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 
