@@ -1,6 +1,7 @@
 package com.deepoove.poi.util;
 
 import com.deepoove.poi.data.RenderData;
+import com.deepoove.poi.exception.RenderException;
 import com.deepoove.poi.render.compute.ReadMapAccessor;
 import org.apache.poi.ss.usermodel.*;
 import org.slf4j.Logger;
@@ -13,6 +14,7 @@ import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -20,10 +22,13 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+@SuppressWarnings("unused")
 public class ExcelTemplateRenderer {
 
     private static final Logger log = LoggerFactory.getLogger(ExcelTemplateRenderer.class);
     private final ExpressionParser parser;
+
+    private Workbook workbook;
 
     // 动态行数据名称 占位符号 [$xxxx]
     private static final Pattern DYNAMIC_ROW_DATA_PLACEHOLDOR = Pattern.compile("(\\[\\s*\\$.*?\\s*\\])");
@@ -38,19 +43,23 @@ public class ExcelTemplateRenderer {
         this.parser = new SpelExpressionParser(config);
     }
 
-    public void render(String templatePath, String outputFilePath, Map<String, Object> model, String loopPlaceholder)
+    public void render(String templatePath, Map<String, Object> model)
         throws Exception {
-        try (InputStream is = Files.newInputStream(Paths.get(templatePath));
-             Workbook workbook = WorkbookFactory.create(is)) {
+        InputStream inputStream = Files.newInputStream(Paths.get(templatePath));
+        this.render(inputStream, model);
+        inputStream.close();
+    }
 
-            for (int sheetIndex = 0; sheetIndex < workbook.getNumberOfSheets(); sheetIndex++) {
-                Sheet sheet = workbook.getSheetAt(sheetIndex);
-                processSheet(sheet, model);
-            }
+    public void render(InputStream inputStream, Map<String, Object> model)
+        throws Exception {
+        if (inputStream == null) {
+            throw new RenderException("InputStream is null, unable to render. ");
+        }
+        this.workbook = WorkbookFactory.create(inputStream);
 
-            try (FileOutputStream fos = new FileOutputStream(outputFilePath)) {
-                workbook.write(fos);
-            }
+        for (int sheetIndex = 0; sheetIndex < workbook.getNumberOfSheets(); sheetIndex++) {
+            Sheet sheet = workbook.getSheetAt(sheetIndex);
+            processSheet(sheet, model);
         }
     }
 
@@ -65,16 +74,16 @@ public class ExcelTemplateRenderer {
             if (sheet.getLastRowNum() < rowNumber) {
                 break;
             }
-            if (row == null){
-                rowNumber ++;
+            if (row == null) {
+                rowNumber++;
                 continue;
             }
-            /**
-             * 1. Traverse the entire row
-             *      Use DYNAMIC_ROWDATA-PLACEHOLDOR to find the data placeholder symbol and its corresponding data.
-             *      If the array data exists, render the row. If the array data does not exist, clear the row data.
-             *      Find the data placeholder symbol and clear it.
-             *      Find all the [] placeholder symbols, record the content of each cell, and the corresponding placeholder symbol.
+            /*
+              1. Traverse the entire row
+                   Use DYNAMIC_ROWDATA-PLACEHOLDOR to find the data placeholder symbol and its corresponding data.
+                   If the array data exists, render the row. If the array data does not exist, clear the row data.
+                   Find the data placeholder symbol and clear it.
+                   Find all the [] placeholder symbols, record the content of each cell, and the corresponding placeholder symbol.
              */
             Map<Integer, CellData> templateRowData = new HashMap<>();
             List<Object> dataList = null;
@@ -90,13 +99,13 @@ public class ExcelTemplateRenderer {
                         String tempVariableName = variableName.replaceFirst("\\$", "");
                         Object tempObj = this.execExpression(tempVariableName, context, templateRowContext);
                         if (tempObj == null) {
-                            log.warn("Dynamic row data is null: " + variableName);
+                            log.warn("Dynamic row data is null: {}", variableName);
                         } else if (tempObj instanceof List<?>) {
                             dataList = (List<Object>) tempObj;
                         } else if (tempObj.getClass().isArray()) {
                             dataList = Collections.singletonList(tempObj);
                         } else {
-                            log.warn("Dynamic row data is not a list: " + variableName);
+                            log.warn("Dynamic row data is not a list: {}", variableName);
                             dataList = null;
                         }
                         value = value.replace(variableName, "");
@@ -119,7 +128,7 @@ public class ExcelTemplateRenderer {
             if (dataList == null) {
                 if (isDynamicRow) {
                     ExcelUtils.removeOneRowAndShift(sheet, row);
-                    rowNumber --;
+                    rowNumber--;
                 }
                 rowNumber++;
                 continue;
@@ -184,13 +193,25 @@ public class ExcelTemplateRenderer {
         }
     }
 
+    public Workbook getWorkBook() {
+        return workbook;
+    }
+
+    public void save(String outputFilePath) {
+        try (FileOutputStream fos = new FileOutputStream(outputFilePath)) {
+            workbook.write(fos);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     protected static class CellData {
         private Integer row;
         private Integer col;
         // 占位符好模板字符串
         private String templateValue;
         // 占位符号表达式列表
-        private List<String> placeholdersEl = new ArrayList<String>();
+        private List<String> placeholdersEl = new ArrayList<>();
 
         public CellData() {
         }

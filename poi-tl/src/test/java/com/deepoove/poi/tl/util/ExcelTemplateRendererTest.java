@@ -49,7 +49,8 @@ public class ExcelTemplateRendererTest {
         students.add(s3);
 
         // 渲染并输出文件
-        renderer.render("src/test/resources/util/template.xlsx", "target/output.xlsx", model, "students");
+        renderer.render("src/test/resources/util/template.xlsx", model);
+        renderer.save("target/output.xlsx");
     }
 
     @Test
