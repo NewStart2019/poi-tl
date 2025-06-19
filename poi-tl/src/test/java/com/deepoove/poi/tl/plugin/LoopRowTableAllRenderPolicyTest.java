@@ -506,7 +506,8 @@ public class LoopRowTableAllRenderPolicyTest {
     public void testLoopMutilpleRowRenderSaveSuffixPolicy() throws Exception {
         // 测试支持多行表头和单行表头
         ArrayList<Integer> conditions = new ArrayList<>();
-        resource = "src/test/resources/util/mutiple_suffix.docx";
+        // resource = "src/test/resources/util/mutiple_suffix.docx";
+        resource = "C:\\Users\\Administrator\\Desktop\\报告邮寄(1).docx";
         conditions.add(5);
         conditions.add(9);
         conditions.add(10);
@@ -523,7 +524,7 @@ public class LoopRowTableAllRenderPolicyTest {
             stringObjectMap.put("subRecords_row_number", 1);
             stringObjectMap.put("subRecords_first_number", 13);
             stringObjectMap.put("subRecords_number", 13);
-            stringObjectMap.put("subRecords_mode", 3);
+            stringObjectMap.put("subRecords_mode", 2);
             stringObjectMap.put("subRecords_external_footer", 4);
             // stringObjectMap.put("subRecords_nofill", 0);
             stringObjectMap.put("blank_desc", "以下空白");

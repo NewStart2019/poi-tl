@@ -1383,16 +1383,12 @@ public class WordTableUtils {
             CTDecimalNumber gridSpan = startTcPr.isSetGridSpan() ? startTcPr.getGridSpan() : startTcPr.addNewGridSpan();
             gridSpan.setVal(BigInteger.valueOf(tableMaxLineAllGridSpan));
 
-            for (int colIndex = fromCol + 1; colIndex <= toCol; colIndex++) {
-                XWPFTableCell cell = tableRow.getCell(colIndex);
-                CTTc ctTc = cell.getCTTc();
-                CTTcPr tcPr = ctTc.isSetTcPr() ? ctTc.getTcPr() : ctTc.addNewTcPr();
-                if (tcPr.isSetVMerge()) {
-                    tcPr.unsetVMerge();
+            for (int colIndex = toCol + 1; colIndex > fromCol; colIndex--) {
+                XWPFTableCell cell = tableRow.getCell(colIndex); // 注意：每次删一个，索引会变
+                if (cell != null) {
+                    tableRow.getCtRow().removeTc(colIndex);
+                    tableRow.getTableCells().remove(fromCol + 1);
                 }
-                CTHMerge continueHMerge = tcPr.isSetHMerge() ? tcPr.getHMerge() : tcPr.addNewHMerge();
-                continueHMerge.setVal(STMerge.CONTINUE);
-                cleanCellContent(cell);
             }
         }
     }

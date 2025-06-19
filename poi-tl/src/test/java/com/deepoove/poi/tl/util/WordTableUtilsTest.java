@@ -180,11 +180,12 @@ class WordTableUtilsTest {
     void testMergeMutipleLineIncludeVMerge() throws Exception {
         // 创建一个新的 Word 文档
         String file = "src/test/resources/template/iterable_payment.docx";
+        file = "C:\\Users\\Administrator\\Desktop\\报告邮寄(1).docx";
         FileInputStream fileInputStream = new FileInputStream(file);
         XWPFDocument document = new XWPFDocument(fileInputStream);
-        XWPFTable table = document.getTables().get(1);
+        XWPFTable table = document.getTables().get(0);
 
-        WordTableUtils.mergeMutipleLine(table, 3, 4);
+        WordTableUtils.mergeMutipleLine(table, 2, 5);
         out_file = "target/out_merged_table.docx";
         // 保存文档
         try (FileOutputStream out = new FileOutputStream(out_file)) {

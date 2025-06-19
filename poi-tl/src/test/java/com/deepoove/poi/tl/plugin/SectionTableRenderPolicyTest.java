@@ -75,7 +75,8 @@ public class SectionTableRenderPolicyTest {
         data.put("rs4_show", true);
         data.put("rs5_show", true);
         data.put("rs6_show", null);
-        data.put("rs7_show", null);
+        data.put("rs7_show", false);
+        data.put("test", "C");
         Configure config = Configure.builder()
             .addPlugin('$', new RemoveTableRowRenderPolicy("——"))
             .useSpringEL(false)
