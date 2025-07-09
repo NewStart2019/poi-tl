@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -97,7 +98,7 @@ public class TlBeanUtil {
     private <T> void dealProperty(String fieldName, Object fieldValue, Class<T> noTransferClass, Map<String, Object> map, int depth)
         throws IllegalAccessException {
         // If the field value is a basic type or string
-        if (fieldValue == null || fieldValue instanceof String || isPrimitive(fieldValue)) {
+        if (fieldValue == null || fieldValue instanceof String || isPrimitive(fieldValue) || fieldValue instanceof BigDecimal) {
             map.put(fieldName, fieldValue);
         } else if (fieldValue instanceof Collection) {
             map.put(fieldName, collectionToMap((Collection<?>) fieldValue, noTransferClass, depth));
