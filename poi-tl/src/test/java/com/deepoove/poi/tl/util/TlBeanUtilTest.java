@@ -158,6 +158,7 @@ public class TlBeanUtilTest {
         person.setFather(person);
         TlBeanUtil beanUtil = new TlBeanUtil();
         Map<String, Object> map = beanUtil.beanToMap(person, Address.class, 0);
+        map.put("atomicInteget", new java.util.concurrent.atomic.AtomicInteger(100));
         System.out.println(map);
     }
 }

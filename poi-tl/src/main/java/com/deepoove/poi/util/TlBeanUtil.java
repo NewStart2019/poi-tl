@@ -12,6 +12,8 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class TlBeanUtil {
     private static final Logger log = LoggerFactory.getLogger(TlBeanUtil.class);
@@ -48,7 +50,7 @@ public class TlBeanUtil {
         if (obj == null) {
             return map;
         }
-        if (obj instanceof String || TlBeanUtil.isPrimitive(obj)) {
+        if (obj instanceof String || TlBeanUtil.isPrimitive(obj) || TlBeanUtil.isPrimitiveArray(obj)) {
             log.error(String.format("raw data type %s not supported transfer:", obj.getClass()));
             return map;
         }
@@ -98,7 +100,9 @@ public class TlBeanUtil {
     private <T> void dealProperty(String fieldName, Object fieldValue, Class<T> noTransferClass, Map<String, Object> map, int depth)
         throws IllegalAccessException {
         // If the field value is a basic type or string
-        if (fieldValue == null || fieldValue instanceof String || isPrimitive(fieldValue) || fieldValue instanceof BigDecimal) {
+        if (fieldValue == null || fieldValue instanceof String || isPrimitive(fieldValue)) {
+            map.put(fieldName, fieldValue);
+        } else if (isNumber(fieldValue)) {
             map.put(fieldName, fieldValue);
         } else if (fieldValue instanceof Collection) {
             map.put(fieldName, collectionToMap((Collection<?>) fieldValue, noTransferClass, depth));
@@ -166,6 +170,10 @@ public class TlBeanUtil {
         Class<?> componentType = clazz.getComponentType();
         // Check if the type of array elements is primitive
         return isPrimitive(componentType);
+    }
+
+    public static boolean isNumber(Object obj){
+        return obj instanceof AtomicInteger || obj instanceof AtomicLong || obj instanceof BigDecimal;
     }
 
     private <T> List<Object> collectionToMap(Collection<?> collection, Class<T> noTransferClass, int depth) {
