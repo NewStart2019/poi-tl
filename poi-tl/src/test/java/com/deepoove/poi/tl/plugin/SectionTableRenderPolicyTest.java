@@ -1,20 +1,17 @@
 package com.deepoove.poi.tl.plugin;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
-import com.deepoove.poi.plugin.table.RemoveTableRowRenderPolicy;
+import com.deepoove.poi.plugin.table.*;
 import com.deepoove.poi.template.BlockTemplate;
 import com.deepoove.poi.template.IterableTemplate;
 import com.deepoove.poi.template.MetaTemplate;
 import com.deepoove.poi.template.run.RunTemplate;
+import com.deepoove.poi.util.WordTableUtils;
 import org.junit.jupiter.api.Test;
 
 import com.deepoove.poi.XWPFTemplate;
 import com.deepoove.poi.config.Configure;
-import com.deepoove.poi.plugin.table.RemoveTableColumnRenderPolicy;
-import com.deepoove.poi.plugin.table.SectionColumnTableRenderPolicy;
 
 public class SectionTableRenderPolicyTest {
 
@@ -87,4 +84,74 @@ public class SectionTableRenderPolicyTest {
         template2.render(data);
         template2.writeToFile("target/out_remove_line.docx");
     }
+
+    public Map<String, Object> init3(int number) {
+        Map<String, Object> test = new HashMap<>();
+        test.put("companyName", "测试公司");
+        test.put("org_email", "4398430@ee.com");
+        test.put("org_queryPhone", "56486");
+        test.put("org_address", "56486");
+        test.put("is_check", "56486");
+        test.put("conclusion", "符合");
+        List<Map<String, Object>> data = new ArrayList<>();
+        test.put("subRecords", data);
+        test.put("subRecords_number", 29);
+        test.put("subRecords_reduce", 0);
+        Random random = new Random();
+        for (int i = 1; i <= number; i++) {
+            Map<String, Object> e1 = new HashMap<>();
+            data.add(e1);
+            e1.put("sjbh1", random.nextInt(1000));
+            e1.put("sjbh2", random.nextInt(1000));
+            e1.put("sjbh3", random.nextInt(1000));
+            e1.put("lq", i);
+            e1.put("jcbw1", "检测部位" + i);
+            e1.put("rq", "技术指标" + i);
+            e1.put("item", "混凝土抗折" + i);
+            e1.put("L1", 30);
+            e1.put("L2", 10);
+            e1.put("L3", 20);
+            e1.put("p1", 20);
+        }
+        return test;
+    }
+
+    /**
+     * 本示例是 测试的多行表格渲染策略 和 删除表格策略同时 存在的场景测试
+     */
+    @Test
+    public void tesRemoveTable() throws Exception {
+        // 测试支持多行表头和单行表头
+        ArrayList<Integer> conditions = new ArrayList<>();
+        resource = "src/test/resources/template/mutiple_row_table.docx";
+        conditions.add(3);
+        conditions.add(5);
+        conditions.add(8);
+        conditions.add(14);
+        conditions.add(20);
+        conditions.add(23);
+        conditions.add(80);
+        LoopRowTableAllRenderPolicy policy = new LoopRowTableAllRenderPolicy();
+        for (Integer condition : conditions) {
+            Map<String, Object> stringObjectMap = init3(condition);
+            // Map<String, Object> stringObjectMap = init2(50);
+            stringObjectMap.put("subRecords_rendermode", 7);
+            stringObjectMap.put("subRecords_row_number", 3);
+            stringObjectMap.put("subRecords_first_number", 15);
+            stringObjectMap.put("subRecords_number", 27);
+            stringObjectMap.put("subRecords_mode", 2);
+            stringObjectMap.put("blank_desc", "以下空白");
+            stringObjectMap.put("blank_vmerge", "以下空白");
+            stringObjectMap.put("deleteTable", condition % 3 == 0);
+            Configure config = Configure.builder()
+                .useSpringEL(false)
+                .bind("subRecords", policy)
+                .bind("deleteTable", new RemoveTableRenderPolicy())
+                .build();
+            XWPFTemplate template = XWPFTemplate.compile(resource, config).render(stringObjectMap);
+            WordTableUtils.setMinHeightParagraph(template.getXWPFDocument());
+            template.writeToFile("target/out_mutiple_row_table" + condition + ".docx");
+        }
+    }
+
 }
