@@ -145,6 +145,7 @@ public class SectionTableRenderPolicyTest {
             stringObjectMap.put("deleteTable", condition % 3 == 0);
             Configure config = Configure.builder()
                 .useSpringEL(false)
+                .addPlugin('-', new RemoveTableRenderPolicy())
                 .bind("subRecords", policy)
                 .bind("deleteTable", new RemoveTableRenderPolicy())
                 .build();

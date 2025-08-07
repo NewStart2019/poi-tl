@@ -42,7 +42,7 @@ public class RemoveTableRenderPolicy implements RenderPolicy {
                 WordTableUtils.removeTable(template.getXWPFDocument(), table);
             }
         } catch (Exception e) {
-            throw new RenderException("Remove line failure: " + e.getMessage(), e);
+            throw new RenderException("Remove table failure: " + e.getMessage(), e);
         }
     }
 }
