@@ -106,7 +106,7 @@ public class ExcelTemplateRendererTest {
         ExcelTemplateRenderer renderer = new ExcelTemplateRenderer();
 
         Map<String, Object> model = new HashMap<>();
-        model.put("projectName","1111");
+        model.put("projectName","222222");
         model.put("createor","3129844389");
         model.put("superviseEngineer","2340356");
         model.put("constructionUnit","测试施工单位");
@@ -115,6 +115,7 @@ public class ExcelTemplateRendererTest {
 
         Map<String, Object> s1 = new HashMap<>();
         s1.put("_index", "1");
+        model.put("projectName","1111");
         s1.put("entryTime", "2025-08-11");
         s1.put("modelSpecification", 11111);
         s1.put("samplePosition", "使用部位");

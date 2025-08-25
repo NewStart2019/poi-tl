@@ -6,6 +6,7 @@ import com.deepoove.poi.render.compute.ReadMapAccessor;
 import org.apache.poi.ss.usermodel.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cglib.beans.BeanMap;
 import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.common.TemplateParserContext;
 import org.springframework.expression.spel.SpelCompilerMode;
@@ -36,6 +37,9 @@ public class ExcelTemplateRenderer {
     TemplateParserContext templateRowContext = new TemplateParserContext("[", "]");
     // 行书写占位符号  [ xxx ]
     private static final Pattern ROW_PLACEHOLDOR = Pattern.compile("(\\[\\s*.*?\\s*\\])");
+
+    // 通用匹配 {{ xxx }}
+    private static final Pattern COMMON_PLACEHOLDOR = Pattern.compile("(\\{\\{\\s*.*?\\s*\\}\\})");
 
     {
         ClassLoader loader = getClass().getClassLoader();
@@ -70,6 +74,7 @@ public class ExcelTemplateRenderer {
         context.addPropertyAccessor(new ReadMapAccessor());
         int rowNumber = 0;
         // Traverse the entire sheet and process the data dynamic rendering.
+        Map<String, Object> oldModel = new HashMap<>(model);
         while (true) {
             Row row = sheet.getRow(rowNumber);
             if (sheet.getLastRowNum() < rowNumber) {
@@ -172,13 +177,21 @@ public class ExcelTemplateRenderer {
         }
 
         // Traverse the entire sheet for static placeholder {{}} symbol processing
+        context = new StandardEvaluationContext(oldModel);
+        context.addPropertyAccessor(new ReadMapAccessor());
         for (Row row : sheet) {
             for (Cell cell : row) {
                 if (cell.getCellType() == CellType.STRING) {
                     String value = cell.getStringCellValue();
                     if (value.contains("{{") && value.contains("}}")) {
-                        Object newValue = execExpression(value, context, null);
-                        ExcelUtils.setCellValue(cell, newValue);
+                        // 正则匹配 {{ xxxx }}
+                        Matcher matcher = COMMON_PLACEHOLDOR.matcher(value);
+                        while (matcher.find()) {
+                            String placeholder = matcher.group(1);
+                            Object newValue = execExpression(value, context, null);
+                            value = value.replace(placeholder, newValue == null ? "" : newValue.toString());
+                        }
+                        ExcelUtils.setCellValue(cell, value);
                     }
                 }
             }
