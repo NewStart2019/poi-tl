@@ -100,4 +100,69 @@ public class ExcelTemplateRendererTest {
         System.out.printf(String.format("%s-%s", data2));
 
     }
+
+    @Test
+    public void testSpel2() throws Exception {
+        ExcelTemplateRenderer renderer = new ExcelTemplateRenderer();
+
+        Map<String, Object> model = new HashMap<>();
+        model.put("projectName","1111");
+        model.put("createor","3129844389");
+        model.put("superviseEngineer","2340356");
+        model.put("constructionUnit","测试施工单位");
+        model.put("number","001");
+        List<Map<String, Object>> students = new ArrayList<>();
+
+        Map<String, Object> s1 = new HashMap<>();
+        s1.put("_index", "1");
+        s1.put("entryTime", "2025-08-11");
+        s1.put("modelSpecification", 11111);
+        s1.put("samplePosition", "使用部位");
+        s1.put("sampleNumber", "10");
+        s1.put("sampleUnit", "组");
+        s1.put("manufacturer", "测试厂家");
+        s1.put("unqualifiedReason", "不合格原因");
+        s1.put("dealMeasure", "处理措施");
+        s1.put("dealResult", "处理结果");
+        s1.put("superviseResponsible", "测试");
+        s1.put("remark", "测试");
+        students.add(s1);
+
+        s1 = new HashMap<>();
+        s1.put("_index", "2");
+        s1.put("entryTime", "2025-08-12");
+        s1.put("modelSpecification", 11111);
+        s1.put("samplePosition", "使用部位");
+        s1.put("sampleNumber", "10");
+        s1.put("sampleUnit", "组");
+        s1.put("manufacturer", "测试厂家");
+        s1.put("unqualifiedReason", "不合格原因");
+        s1.put("dealMeasure", "处理措施");
+        s1.put("dealResult", "处理结果");
+        s1.put("superviseResponsible", "测试");
+        s1.put("remark", "测试");
+        students.add(s1);
+
+        model.put("list", students);
+        model.put("student", s1);
+
+        s1 = new HashMap<>();
+        s1.put("_index", "3");
+        s1.put("entryTime", "2025-08-13");
+        s1.put("modelSpecification", 11111);
+        s1.put("samplePosition", "使用部位");
+        s1.put("sampleNumber", "13");
+        s1.put("sampleUnit", "组");
+        s1.put("manufacturer", "测试厂家3");
+        s1.put("unqualifiedReason", "不合格原因3");
+        s1.put("dealMeasure", "处理措施3");
+        s1.put("dealResult", "处理结果3");
+        s1.put("superviseResponsible", "测试");
+        s1.put("remark", "测试");
+        students.add(s1);
+
+        // 渲染并输出文件
+        renderer.render("src/test/resources/util/不合格台帐.xlsx", model);
+        renderer.save("target/不合格台帐2.xlsx");
+    }
 }

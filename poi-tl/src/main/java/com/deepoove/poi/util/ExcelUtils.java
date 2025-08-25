@@ -4,6 +4,7 @@ import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.RichTextString;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.util.CellRangeAddress;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -23,6 +24,7 @@ public class ExcelUtils {
         if (targetRow == null || sourceRow == null) {
             throw new NullPointerException("source row or target row is null");
         }
+        Sheet sheet = targetRow.getSheet();
         if (isIncludeStyle) {
             targetRow.setHeight(sourceRow.getHeight());
             targetRow.setHeightInPoints(sourceRow.getHeightInPoints());
@@ -34,7 +36,30 @@ public class ExcelUtils {
             Cell newCell = targetRow.createCell(i);
             copyCell(oldCell, newCell, isIncludeStyle);
         }
+
+        // 复制合并单元格: 到下一行
+        copyMergedRegionFromTo(sheet, sourceRow.getRowNum(), targetRow.getRowNum());
     }
+
+    /**
+     * 将 sourceRowNum 行的合并单元格复制到 targetRowNum 行，
+     * 并将 targetRowNum 及之后的所有合并区域整体下移一行。
+     */
+    public static void copyMergedRegionFromTo(Sheet sheet, int sourceRowNum, int targetRowNum) {
+        for (CellRangeAddress region : sheet.getMergedRegions()) {
+            // 构造对应在 targetRowNum 的新区域
+            if (region.getFirstRow() == sourceRowNum && region.getLastRow() == sourceRowNum) {
+                CellRangeAddress copiedRegion = new CellRangeAddress(
+                    targetRowNum,
+                    targetRowNum,
+                    region.getFirstColumn(),
+                    region.getLastColumn()
+                );
+                sheet.addMergedRegion(copiedRegion);
+            }
+        }
+    }
+
 
     /**
      * Copy cell value, return directly if the <b>oldCell</b> or <b>newCell</b> is <b>empty</b>
