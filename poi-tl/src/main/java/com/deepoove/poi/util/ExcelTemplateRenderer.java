@@ -188,7 +188,7 @@ public class ExcelTemplateRenderer {
                         Matcher matcher = COMMON_PLACEHOLDOR.matcher(value);
                         while (matcher.find()) {
                             String placeholder = matcher.group(1);
-                            Object newValue = execExpression(value, context, null);
+                            Object newValue = execExpression(placeholder, context, null);
                             value = value.replace(placeholder, newValue == null ? "" : newValue.toString());
                         }
                         ExcelUtils.setCellValue(cell, value);
