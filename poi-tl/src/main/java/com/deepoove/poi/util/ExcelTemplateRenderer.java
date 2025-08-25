@@ -153,6 +153,9 @@ public class ExcelTemplateRenderer {
 
                 for (Cell newCell : newRow) {
                     CellData cellData = templateRowData.get(newCell.getColumnIndex());
+                    if (cellData == null){
+                        continue;
+                    }
                     Object[] valueList = new Object[cellData.getPlaceholdersEl().size()];
                     for (int i = 0; i < cellData.getPlaceholdersEl().size(); i++) {
                         String placeholder = cellData.getPlaceholdersEl().get(i);

@@ -1,18 +1,11 @@
 package com.deepoove.poi.tl.config;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
-import java.io.IOException;
-import java.lang.reflect.Method;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
+import com.deepoove.poi.XWPFTemplate;
+import com.deepoove.poi.config.Configure;
+import com.deepoove.poi.render.compute.EnvModel;
+import com.deepoove.poi.render.compute.SpELRenderDataCompute;
+import com.deepoove.poi.tl.source.XWPFTestSupport;
+import com.deepoove.poi.util.Util;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
@@ -20,11 +13,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import com.deepoove.poi.XWPFTemplate;
-import com.deepoove.poi.config.Configure;
-import com.deepoove.poi.render.compute.EnvModel;
-import com.deepoove.poi.render.compute.SpELRenderDataCompute;
-import com.deepoove.poi.tl.source.XWPFTestSupport;
+import java.io.IOException;
+import java.lang.reflect.Method;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.util.*;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @DisplayName("Spring Expression language test case")
 public class SpELTest {
@@ -53,7 +49,7 @@ public class SpELTest {
         dogs.add(new Dog("阿绿", 6));
         dogs.add(new Dog("阿蓝", 5));
         data.setDogs(dogs);
-        data.setDogsArr(dogs.toArray(new Dog[] {}));
+        data.setDogsArr(dogs.toArray(new Dog[]{}));
         data.setTime(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse("2019-05-20 22:14:10"));
 
         spELFunction = new HashMap<>();
@@ -63,6 +59,26 @@ public class SpELTest {
         spelForFunction = new SpELRenderDataCompute(EnvModel.ofModel(data), true, spELFunction);
         spelForMap = new SpELRenderDataCompute(EnvModel.ofModel(map));
         spelForBean = new SpELRenderDataCompute(EnvModel.ofModel(data));
+    }
+
+    @Test
+    public void join() throws NoSuchMethodException, IOException {
+        Map<String, Object> map = new HashMap<>();
+        map.put("name", "我袁华");
+        map.put("father", "的爸爸");
+        map.put("is", "是");
+        map.put("empty", "");
+        map.put("position", "区长");
+        map.put("empty2", "——");
+        map.put("defaultEmptyStr", "      ");
+        map.put("endStr", "我结束了大傻春！！！");
+        map.put("util", new Util());
+        Configure config = Configure.builder().useSpringEL(false, spELFunction).build();
+        spELFunction.put("join", com.deepoove.poi.util.Util.class.getDeclaredMethod("join", String.class, String.class, List.class));
+        XWPFTemplate template = XWPFTemplate.compile("src/test/resources/config/spel_function_test.docx",
+                config)
+            .render(map);
+        template.writeToFile("target/out_spel.docx");
     }
 
     @Test
@@ -89,9 +105,9 @@ public class SpELTest {
         assertEquals(spelForBean.compute("sex ? '男' : '女'"), "男");
         // 同样的时间字段，不同的格式
         assertEquals(spelForBean.compute("new java.text.SimpleDateFormat('yyyy-MM-dd HH:mm:ss').format(time)"),
-                "2019-05-20 22:14:10");
+            "2019-05-20 22:14:10");
         assertEquals(spelForBean.compute("new java.text.SimpleDateFormat('yyyy-MM-dd hh:mm').format(time)"),
-                "2019-05-20 10:14");
+            "2019-05-20 10:14");
 
         // 运算符
         assertEquals(spelForBean.compute("price"), 88880000L);
