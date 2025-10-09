@@ -58,7 +58,6 @@ public class IterableTemplateTest {
             {
                 put("title", "poi-tl");
                 put("chapters", chapters);
-
             }
         };
 

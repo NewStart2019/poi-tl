@@ -41,11 +41,13 @@ public class EnvIterator {
         while (hasNext) {
             Object root = iterator.next();
             hasNext = iterator.hasNext();
+            Map<String, Object> oldEnv = new HashMap<>(globalEnv);
             EnvIterator.makeEnv(globalEnv, ++index, hasNext);
-            if (root instanceof String || TlBeanUtil.isPrimitive(root)){
+            if (root instanceof String || TlBeanUtil.isPrimitive(root)) {
                 globalEnv.put("item", root);
             }
             consumer.accept(EnvModel.of(root, globalEnv));
+            globalEnv = oldEnv;
         }
     }
 
@@ -60,8 +62,8 @@ public class EnvIterator {
         return env;
     }
 
-    public static void makeEnv(Map<String, Object> env ,int index, boolean hasNext) {
-        env.put("_is_first", index == 0);
+    public static void makeEnv(Map<String, Object> env, int index, boolean hasNext) {
+        env.put("_is_first", index == 1);
         env.put("_is_last", !hasNext);
         env.put("_has_next", hasNext);
         env.put("_is_even_item", index % 2 == 1);

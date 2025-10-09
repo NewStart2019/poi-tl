@@ -95,7 +95,7 @@ public class IterableProcessor extends AbstractIterableProcessor {
         Map<String, Object> globalEnv = this.template.getEnvModel().getEnv();
         Map<String, Object> oldEnv = new HashMap<>(globalEnv);
         EnvIterator.foreach(globalEnv, compute.iterator(), model -> next(iterableTemplate, bodyContainer, context, model));
-        globalEnv.putAll(oldEnv);
+        globalEnv = oldEnv;
 
         // clear self iterable template
         for (int i = endPos - 1; i > startPos; i--) {
