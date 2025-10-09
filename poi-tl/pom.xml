@@ -11,7 +11,7 @@
 
     <groupId>com.deepoove</groupId>
     <artifactId>poi-tl</artifactId>
-    <version>1.13.5.4</version>
+    <version>1.13.5.5</version>
     <packaging>jar</packaging>
 
     <name>poi-tl</name>
@@ -50,13 +50,13 @@
         <repository>
             <id>releases</id>
             <name>Release repository</name>
-            <url>http://172.16.0.197:5001/repository/maven-local/</url>
+            <url>http://172.16.0.197:5001/repository/maven-releases/</url>
         </repository>
         <!-- 快照 -->
         <snapshotRepository>
             <id>snapshots</id>
             <name>Snapshots repository</name>
-            <url>http://172.16.0.197:5001/repository/maven-local/</url>
+            <url>http://172.16.0.197:5001/repository/maven-releases/</url>
         </snapshotRepository>
     </distributionManagement>
 

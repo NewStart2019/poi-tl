@@ -136,8 +136,8 @@ public class ExcelTemplateRendererTest {
         s1.put("samplePosition", "使用部位");
         s1.put("sampleNumber", "10");
         s1.put("sampleUnit", "组");
-        s1.put("manufacturer", "测试厂家");
-        s1.put("unqualifiedReason", "不合格原因");
+        // s1.put("manufacturer", "测试厂家");
+        // s1.put("unqualifiedReason", "不合格原因");
         s1.put("dealMeasure", "处理措施");
         s1.put("dealResult", "处理结果");
         s1.put("superviseResponsible", "测试");

@@ -6,7 +6,6 @@ import com.deepoove.poi.render.compute.ReadMapAccessor;
 import org.apache.poi.ss.usermodel.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.cglib.beans.BeanMap;
 import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.common.TemplateParserContext;
 import org.springframework.expression.spel.SpelCompilerMode;
@@ -165,7 +164,7 @@ public class ExcelTemplateRenderer {
                     for (int i = 0; i < cellData.getPlaceholdersEl().size(); i++) {
                         String placeholder = cellData.getPlaceholdersEl().get(i);
                         Object value = this.execExpression(placeholder, context, templateRowContext);
-                        valueList[i] = value;
+                        valueList[i] = value == null ? "" : value;
                     }
                     newCell.setCellValue(String.format(cellData.getTemplateValue(), valueList));
                 }
