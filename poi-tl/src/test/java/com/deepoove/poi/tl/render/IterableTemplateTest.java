@@ -89,6 +89,7 @@ public class IterableTemplateTest {
 
         XWPFTemplate template = XWPFTemplate.compile("src/test/resources/template/iterable_foreach.docx");
         template.render(datas);
+        template.render(datas).write(Files.newOutputStream(Paths.get("target/out_iterable_foreach.docx")));
         XWPFDocument document = XWPFTestSupport.readNewDocument(template);
         assertEquals("Hi, poi-tl", document.getParagraphArray(0).getText());
         assertEquals("My perfect Sayi.My perfect Deepoove.", document.getParagraphArray(1).getText());
@@ -139,14 +140,14 @@ public class IterableTemplateTest {
 
         XWPFTemplate template = XWPFTemplate.compile("src/test/resources/template/iterable_hyperlink.docx");
         template.render(datas);
+        template.render(datas).write(Files.newOutputStream(Paths.get("target/out_iterable_hyperlink.docx")));
         XWPFDocument document = XWPFTestSupport.readNewDocument(template);
         assertEquals("开始，", document.getParagraphArray(0).getText());
         assertEquals("结束。", document.getParagraphArray(1).getText());
         assertEquals("开始，结束。", document.getParagraphArray(3).getText());
         assertEquals(
-            "Hello, My perfect, http://deepoove.com,Sayi.addr:http://deepoove.comHangzhou,China.addr" +
-                ":http://deepoove.comShanghai,China.Hello, My perfect, http://deepoove.com,Deepoove website." +
-                ".addr:http://deepoove.comHangzhou,China.addr:http://deepoove.comShanghai,China.",
+            "Hello, My perfect, http://deepoove.com,Sayi.addr:http://deepoove.comHangzhou,China." +
+            "addr:http://deepoove.comShanghai,China.Hello, My perfect, http://deepoove.com,Deepoove website..",
             document.getParagraphArray(6).getText());
         document.close();
     }
