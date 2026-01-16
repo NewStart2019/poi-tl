@@ -19,17 +19,17 @@ public class HackLoopTableRenderPolicyTest {
     @BeforeEach
     public void init() {
         List<Goods> goods = new ArrayList<>();
-        Goods good = new Goods();
-        good.setCount(4);
-        good.setName("墙纸");
-        good.setDesc("书房卧室");
-        good.setDiscount(1500);
-        good.setPrice(400);
-        good.setTax(new Random().nextInt(10) + 20);
-        good.setTotalPrice(1600);
-        good.setPicture(Pictures.ofLocal("src/test/resources/earth.png").size(24, 24).create());
-        good.setTotal("1024");
         for (int i = 0; i < 4; i++) {
+            Goods good = new Goods();
+            good.setCount(i + 1);
+            good.setName("墙纸");
+            good.setDesc("书房卧室");
+            good.setDiscount(1500);
+            good.setPrice(400);
+            good.setTax(new Random().nextInt(10) + 20);
+            good.setTotalPrice(1600);
+            good.setPicture(Pictures.ofLocal("src/test/resources/earth.png").size(24, 24).create());
+            good.setTotal("1024");
             goods.add(good);
         }
         data.setGoods(goods);

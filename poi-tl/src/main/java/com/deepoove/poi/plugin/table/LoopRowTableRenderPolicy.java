@@ -19,6 +19,7 @@ import com.deepoove.poi.XWPFTemplate;
 import com.deepoove.poi.config.Configure;
 import com.deepoove.poi.exception.RenderException;
 import com.deepoove.poi.policy.RenderPolicy;
+import com.deepoove.poi.render.compute.DefaultELRenderDataCompute;
 import com.deepoove.poi.render.compute.EnvModel;
 import com.deepoove.poi.render.compute.RenderDataCompute;
 import com.deepoove.poi.render.processor.DocumentProcessor;
@@ -83,7 +84,7 @@ public class LoopRowTableRenderPolicy extends AbstractLoopRowTableRenderPolicy i
     public void render(ElementTemplate eleTemplate, Object data, XWPFTemplate template) {
         RunTemplate runTemplate = (RunTemplate) eleTemplate;
         Visitor processor = template.getRenderer().getProcessor();
-        if (processor instanceof DocumentProcessor){
+        if (processor instanceof DocumentProcessor) {
             documentProcessor = (DocumentProcessor) processor;
         }
         XWPFRun run = runTemplate.getRun();
@@ -141,8 +142,12 @@ public class LoopRowTableRenderPolicy extends AbstractLoopRowTableRenderPolicy i
                     });
 
                     this.removeCurrentLineData(globalEnv, root);
+                    if (dataCompute instanceof DefaultELRenderDataCompute) {
+                        DefaultELRenderDataCompute defaultELRenderDataCompute = (DefaultELRenderDataCompute) dataCompute;
+                        defaultELRenderDataCompute.clearCache();
+                    }
                     // 清除默认计算的缓存变量
-                    if (documentProcessor != null){
+                    if (documentProcessor != null) {
                         documentProcessor.clearElementProcessorInCache();
                     }
                 }
