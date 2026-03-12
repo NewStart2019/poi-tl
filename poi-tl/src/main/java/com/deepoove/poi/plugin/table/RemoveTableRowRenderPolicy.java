@@ -59,6 +59,27 @@ public class RemoveTableRowRenderPolicy implements RenderPolicy {
             } else if (compute instanceof Boolean && Boolean.FALSE.equals(compute)) {
                 removeTableCellNoSpan(tableRow, rowIndex);
             }
+
+            String tagName =  "open_addRow";
+            String insertPosition = runTemplate.getTagName() + "_insertPosition";
+            // 如果想要在表格尾部添加一行，则 添加一个 xxxx_addRow 字段
+            if (globalEnv.get(tagName) != null) {
+                Object o = globalEnv.get(insertPosition);
+                XWPFTable table = tableRow.getTable();
+                int position = 0;
+                if (o == null) {
+                    // 在表格尾部补上一行
+                    position = table.getRows().size() - 1;
+                } else {
+                    // 在表格删除位置下面第几行补上一行
+                    int p = (int) o;
+                    position = rowIndex + p - 1;
+                }
+                XWPFTableRow lastRow = table.getRow(position);
+                XWPFTableRow newRow = table.insertNewTableRow(position);
+                WordTableUtils.copyLineContent(lastRow, newRow, position);
+                WordTableUtils.cleanRowTextContent(lastRow);
+            }
         } catch (Exception e) {
             throw new RenderException("Remove line failure: " + e.getMessage(), e);
         }

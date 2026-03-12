@@ -58,7 +58,6 @@ public class SectionTableRenderPolicyTest {
     /**
      * 删除表格行测试（最简单版本）
      * 目前：只要是这一行有跨列的则不删除这个单元格
-     * TODO 如果跨行，又怎么处理？？
      * @throws Exception
      */
     @Test
@@ -73,6 +72,8 @@ public class SectionTableRenderPolicyTest {
         data.put("rs5_show", true);
         data.put("rs6_show", null);
         data.put("rs7_show", false);
+        data.put("open_addRow", true);
+        data.put("rs2_show_insertPosition", 4);
         data.put("test", "C");
         Configure config = Configure.builder()
             .addPlugin('$', new RemoveTableRowRenderPolicy("——"))
