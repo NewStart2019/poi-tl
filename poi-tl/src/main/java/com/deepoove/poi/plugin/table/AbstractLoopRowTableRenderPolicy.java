@@ -313,6 +313,9 @@ public abstract class AbstractLoopRowTableRenderPolicy implements RenderPolicy {
         if (table == null || startRowIndex < 0 || mergeLines <= 0) {
             return;
         }
+        if (mode < 1 || mode > 4) {
+            mode = 1;
+        }
         int endIndex = startRowIndex + mergeLines - 1;
         endIndex = Math.min(endIndex, table.getRows().size() - 1);
         if (mode == 2) {
