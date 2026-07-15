@@ -70,6 +70,7 @@ public class LoopCopyHeaderRowRenderPolicy extends AbstractLoopRowTableRenderPol
             boolean isRemoveNextLine = false;
             Object n = globalEnv.get(eleTemplate.getTagName() + "_number");
             int mode = 1;
+            int writeCol = 0;
             boolean isDrawBorderOfFirstPage = false;
             try {
                 if (n == null) {
@@ -78,16 +79,18 @@ public class LoopCopyHeaderRowRenderPolicy extends AbstractLoopRowTableRenderPol
                 } else {
                     pageLine = Integer.parseInt(n.toString());
                 }
-                Object fn = globalEnv.get(eleTemplate.getTagName() + "_first_number");
-                firstPageLine = fn != null ? Integer.parseInt(fn.toString()) : 0;
-                fn = globalEnv.get(eleTemplate.getTagName() + "_mode");
-                mode = fn != null ? Integer.parseInt(fn.toString()) : mode;
-                fn = globalEnv.get(eleTemplate.getTagName() + "_reduce");
-                reduce = fn != null ? Integer.parseInt(fn.toString()) : reduce;
-                fn = globalEnv.get(eleTemplate.getTagName() + "_remove_next_line");
-                isRemoveNextLine = fn != null;
-                fn = globalEnv.get(eleTemplate.getTagName() + "_fpdb");
-                isDrawBorderOfFirstPage = fn != null;
+                Object temp = globalEnv.get(eleTemplate.getTagName() + "_first_number");
+                firstPageLine = temp != null ? Integer.parseInt(temp.toString()) : 0;
+                temp = globalEnv.get(eleTemplate.getTagName() + "_mode");
+                mode = temp != null ? Integer.parseInt(temp.toString()) : mode;
+                temp = globalEnv.get(eleTemplate.getTagName() + "_write_col");
+                writeCol = temp != null ? Integer.parseInt(temp.toString()) : writeCol;
+                temp = globalEnv.get(eleTemplate.getTagName() + "_reduce");
+                reduce = temp != null ? Integer.parseInt(temp.toString()) : reduce;
+                temp = globalEnv.get(eleTemplate.getTagName() + "_remove_next_line");
+                isRemoveNextLine = temp != null;
+                temp = globalEnv.get(eleTemplate.getTagName() + "_fpdb");
+                isDrawBorderOfFirstPage = temp != null;
             } catch (NumberFormatException ignore) {
             }
 
@@ -178,7 +181,7 @@ public class LoopCopyHeaderRowRenderPolicy extends AbstractLoopRowTableRenderPol
                 insertLine = pageLine - (dataCount - firstPageLine) % pageLine - reduce;
             }
             this.fillBlankRow(insertLine, table, templateRowIndex);
-            this.blankDeal(table, mode, templateRowIndex, insertLine);
+            this.blankDeal(table, mode, templateRowIndex, insertLine, true, writeCol);
 
             if (paragraph != null) {
                 WordTableUtils.removeParagraph(paragraph);

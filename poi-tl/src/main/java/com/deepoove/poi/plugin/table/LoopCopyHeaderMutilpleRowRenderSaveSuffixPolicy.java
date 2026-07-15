@@ -6,7 +6,6 @@ import com.deepoove.poi.policy.RenderPolicy;
 import com.deepoove.poi.render.compute.EnvModel;
 import com.deepoove.poi.render.processor.EnvIterator;
 import com.deepoove.poi.template.ElementTemplate;
-import com.deepoove.poi.template.MetaTemplate;
 import com.deepoove.poi.util.WordTableUtils;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.apache.poi.xwpf.usermodel.XWPFTable;
@@ -14,7 +13,10 @@ import org.apache.poi.xwpf.usermodel.XWPFTableCell;
 import org.apache.poi.xwpf.usermodel.XWPFTableRow;
 import org.apache.xmlbeans.XmlCursor;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 
 public class LoopCopyHeaderMutilpleRowRenderSaveSuffixPolicy extends AbstractLoopRowTableRenderPolicy implements RenderPolicy {
 
@@ -53,7 +55,7 @@ public class LoopCopyHeaderMutilpleRowRenderSaveSuffixPolicy extends AbstractLoo
                 dataCount = ((Collection<?>) data).size();
             } else {
                 throw new RenderException("The data type is an " + data.getClass().getSimpleName() +
-                    ", and the data type must be a collection");
+                                          ", and the data type must be a collection");
             }
 
             Map<String, Object> globalEnv = template.getEnvModel().getEnv();
@@ -64,6 +66,7 @@ public class LoopCopyHeaderMutilpleRowRenderSaveSuffixPolicy extends AbstractLoo
             int reduce = 0;
             Object n = globalEnv.get(eleTemplate.getTagName() + "_number");
             int mode = 1;
+            int writeCol = 0;
             boolean isDrawBorderOfFirstPage = false;
             int tableExternalFooterLine = 0;
             boolean isFill = true;
@@ -81,6 +84,8 @@ public class LoopCopyHeaderMutilpleRowRenderSaveSuffixPolicy extends AbstractLoo
                 firstPageLine = temp != null ? Integer.parseInt(temp.toString()) : firstPageLine;
                 temp = globalEnv.get(eleTemplate.getTagName() + "_mode");
                 mode = temp != null ? Integer.parseInt(temp.toString()) : mode;
+                temp = globalEnv.get(eleTemplate.getTagName() + "_write_col");
+                writeCol = temp != null ? Integer.parseInt(temp.toString()) : writeCol;
                 temp = globalEnv.get(eleTemplate.getTagName() + "_reduce");
                 reduce = temp != null ? Integer.parseInt(temp.toString()) : reduce;
                 temp = globalEnv.get(eleTemplate.getTagName() + "_fpdb");
@@ -177,7 +182,7 @@ public class LoopCopyHeaderMutilpleRowRenderSaveSuffixPolicy extends AbstractLoo
                 }
                 this.removeCurrentLineData(globalEnv, root);
                 // Clear cache for default calculation method
-                if (documentProcessor != null){
+                if (documentProcessor != null) {
                     documentProcessor.clearElementProcessorInCache();
                 }
             }
@@ -197,19 +202,19 @@ public class LoopCopyHeaderMutilpleRowRenderSaveSuffixPolicy extends AbstractLoo
                         if (table != nextTable) {
                             WordTableUtils.removeTable(xwpfDocument, nextTable);
                         }
-                        this.blankDeal(table, mode, templateRowIndex, insertLine, true);
+                        this.blankDeal(table, mode, templateRowIndex, insertLine, true, writeCol);
                         this.drawBottomBorder(currentPage, isDrawBorderOfFirstPage, table);
                     } else {
                         // The first table filling section
                         this.fillBlankRow(insertLine, table, templateRowIndex);
-                        this.blankDeal(table, mode, templateRowIndex, insertLine, true);
+                        this.blankDeal(table, mode, templateRowIndex, insertLine, true, writeCol);
                         this.removeMultipleLine(template_row_number, table, templateRowIndex + insertLine);
                         boolean isNoRemain = insertLine == 0;
                         // The second table filling section
                         insertLine = pageLine - tableExternalFooterLine - reduce;
                         this.fillBlankRow(insertLine, nextTable, headerNumber);
                         this.removeMultipleLine(template_row_number, nextTable, headerNumber + insertLine);
-                        this.blankDeal(nextTable, mode, headerNumber, insertLine, isNoRemain);
+                        this.blankDeal(nextTable, mode, headerNumber, insertLine, isNoRemain, writeCol);
                         this.drawBottomBorder(currentPage, isDrawBorderOfFirstPage, nextTable);
                     }
                 } else if ((dataCount - firstNumber) % perPageNumber == 0) {
@@ -218,7 +223,7 @@ public class LoopCopyHeaderMutilpleRowRenderSaveSuffixPolicy extends AbstractLoo
                     insertLine = pageLine - (dataCount - firstNumber) % perPageNumber * template_row_number - tableExternalFooterLine - reduce;
                     this.fillBlankRow(insertLine, nextTable, headerNumber);
                     this.removeMultipleLine(template_row_number, nextTable, headerNumber + insertLine);
-                    this.blankDeal(nextTable, mode, headerNumber, insertLine, true);
+                    this.blankDeal(nextTable, mode, headerNumber, insertLine, true, writeCol);
                     this.drawBottomBorder(currentPage, isDrawBorderOfFirstPage, nextTable);
                 } else if ((perPageNumber - (dataCount - firstNumber) % perPageNumber) * template_row_number >= tableExternalFooterLine) {
                     insertLine = pageLine - (dataCount - firstNumber) % perPageNumber * template_row_number - tableExternalFooterLine - reduce;
@@ -230,20 +235,20 @@ public class LoopCopyHeaderMutilpleRowRenderSaveSuffixPolicy extends AbstractLoo
                     if (table != nextTable) {
                         WordTableUtils.removeTable(xwpfDocument, nextTable);
                     }
-                    this.blankDeal(table, mode, templateRowIndex, insertLine, true);
+                    this.blankDeal(table, mode, templateRowIndex, insertLine, true, writeCol);
                     this.drawBottomBorder(currentPage, isDrawBorderOfFirstPage, table);
                 } else {
                     insertLine = pageLine - (dataCount - firstNumber) % perPageNumber * template_row_number;
                     // The first table filling section
                     this.fillBlankRow(insertLine, table, templateRowIndex);
-                    this.blankDeal(table, mode, templateRowIndex, insertLine, true);
+                    this.blankDeal(table, mode, templateRowIndex, insertLine, true, writeCol);
                     removeMultipleLine(template_row_number, table, templateRowIndex + insertLine);
                     boolean isNoRemain = insertLine == 0;
                     // The second table filling section
                     insertLine = pageLine - tableExternalFooterLine - reduce;
                     this.fillBlankRow(insertLine, nextTable, headerNumber);
                     this.removeMultipleLine(template_row_number, nextTable, headerNumber + insertLine);
-                    this.blankDeal(nextTable, mode, headerNumber, insertLine, isNoRemain);
+                    this.blankDeal(nextTable, mode, headerNumber, insertLine, isNoRemain, writeCol);
                     this.drawBottomBorder(currentPage, isDrawBorderOfFirstPage, nextTable);
                 }
             } else {

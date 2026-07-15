@@ -66,6 +66,7 @@ public class LoopCopyHeaderMutilpleRowRenderPolicy extends AbstractLoopRowTableR
             int reduce = 0;
             Object n = globalEnv.get(eleTemplate.getTagName() + "_number");
             int mode = 1;
+            int writeCol = 0;
             boolean isDrawBorderOfFirstPage = false;
             boolean isVMerge = false;
             try {
@@ -81,6 +82,8 @@ public class LoopCopyHeaderMutilpleRowRenderPolicy extends AbstractLoopRowTableR
                 firstPageLine = temp != null ? Integer.parseInt(temp.toString()) : firstPageLine;
                 temp = globalEnv.get(eleTemplate.getTagName() + "_mode");
                 mode = temp != null ? Integer.parseInt(temp.toString()) : mode;
+                temp = globalEnv.get(eleTemplate.getTagName() + "_write_col");
+                writeCol = temp != null ? Integer.parseInt(temp.toString()) : writeCol;
                 temp = globalEnv.get(eleTemplate.getTagName() + "_reduce");
                 reduce = temp != null ? Integer.parseInt(temp.toString()) : reduce;
                 temp = globalEnv.get(eleTemplate.getTagName() + "_fpdb");
@@ -192,7 +195,7 @@ public class LoopCopyHeaderMutilpleRowRenderPolicy extends AbstractLoopRowTableR
                 insertLine = pageLine - (dataCount - firstNumber) % perPageNumber * template_row_number - reduce;
             }
             this.fillBlankRow(insertLine, table, templateRowIndex);
-            blankDeal(table, mode, templateRowIndex, insertLine);
+            this.blankDeal(table, mode, templateRowIndex, insertLine, true, writeCol);
             if (table != nextTable) {
                 WordTableUtils.removeTable(xwpfDocument, nextTable);
             }

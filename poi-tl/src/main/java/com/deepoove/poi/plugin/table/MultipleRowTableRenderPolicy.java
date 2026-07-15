@@ -91,7 +91,7 @@ public class MultipleRowTableRenderPolicy extends AbstractLoopRowTableRenderPoli
             run.setText("", 0);
             this.resolver = new TemplateResolver(template.getConfig().copy(prefix, suffix));
             // 获取模板所在的起始行
-            int position = WordTableUtils.findRowIndex(tagCell.getTableRow());
+            int position = WordTableUtils.findVerticalMergedRows(table, tagCell);
             List<XWPFTableRow> tempRows = getAllTemplateRow(table, position);
             if (data instanceof Iterable) {
                 // 保存第行模板，以便在后续操作中获取光标

@@ -102,6 +102,7 @@ public class LoopRowTableAndFillRenderPolicy extends AbstractLoopRowTableRenderP
             int tableFooterLine = 0;
             Object temp = globalEnv.get(eleTemplate.getTagName() + "_number");
             int mode = 1;
+            int writeCol = 0;
             boolean isFill = true;
             try {
                 pageLine = temp == null ? pageLine : Integer.parseInt(temp.toString());
@@ -113,6 +114,8 @@ public class LoopRowTableAndFillRenderPolicy extends AbstractLoopRowTableRenderP
                 tableFooterLine = temp != null ? Integer.parseInt(temp.toString()) : tableFooterLine;
                 temp = globalEnv.get(eleTemplate.getTagName() + "_mode");
                 mode = temp != null ? Integer.parseInt(temp.toString()) : mode;
+                temp = globalEnv.get(eleTemplate.getTagName() + "_write_col");
+                writeCol = temp != null ? Integer.parseInt(temp.toString()) : writeCol;
                 temp = globalEnv.get(eleTemplate.getTagName() + "_nofill");
                 isFill = temp == null;
             } catch (NumberFormatException ignore) {
@@ -124,24 +127,24 @@ public class LoopRowTableAndFillRenderPolicy extends AbstractLoopRowTableRenderP
                 if (index < pageLine) {
                     insertLine = pageLine - index - reduce;
                     this.fillBlankRow(insertLine, table, templateRowIndex);
-                    this.blankDeal(table, mode, templateRowIndex, insertLine);
+                    this.blankDeal(table, mode, templateRowIndex, insertLine, true, writeCol);
                     templateRowIndex += insertLine;
                 } else if (index == pageLine) {
                 } else if (index < pageLine + tableFooterLine) {
                     // The first part fill bank row
                     insertLine = pageLine + tableFooterLine - index;
                     this.fillBlankRow(insertLine, table, templateRowIndex);
-                    this.blankDeal(table, mode, templateRowIndex, insertLine);
+                    this.blankDeal(table, mode, templateRowIndex, insertLine, true, writeCol);
                     templateRowIndex += insertLine;
                     // The second part fill blank row
                     insertLine = tableHeaderLine + pageLine - reduce;
                     this.fillBlankRow(insertLine, table, templateRowIndex);
-                    this.blankDeal(table, mode, templateRowIndex, insertLine, false);
+                    this.blankDeal(table, mode, templateRowIndex, insertLine, false, writeCol);
                     templateRowIndex += insertLine;
                 } else if (index == (pageLine + tableFooterLine)) {
                     insertLine = tableHeaderLine + pageLine - reduce;
                     this.fillBlankRow(insertLine, table, templateRowIndex);
-                    this.blankDeal(table, mode, templateRowIndex, insertLine);
+                    this.blankDeal(table, mode, templateRowIndex, insertLine, true, writeCol);
                     templateRowIndex += insertLine;
                 } else {
                     // Other pages
@@ -151,7 +154,7 @@ public class LoopRowTableAndFillRenderPolicy extends AbstractLoopRowTableRenderP
                     if (remain > tableFooterLine) {
                         insertLine = remain - tableFooterLine - reduce;
                         this.fillBlankRow(insertLine, table, templateRowIndex);
-                        this.blankDeal(table, mode, templateRowIndex, insertLine);
+                        this.blankDeal(table, mode, templateRowIndex, insertLine, true, writeCol);
                         templateRowIndex += insertLine;
                     } else if (remain == tableFooterLine) {
                     } else {
@@ -159,11 +162,11 @@ public class LoopRowTableAndFillRenderPolicy extends AbstractLoopRowTableRenderP
                         insertLine = remain;
                         if (insertLine > 0) {
                             this.fillBlankRow(insertLine, table, templateRowIndex);
-                            this.blankDeal(table, mode, templateRowIndex, insertLine);
+                            this.blankDeal(table, mode, templateRowIndex, insertLine, true, writeCol);
                             templateRowIndex += insertLine;
                             insertLine = pageLine + tableHeaderLine - reduce;
                             this.fillBlankRow(insertLine, table, templateRowIndex);
-                            this.blankDeal(table, mode, templateRowIndex, insertLine, false);
+                            this.blankDeal(table, mode, templateRowIndex, insertLine, false, writeCol);
                             templateRowIndex += insertLine;
                         }
                     }

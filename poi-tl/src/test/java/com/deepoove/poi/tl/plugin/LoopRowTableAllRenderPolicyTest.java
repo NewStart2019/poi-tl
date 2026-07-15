@@ -43,32 +43,31 @@ public class LoopRowTableAllRenderPolicyTest {
     @BeforeEach
     public void init() {
         List<Goods> goods = new ArrayList<>();
-        Goods good = new Goods();
-        good.setCount(4);
-        good.setName("墙纸");
-        good.setDesc("书房卧室");
-        good.setDiscount(1500);
-        good.setPrice(400);
-        good.setTax(new Random().nextInt(10) + 20);
-        good.setTotalPrice(1600);
-        good.setPicture(Pictures.ofLocal("src/test/resources/earth.png").size(24, 24).create());
-        good.setTotal("1024");
         for (int i = 0; i < 4; i++) {
+            Goods good = new Goods();
+            good.setCount(i);
+            good.setName("墙纸");
+            good.setDesc("书房卧室");
+            good.setDiscount(1500);
+            good.setPrice(400);
+            good.setTax(new Random().nextInt(10) + 20);
+            good.setTotalPrice(1600);
+            good.setPicture(Pictures.ofLocal("src/test/resources/earth.png").size(24, 24).create());
+            good.setTotal("1024");
             goods.add(good);
         }
         data.setGoods(goods);
 
         List<Labor> labors = new ArrayList<>();
-        Labor labor = new Labor();
-        labor.setCategory("油漆工");
-        labor.setPeople(2);
-        labor.setPrice(400);
-        labor.setTotalPrice(1600);
-        labors.add(labor);
-        labors.add(labor);
-        labors.add(labor);
         data.setLabors(labors);
-
+        for (int i = 0; i < 4; i++) {
+            Labor labor = new Labor();
+            labor.setCategory("油漆工");
+            labor.setPeople(2 * i);
+            labor.setPrice((int) (Math.random() * 1000 + 100));
+            labor.setTotalPrice((int) (Math.random() * 1000 + 200));
+            labors.add(labor);
+        }
         data.setTotal("1024");
 
         // same line
@@ -104,6 +103,7 @@ public class LoopRowTableAllRenderPolicyTest {
         test.put("test_number", 29);
         test.put("test_reduce", 0);
         test.put("conclusion", "结论");
+        test.put("kd", "宽度"+number);
         for (int i = 1; i <= number; i++) {
             Map<String, Object> e1 = new HashMap<>();
             data.add(e1);
@@ -121,7 +121,6 @@ public class LoopRowTableAllRenderPolicyTest {
     @Test
     @Disabled
     public void testLoopExistedRow() throws Exception {
-        LoopRowTableAllRenderPolicy loopRowTableAllRenderPolicy = new LoopRowTableAllRenderPolicy(false, true);
         resource = "src/test/resources/template/render_existed_fill.docx";
         ArrayList<Integer> conditions = new ArrayList<>();
         conditions.add(10);
@@ -129,6 +128,8 @@ public class LoopRowTableAllRenderPolicyTest {
         for (Integer condition : conditions) {
             Map<String, Object> stringObjectMap = init2(condition);
             stringObjectMap.put("test_rendermode", 1);
+            stringObjectMap.put("test_mode", 5);
+            stringObjectMap.put("test_write_col", 3);
             Configure config = Configure.builder()
                 .useSpringEL(false)
                 .bind("test", policy)
@@ -152,7 +153,8 @@ public class LoopRowTableAllRenderPolicyTest {
         for (Integer condition : conditions) {
             Map<String, Object> stringObjectMap = init2(condition);
             stringObjectMap.put("test_rendermode", 2);
-            stringObjectMap.put("test_mode", 3);
+            stringObjectMap.put("test_mode", 5);
+            stringObjectMap.put("test_write_col", 3);
             // stringObjectMap.put("test_nofill", 2);
             policy.setSaveNextLine(true);
             Configure config = Configure.builder()
@@ -190,7 +192,8 @@ public class LoopRowTableAllRenderPolicyTest {
             stringObjectMap.put("test_number", 21);
             // stringObjectMap.put("test_reduce", 1);
             // stringObjectMap.put("test_nofill", 1);
-            stringObjectMap.put("test_mode", 2);
+            stringObjectMap.put("test_mode", 5);
+            stringObjectMap.put("test_write_col", 5);
             stringObjectMap.put("test_header", 3);
             stringObjectMap.put("test_footer", 4);
             stringObjectMap.put("blank_desc", "以下空白");
@@ -208,7 +211,6 @@ public class LoopRowTableAllRenderPolicyTest {
 
     @Test
     public void testLoopFullTableRow() throws Exception {
-        LoopFullTableInsertFillRenderPolicy hackLoopTableRenderPolicy2 = new LoopFullTableInsertFillRenderPolicy(false);
         resource = "src/test/resources/template/render_insert_fill_mutiple_template.docx";
         ArrayList<Integer> conditions = new ArrayList<>();
         conditions.add(0);
@@ -222,7 +224,8 @@ public class LoopRowTableAllRenderPolicyTest {
         for (Integer condition : conditions) {
             Map<String, Object> stringObjectMap = init2(condition);
             stringObjectMap.put("test_number", 24);
-            stringObjectMap.put("test_mode", 2);
+            stringObjectMap.put("test_mode", 5);
+            stringObjectMap.put("test_write_col", 2);
             stringObjectMap.put("test_rendermode", 4);
             stringObjectMap.put("test_row_number", 2);
             stringObjectMap.put("test_vmerge", 2);
@@ -271,6 +274,7 @@ public class LoopRowTableAllRenderPolicyTest {
                 e1.put("jgpd", "结果判定" + i);
                 e1.put("a", 10);
                 e1.put("b", 20);
+                test.put("kd", "宽度" + i);
             }
         }
         return test;
@@ -298,7 +302,8 @@ public class LoopRowTableAllRenderPolicyTest {
             }
             stringObjectMap.put("test_rendermode", 5);
             stringObjectMap.put("test_number", 24);
-            stringObjectMap.put("test_mode", 3);
+            stringObjectMap.put("test_mode", 5);
+            stringObjectMap.put("test_write_col", 2);
             stringObjectMap.put("test_row_number",
                 resource.contains("render_insert_fill_mutiple_template") ? 2 : 1);
             // stringObjectMap.put("test_vmerge", 2);
@@ -329,7 +334,8 @@ public class LoopRowTableAllRenderPolicyTest {
             Map<String, Object> stringObjectMap = init2(condition);
             stringObjectMap.put("test_first_number", 17);
             stringObjectMap.put("test_number", 20);
-            stringObjectMap.put("test_mode", 4);
+            stringObjectMap.put("test_mode", 5);
+            stringObjectMap.put("test_write_col", 2);
             stringObjectMap.put("test_rendermode", 6);
             // stringObjectMap.put("test_remove_next_line", 4);
             stringObjectMap.put("blank_desc", "以下空白");
@@ -393,7 +399,8 @@ public class LoopRowTableAllRenderPolicyTest {
             stringObjectMap.put("subRecords_row_number", 3);
             stringObjectMap.put("subRecords_first_number", 15);
             stringObjectMap.put("subRecords_number", 27);
-            stringObjectMap.put("subRecords_mode", 2);
+            stringObjectMap.put("subRecords_mode", 5);
+            stringObjectMap.put("subRecords_write_col", 2);
             stringObjectMap.put("blank_desc", "以下空白");
             stringObjectMap.put("blank_vmerge", "以下空白");
             Configure config = Configure.builder()
@@ -457,14 +464,16 @@ public class LoopRowTableAllRenderPolicyTest {
             stringObjectMap.put("subRecords_row_number", 3);
             stringObjectMap.put("subRecords_first_number", 6);
             stringObjectMap.put("subRecords_number", 6);
-            stringObjectMap.put("subRecords_mode", 2);
+            stringObjectMap.put("subRecords_mode", 5);
+            stringObjectMap.put("subRecords_write_col", 2);
             stringObjectMap.put("subRecords_fpdb", 2);
 
             stringObjectMap.put("subRecords2_rendermode", 7);
             stringObjectMap.put("subRecords2_row_number", 3);
             stringObjectMap.put("subRecords2_first_number", 3);
             stringObjectMap.put("subRecords2_number", 3);
-            stringObjectMap.put("subRecords2_mode", 2);
+            stringObjectMap.put("subRecords2_mode", 5);
+            stringObjectMap.put("subRecords2_write_col", 2);
             stringObjectMap.put("subRecords2_fpdb", 2);
             stringObjectMap.put("blank_desc", "以下空白");
             Configure config = Configure.builder()
@@ -516,8 +525,7 @@ public class LoopRowTableAllRenderPolicyTest {
     public void testLoopMutilpleRowRenderSaveSuffixPolicy() throws Exception {
         // 测试支持多行表头和单行表头
         ArrayList<Integer> conditions = new ArrayList<>();
-        // resource = "src/test/resources/util/mutiple_suffix.docx";
-        resource = "C:\\Users\\Administrator\\Desktop\\报告邮寄(1).docx";
+        resource = "src/test/resources/util/mutiple_suffix.docx";
         conditions.add(5);
         conditions.add(9);
         conditions.add(10);
@@ -534,7 +542,8 @@ public class LoopRowTableAllRenderPolicyTest {
             stringObjectMap.put("subRecords_row_number", 1);
             stringObjectMap.put("subRecords_first_number", 13);
             stringObjectMap.put("subRecords_number", 13);
-            stringObjectMap.put("subRecords_mode", 2);
+            stringObjectMap.put("subRecords_mode", 5);
+            stringObjectMap.put("subRecords_write_col", 2);
             stringObjectMap.put("subRecords_external_footer", 4);
             // stringObjectMap.put("subRecords_nofill", 0);
             stringObjectMap.put("blank_desc", "以下空白");
@@ -549,6 +558,7 @@ public class LoopRowTableAllRenderPolicyTest {
     }
 
     @Test
+    @Disabled
     void testDeleteTable() throws IOException {
         resource = "D:\\DingTalkAppData\\DingTalk\\download\\保温层厚度修订版.docx";
         NiceXWPFDocument niceXWPFDocument = new NiceXWPFDocument(Files.newInputStream(Paths.get(resource)));

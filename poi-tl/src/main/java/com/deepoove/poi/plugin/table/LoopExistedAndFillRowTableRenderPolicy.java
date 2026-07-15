@@ -72,6 +72,7 @@ public class LoopExistedAndFillRowTableRenderPolicy extends AbstractLoopRowTable
             int reduce = 0;
             boolean isFill = true;
             int mode = 1;
+            int writeCol = 0;
             try {
                 Object n = globalEnv.get(eleTemplate.getTagName() + "_number");
                 pageLine = n == null ? pageLine : Integer.parseInt(n.toString());
@@ -81,6 +82,8 @@ public class LoopExistedAndFillRowTableRenderPolicy extends AbstractLoopRowTable
                 isFill = temp == null;
                 temp = globalEnv.get(eleTemplate.getTagName() + "_mode");
                 mode = temp != null ? Integer.parseInt(temp.toString()) : mode;
+                temp = globalEnv.get(eleTemplate.getTagName() + "_write_col");
+                writeCol = temp != null ? Integer.parseInt(temp.toString()) : writeCol;
             } catch (NumberFormatException ignore) {
             }
             boolean firstFlag = true;
@@ -125,13 +128,13 @@ public class LoopExistedAndFillRowTableRenderPolicy extends AbstractLoopRowTable
                     if (remain > 0) {
                         int insertLine = pageLine - remain - reduce;
                         this.fillBlankRow(insertLine, table, templateRowIndex);
-                        this.blankDeal(table, mode, templateRowIndex, insertLine);
+                        this.blankDeal(table, mode, templateRowIndex, insertLine, true, writeCol);
                         templateRowIndex += insertLine;
                     }
                     table.removeRow(templateRowIndex);
                 } else {
                     int mergeLine = allRowNumber - index;
-                    this.blankDeal(table, mode, templateRowIndex, mergeLine);
+                    this.blankDeal(table, mode, templateRowIndex, mergeLine, true, writeCol);
                     templateRowIndex += mergeLine;
                     table.removeRow(templateRowIndex);
                 }

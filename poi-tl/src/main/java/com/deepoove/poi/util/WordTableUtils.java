@@ -819,7 +819,6 @@ public class WordTableUtils {
         if (cell == null) {
             return 0;
         }
-        XWPFDocument xwpfDocument = cell.getXWPFDocument();
         XWPFTable table = cell.getTableRow().getTable();
         int rowIndex = WordTableUtils.findRowIndex(cell);
         return WordTableUtils.findVerticalMergedRows(table, cell);

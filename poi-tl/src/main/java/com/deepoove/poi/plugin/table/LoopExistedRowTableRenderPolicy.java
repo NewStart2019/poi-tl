@@ -85,6 +85,7 @@ public class LoopExistedRowTableRenderPolicy extends AbstractLoopRowTableRenderP
             int reduce = 0;
             boolean isFill = true;
             int mode = 1;
+            int writeCol = 0;
             try {
                 Object n = globalEnv.get(eleTemplate.getTagName() + "_number");
                 pageLine = n == null ? pageLine : Integer.parseInt(n.toString());
@@ -94,6 +95,8 @@ public class LoopExistedRowTableRenderPolicy extends AbstractLoopRowTableRenderP
                 isFill = temp == null;
                 temp = globalEnv.get(eleTemplate.getTagName() + "_mode");
                 mode = temp != null ? Integer.parseInt(temp.toString()) : mode;
+                temp = globalEnv.get(eleTemplate.getTagName() + "_write_col");
+                writeCol = temp != null ? Integer.parseInt(temp.toString()) : writeCol;
             } catch (NumberFormatException ignore) {
             }
             boolean firstFlag = true;

@@ -306,14 +306,14 @@ public abstract class AbstractLoopRowTableRenderPolicy implements RenderPolicy {
      * @param mergeLines    merge rows
      */
     protected void blankDeal(XWPFTable table, int mode, int startRowIndex, int mergeLines) {
-        blankDeal(table, mode, startRowIndex, mergeLines, true);
+        blankDeal(table, mode, startRowIndex, mergeLines, true, 0);
     }
 
-    protected void blankDeal(XWPFTable table, int mode, int startRowIndex, int mergeLines, boolean isWriteBlank) {
+    protected void blankDeal(XWPFTable table, int mode, int startRowIndex, int mergeLines, boolean isWriteBlank, int writeCol) {
         if (table == null || startRowIndex < 0 || mergeLines <= 0) {
             return;
         }
-        if (mode < 1 || mode > 4) {
+        if (mode < 1 || mode > 5) {
             mode = 1;
         }
         int endIndex = startRowIndex + mergeLines - 1;
@@ -346,6 +346,30 @@ public abstract class AbstractLoopRowTableRenderPolicy implements RenderPolicy {
             XWPFTableRow row = table.getRow(startRowIndex);
             WordTableUtils.cleanRowTextContent(row);
             XWPFTableCell cell = WordTableUtils.findMaxWidthCellInRow(row);
+            XWPFParagraph xwpfParagraph;
+            if (cell.getParagraphs() == null || cell.getParagraphs().isEmpty()){
+                xwpfParagraph = cell.addParagraph();
+            } else {
+                xwpfParagraph = cell.getParagraphs().get(0);
+            }
+            xwpfParagraph.setAlignment(ParagraphAlignment.CENTER);
+            XWPFRun run;
+            if (xwpfParagraph.getRuns() == null || xwpfParagraph.getRuns().isEmpty()){
+                run = xwpfParagraph.createRun();
+            } else {
+                run = xwpfParagraph.getRuns().get(0);
+            }
+            run.setText("以下空白");
+        } else if (mode == 5 && isWriteBlank) {
+            XWPFTableRow row = table.getRow(startRowIndex);
+            WordTableUtils.cleanRowTextContent(row);
+            // Get the cell at the specfied position
+            int calculate = writeCol -1;
+            // If the row index is out of range, write it in the first cell.
+            if (calculate < 0 || writeCol > row.getTableCells().size()) {
+                calculate = 0;
+            }
+            XWPFTableCell cell = row.getCell(calculate);
             XWPFParagraph xwpfParagraph;
             if (cell.getParagraphs() == null || cell.getParagraphs().isEmpty()){
                 xwpfParagraph = cell.addParagraph();
