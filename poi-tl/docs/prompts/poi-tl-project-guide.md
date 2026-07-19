@@ -66,7 +66,8 @@ com.deepoove.poi
 ├── resolver/                  # 模板解析器
 ├── template/                  # 模板元素模型
 ├── util/                      # 工具类
-│   ├── WordTableUtils.java    # Word表格操作工具（核心扩展类，1500+行）
+│   ├── word/
+│   │   └── WordTableUtils.java  # Word表格操作工具（核心扩展类，1500+行）
 │   ├── TableTools.java        # 表格工具（官方原版）
 │   ├── ParagraphUtils.java
 │   ├── StyleUtils.java

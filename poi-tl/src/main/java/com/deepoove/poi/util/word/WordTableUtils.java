@@ -935,85 +935,93 @@ public class WordTableUtils {
     }
 
     /**
-     * <p>Set element positions in XWPFDocument</p>
-     * <p>TODO Move error：XmlValueDisconnectedException，Do not use</p>
+     * <p>Move a body element (paragraph or table) to the specified position in the document</p>
+     * <p>Synchronously updates the bodyElements list, category lists (paragraphs/tables), and the underlying XML structure</p>
+     * <p>Uses XmlCursor navigated from CTBody by index to avoid attribute-region positioning errors</p>
      *
      * @param document    {@link XWPFDocument doc}
-     * @param bodyElement {@link IBodyElement bodyElement}
-     * @param position    The position of elements in IBodyElement
+     * @param bodyElement {@link IBodyElement bodyElement} element to move
+     * @param position    target position (0-based) in the bodyElements list
      */
     @SuppressWarnings("unchecked")
     public static void setElementPosition(XWPFDocument document, IBodyElement bodyElement, int position) {
         if (document == null || bodyElement == null) {
+            logger.warn("document or bodyElement is null");
             return;
         }
         List<IBodyElement> bodyElements = (List<IBodyElement>) ReflectionUtils.getValue("bodyElements", document);
-        if (position < 0 || position > bodyElements.size()) {
-            throw new RuntimeException("The position of the element is out of range");
-        }
-        int index = bodyElements.indexOf(bodyElement);
-        if (index < 0 || index == position) {
+        int sourceIndex = bodyElements.indexOf(bodyElement);
+        if (sourceIndex < 0) {
+            logger.warn("Body element not found in document");
             return;
         }
-        // Move XML elements
-        IBodyElement oldBodyElement = bodyElements.get(position);
-        XmlCursor oldXmlCursor = getXmlCursor(oldBodyElement);
-        XmlCursor xmlCursor = getXmlCursor(bodyElement);
-        if (oldXmlCursor != null && xmlCursor != null) {
+        if (position < 0 || position > bodyElements.size()) {
+            throw new IndexOutOfBoundsException("Position " + position + " is out of range [0, " + bodyElements.size() + "]");
+        }
+        if (sourceIndex == position) {
+            return;
+        }
+
+        CTBody body = document.getDocument().getBody();
+        XmlCursor srcCursor = null;
+        XmlCursor targetCursor = null;
+        try {
+            // ── 1. Position source cursor at the STARTELEMENT of the source element ──
+            srcCursor = body.newCursor();
+            srcCursor.toFirstChild(); // enter first child element
+            for (int i = 0; i < sourceIndex; i++) {
+                srcCursor.toNextSibling();
+            }
+
+            // ── 2. Position target cursor at the insertion point ──
+            targetCursor = body.newCursor();
             if (position == bodyElements.size()) {
-                oldXmlCursor.toEndToken();
-            }
-            xmlCursor.moveXml(oldXmlCursor);
-            oldXmlCursor.close();
-            xmlCursor.close();
-        }
-
-
-        CTDocument1 ctDocument = document.getDocument();
-        int order = 0;
-        for (IBodyElement element : bodyElements) {
-            if (element.equals(bodyElement)) {
-                break;
+                // Insert at end — move cursor to just before CTBody's ENDELEMENT
+                targetCursor.toEndToken();
             } else {
-                if (element.getElementType() == bodyElement.getElementType()) {
-                    ++order;
+                // Insert before the element at target index
+                targetCursor.toFirstChild();
+                for (int i = 0; i < position; i++) {
+                    targetCursor.toNextSibling();
                 }
             }
-        }
-        CTBody body = ctDocument.getBody();
-        switch (bodyElement.getElementType()) {
-            case PARAGRAPH:
-                XWPFParagraph paragraph = (XWPFParagraph) bodyElement;
-                List<Paragraph> paragraphs = (List<Paragraph>) ReflectionUtils.getValue("paragraphs", document);
-                int i = paragraphs.indexOf(paragraph);
-                if (i != order) {
-                    List<CTP> pList = body.getPList();
-                    pList.set(order, paragraph.getCTP());
-                    paragraphs.remove(paragraph);
-                    paragraphs.add(order, paragraph);
-                }
-                break;
-            case TABLE:
-                XWPFTable table = (XWPFTable) bodyElement;
-                List<XWPFTable> tables = (List<XWPFTable>) ReflectionUtils.getValue("tables", document);
-                int i1 = tables.indexOf(table);
-                if (i1 != order) {
-                    List<CTTbl> tblList = body.getTblList();
-                    tblList.set(order, table.getCTTbl());
-                    tables.remove(table);
-                    tables.add(order, table);
-                }
-                break;
+
+            // ── 3. Move the entire element via XmlCursor (XMLBeans native) ──
+            srcCursor.moveXml(targetCursor);
+
+            // ── 4. Update bodyElements list ──
+            bodyElements.remove(sourceIndex);
+            int actualTarget = sourceIndex < position ? position - 1 : position;
+            bodyElements.add(actualTarget, bodyElement);
+
+            // ── 5. Rebuild category lists to keep consistent order ──
+            rebuildCategoryLists(document, bodyElements);
+        } finally {
+            if (srcCursor != null) {
+                srcCursor.close();
+            }
+            if (targetCursor != null) {
+                targetCursor.close();
+            }
         }
     }
 
-    private static XmlCursor getXmlCursor(IBodyElement bodyElement) {
-        if (bodyElement.getElementType() == BodyElementType.PARAGRAPH) {
-            return ((XWPFParagraph) bodyElement).getCTP().newCursor();
-        } else if (bodyElement.getElementType() == BodyElementType.TABLE) {
-            return ((XWPFTable) bodyElement).getCTTbl().newCursor();
+    /**
+     * Rebuild paragraphs and tables category lists from bodyElements to preserve document order
+     */
+    @SuppressWarnings("unchecked")
+    private static void rebuildCategoryLists(XWPFDocument document, List<IBodyElement> bodyElements) {
+        List<Paragraph> paragraphs = (List<Paragraph>) ReflectionUtils.getValue("paragraphs", document);
+        List<XWPFTable> tables = (List<XWPFTable>) ReflectionUtils.getValue("tables", document);
+        paragraphs.clear();
+        tables.clear();
+        for (IBodyElement element : bodyElements) {
+            if (element.getElementType() == BodyElementType.PARAGRAPH) {
+                paragraphs.add((XWPFParagraph) element);
+            } else if (element.getElementType() == BodyElementType.TABLE) {
+                tables.add((XWPFTable) element);
+            }
         }
-        return null;
     }
 
     public static void setTablePosition(XWPFDocument doc, XWPFTable targetTable, int tableIndex) {

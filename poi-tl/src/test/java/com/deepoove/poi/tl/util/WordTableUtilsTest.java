@@ -455,14 +455,10 @@ class WordTableUtilsTest {
         String template = "src/test/resources/util/copy_template.docx";
         try (FileInputStream fileInputStream = new FileInputStream(template);
              XWPFDocument document = new XWPFDocument(fileInputStream)) {
-            XWPFTable table1 = document.getTables().get(0);
             XWPFTable table2 = document.getTables().get(1);
-            XWPFParagraph paragraphArray1 = document.getParagraphArray(3);
-
-            int posOfTable = document.getPosOfTable(table2);
-            WordTableUtils.setElementPosition(document, table2, document.getPosOfTable(table1));
-            WordTableUtils.setElementPosition(document, table1, posOfTable);
-            WordTableUtils.setElementPosition(document, paragraphArray1, document.getBodyElements().size() - 1);
+            WordTableUtils.setElementPosition(document, table2, 0);
+            IBodyElement iBodyElement = document.getBodyElements().get(4);
+            WordTableUtils.setElementPosition(document, iBodyElement, 0);
             try (FileOutputStream out = new FileOutputStream(out_file)) {
                 document.write(out);
             }
