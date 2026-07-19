@@ -9,7 +9,7 @@ import com.deepoove.poi.render.compute.RenderDataCompute;
 import com.deepoove.poi.template.ElementTemplate;
 import com.deepoove.poi.template.run.RunTemplate;
 import com.deepoove.poi.util.TableTools;
-import com.deepoove.poi.util.WordTableUtils;
+import com.deepoove.poi.util.word.WordTableUtils;
 import org.apache.poi.xwpf.usermodel.*;
 
 import java.util.Map;

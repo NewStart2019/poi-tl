@@ -24,7 +24,7 @@ import com.deepoove.poi.data.style.Style;
 import com.deepoove.poi.render.RenderContext;
 import com.deepoove.poi.util.StyleUtils;
 import com.deepoove.poi.util.TableTools;
-import com.deepoove.poi.util.WordTableUtils;
+import com.deepoove.poi.util.word.WordTableUtils;
 import com.deepoove.poi.xwpf.XWPFParagraphWrapper;
 import org.apache.poi.xwpf.usermodel.*;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTBookmark;

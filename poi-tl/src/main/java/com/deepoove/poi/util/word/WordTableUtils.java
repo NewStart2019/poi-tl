@@ -1,5 +1,7 @@
-package com.deepoove.poi.util;
+package com.deepoove.poi.util.word;
 
+import com.deepoove.poi.util.ReflectionUtils;
+import com.deepoove.poi.util.TableTools;
 import com.deepoove.poi.xwpf.Page;
 import com.deepoove.poi.xwpf.XWPFStructuredDocumentTag;
 import com.deepoove.poi.xwpf.XWPFStructuredDocumentTagContent;
@@ -484,7 +486,7 @@ public class WordTableUtils {
         if (paragraph == null) {
             return;
         }
-        if (!paragraph.getRuns().isEmpty()) {
+        if (paragraph.getRuns().isEmpty()) {
             return;
         }
         IBody body = paragraph.getBody();
@@ -941,7 +943,7 @@ public class WordTableUtils {
      * @param position    The position of elements in IBodyElement
      */
     @SuppressWarnings("unchecked")
-    public static void setElementPostion(XWPFDocument document, IBodyElement bodyElement, int position) {
+    public static void setElementPosition(XWPFDocument document, IBodyElement bodyElement, int position) {
         if (document == null || bodyElement == null) {
             return;
         }
@@ -1037,6 +1039,90 @@ public class WordTableUtils {
         List<XWPFTableRow> rows = (List<XWPFTableRow>) ReflectionUtils.getValue("tableRows", table);
         rows.set(pos, row);
         table.getCTTbl().setTrArray(pos, row.getCtRow());
+    }
+
+    /**
+     * <p>Move a table row from source index to target index</p>
+     * <p>Both Java object list and underlying CT XML structure are updated synchronously</p>
+     *
+     * @param table       {@link XWPFTable table}
+     * @param sourceIndex source row index (0-based)
+     * @param targetIndex target row index (0-based), the row will be inserted before this position
+     */
+    @SuppressWarnings("unchecked")
+    public static void moveRowTo(XWPFTable table, int sourceIndex, int targetIndex) {
+        if (table == null) {
+            logger.warn("table is null");
+            return;
+        }
+        List<XWPFTableRow> rows = (List<XWPFTableRow>) ReflectionUtils.getValue("tableRows", table);
+        int size = rows.size();
+        if (sourceIndex < 0 || sourceIndex >= size) {
+            logger.warn("sourceIndex {} is out of range (0-{})", sourceIndex, size - 1);
+            return;
+        }
+        if (targetIndex < 0 || targetIndex > size) {
+            logger.warn("targetIndex {} is out of range (0-{})", targetIndex, size);
+            return;
+        }
+        if (sourceIndex == targetIndex) {
+            return;
+        }
+        // Remove from source position
+        XWPFTableRow sourceRow = rows.remove(sourceIndex);
+        // Adjust target index if source was before target
+        int actualTarget = sourceIndex < targetIndex ? targetIndex - 1 : targetIndex;
+        // Insert at target position
+        rows.add(actualTarget, sourceRow);
+
+        // Sync with underlying CT XML structure
+        CTTbl ctTbl = table.getCTTbl();
+        CTRow ctRow = sourceRow.getCtRow();
+        // Remove from source position in CT array
+        ctTbl.removeTr(sourceIndex);
+        // Insert at target position in CT array
+        ctTbl.insertNewTr(actualTarget);
+        ctTbl.setTrArray(actualTarget, ctRow);
+    }
+
+    /**
+     * Move a row up by one position
+     *
+     * @param table    {@link XWPFTable table}
+     * @param rowIndex current row index
+     */
+    public static void moveRowUp(XWPFTable table, int rowIndex) {
+        moveRowTo(table, rowIndex, rowIndex - 1);
+    }
+
+    /**
+     * Move a row down by one position
+     *
+     * @param table    {@link XWPFTable table}
+     * @param rowIndex current row index
+     */
+    public static void moveRowDown(XWPFTable table, int rowIndex) {
+        moveRowTo(table, rowIndex, rowIndex + 1);
+    }
+
+    /**
+     * Move a specified row object to target index
+     *
+     * @param row         {@link XWPFTableRow row}
+     * @param targetIndex target position
+     */
+    public static void moveRow(XWPFTableRow row, int targetIndex) {
+        if (row == null) {
+            logger.warn("row is null");
+            return;
+        }
+        XWPFTable table = row.getTable();
+        int sourceIndex = findRowIndex(row);
+        if (sourceIndex < 0) {
+            logger.warn("row not found in table");
+            return;
+        }
+        moveRowTo(table, sourceIndex, targetIndex);
     }
 
 
@@ -1392,7 +1478,7 @@ public class WordTableUtils {
         }
     }
 
-    public static void unmergeCells(XWPFTableRow row, int startCellIndex, boolean isAddSpan) {
+    public static void unMergeCells(XWPFTableRow row, int startCellIndex, boolean isAddSpan) {
         if (row == null) {
             return;
         }
@@ -1523,7 +1609,7 @@ public class WordTableUtils {
      * @param fromRow from row index
      * @param toRow   to row index
      */
-    public static void mergeMutipleLine(XWPFTable table, int fromRow, int toRow) {
+    public static void mergeMultipleLine(XWPFTable table, int fromRow, int toRow) {
         if (table == null) {
             return;
         }
@@ -1572,7 +1658,7 @@ public class WordTableUtils {
         if (paragraph.getRuns().isEmpty()) {
             return 12;
         }
-        XWPFRun run = paragraph.getRuns().isEmpty() ? paragraph.createRun() : paragraph.getRuns().get(0);
+        XWPFRun run = paragraph.getRuns().get(0);
         // Default font size (e.g. 12 dots)
         double tempFontSize = findFontSize(run);
         double fontSize = tempFontSize == 0 ? 12 : tempFontSize;

@@ -7,7 +7,7 @@ import com.deepoove.poi.template.BlockTemplate;
 import com.deepoove.poi.template.IterableTemplate;
 import com.deepoove.poi.template.MetaTemplate;
 import com.deepoove.poi.template.run.RunTemplate;
-import com.deepoove.poi.util.WordTableUtils;
+import com.deepoove.poi.util.word.WordTableUtils;
 import org.junit.jupiter.api.Test;
 
 import com.deepoove.poi.XWPFTemplate;

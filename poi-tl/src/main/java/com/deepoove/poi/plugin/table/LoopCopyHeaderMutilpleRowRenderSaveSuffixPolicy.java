@@ -6,7 +6,7 @@ import com.deepoove.poi.policy.RenderPolicy;
 import com.deepoove.poi.render.compute.EnvModel;
 import com.deepoove.poi.render.processor.EnvIterator;
 import com.deepoove.poi.template.ElementTemplate;
-import com.deepoove.poi.util.WordTableUtils;
+import com.deepoove.poi.util.word.WordTableUtils;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.apache.poi.xwpf.usermodel.XWPFTable;
 import org.apache.poi.xwpf.usermodel.XWPFTableCell;

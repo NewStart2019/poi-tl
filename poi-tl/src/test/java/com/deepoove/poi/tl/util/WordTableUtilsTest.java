@@ -3,7 +3,7 @@ package com.deepoove.poi.tl.util;
 import com.deepoove.poi.data.style.Style;
 import com.deepoove.poi.util.StyleUtils;
 import com.deepoove.poi.util.UnitUtils;
-import com.deepoove.poi.util.WordTableUtils;
+import com.deepoove.poi.util.word.WordTableUtils;
 import com.deepoove.poi.xwpf.NiceXWPFDocument;
 import org.apache.logging.log4j.util.Strings;
 import org.apache.poi.wp.usermodel.HeaderFooterType;
@@ -139,7 +139,7 @@ class WordTableUtilsTest {
         XWPFTable table = getXwpfTable(document);
 
         // 合并多行
-        WordTableUtils.mergeMutipleLine(table, 0, 2);
+        WordTableUtils.mergeMultipleLine(table, 0, 2);
 
         // 设置对角线
         XWPFTableCell cellRow00 = table.getRow(0).getCell(0);
@@ -185,7 +185,7 @@ class WordTableUtilsTest {
         XWPFDocument document = new XWPFDocument(fileInputStream);
         XWPFTable table = document.getTables().get(0);
 
-        WordTableUtils.mergeMutipleLine(table, 2, 5);
+        WordTableUtils.mergeMultipleLine(table, 2, 5);
         out_file = "target/out_merged_table.docx";
         // 保存文档
         try (FileOutputStream out = new FileOutputStream(out_file)) {
@@ -450,6 +450,7 @@ class WordTableUtilsTest {
         }
     }
 
+    @Test
     void testChangeElement() {
         String template = "src/test/resources/util/copy_template.docx";
         try (FileInputStream fileInputStream = new FileInputStream(template);
@@ -459,9 +460,9 @@ class WordTableUtilsTest {
             XWPFParagraph paragraphArray1 = document.getParagraphArray(3);
 
             int posOfTable = document.getPosOfTable(table2);
-            WordTableUtils.setElementPostion(document, table2, document.getPosOfTable(table1));
-            WordTableUtils.setElementPostion(document, table1, posOfTable);
-            WordTableUtils.setElementPostion(document, paragraphArray1, document.getBodyElements().size() - 1);
+            WordTableUtils.setElementPosition(document, table2, document.getPosOfTable(table1));
+            WordTableUtils.setElementPosition(document, table1, posOfTable);
+            WordTableUtils.setElementPosition(document, paragraphArray1, document.getBodyElements().size() - 1);
             try (FileOutputStream out = new FileOutputStream(out_file)) {
                 document.write(out);
             }

@@ -13,7 +13,7 @@ import com.deepoove.poi.template.MetaTemplate;
 import com.deepoove.poi.template.run.RunTemplate;
 import com.deepoove.poi.util.TableTools;
 import com.deepoove.poi.util.TlBeanUtil;
-import com.deepoove.poi.util.WordTableUtils;
+import com.deepoove.poi.util.word.WordTableUtils;
 import com.deepoove.poi.xwpf.NiceXWPFDocument;
 import org.apache.poi.xwpf.usermodel.*;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTcPr;
@@ -319,7 +319,7 @@ public abstract class AbstractLoopRowTableRenderPolicy implements RenderPolicy {
         int endIndex = startRowIndex + mergeLines - 1;
         endIndex = Math.min(endIndex, table.getRows().size() - 1);
         if (mode == 2) {
-            WordTableUtils.mergeMutipleLine(table, startRowIndex, endIndex);
+            WordTableUtils.mergeMultipleLine(table, startRowIndex, endIndex);
             // Set diagonal border
             XWPFTableCell cellRow00 = table.getRow(startRowIndex).getCell(0);
             WordTableUtils.setDiagonalBorder(cellRow00);

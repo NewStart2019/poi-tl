@@ -1,7 +1,7 @@
 package com.deepoove.poi.tl.xwpf;
 
 import com.deepoove.poi.XWPFTemplate;
-import com.deepoove.poi.util.WordTableUtils;
+import com.deepoove.poi.util.word.WordTableUtils;
 import com.deepoove.poi.xwpf.NiceXWPFDocument;
 import org.apache.poi.ooxml.POIXMLProperties.CoreProperties;
 import org.junit.jupiter.api.Test;
