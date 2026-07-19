@@ -18,7 +18,6 @@ package com.deepoove.poi.plugin.table;
 import com.deepoove.poi.XWPFTemplate;
 import com.deepoove.poi.config.Configure;
 import com.deepoove.poi.exception.RenderException;
-import com.deepoove.poi.policy.RenderPolicy;
 import com.deepoove.poi.render.compute.DefaultELRenderDataCompute;
 import com.deepoove.poi.render.compute.EnvModel;
 import com.deepoove.poi.render.compute.RenderDataCompute;
@@ -46,7 +45,7 @@ import java.util.Map;
  *
  * @author Sayi
  */
-public class LoopRowTableRenderPolicy extends AbstractLoopRowTableRenderPolicy implements RenderPolicy {
+public class LoopRowTableRenderPolicy extends AbstractLoopRowTableRenderPolicy {
 
     public LoopRowTableRenderPolicy() {
         this(false);

@@ -2,7 +2,6 @@ package com.deepoove.poi.plugin.table;
 
 import com.deepoove.poi.XWPFTemplate;
 import com.deepoove.poi.exception.RenderException;
-import com.deepoove.poi.policy.RenderPolicy;
 import com.deepoove.poi.render.compute.EnvModel;
 import com.deepoove.poi.render.processor.EnvIterator;
 import com.deepoove.poi.template.ElementTemplate;
@@ -18,7 +17,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-public class LoopFullTableIncludeSubRenderPolicy extends AbstractLoopRowTableRenderPolicy implements RenderPolicy {
+public class LoopFullTableIncludeSubRenderPolicy extends AbstractLoopRowTableRenderPolicy {
 
     public LoopFullTableIncludeSubRenderPolicy() {
         this(false);
@@ -137,7 +136,7 @@ public class LoopFullTableIncludeSubRenderPolicy extends AbstractLoopRowTableRen
                                         }
                                         this.renderMultipleRow(currentTable, tempTemplateRowIndex, -1, resolver, documentProcessor);
                                         // 不跨页时，不用底部加粗
-                                        if (currentPage > 2){
+                                        if (currentPage > 2) {
                                             WordTableUtils.setBottomBorder(currentTable, null);
                                         }
                                     }
@@ -198,7 +197,7 @@ public class LoopFullTableIncludeSubRenderPolicy extends AbstractLoopRowTableRen
                             }
                             this.renderMultipleRow(currentTable, tempTemplateRowIndex, -1, resolver, documentProcessor);
                             // 不跨页时，不用底部加粗
-                            if (currentPage > 2){
+                            if (currentPage > 2) {
                                 WordTableUtils.setBottomBorder(currentTable, null);
                             }
                             this.removeCurrentLineData(globalEnv, root);

@@ -2,7 +2,6 @@ package com.deepoove.poi.plugin.table;
 
 import com.deepoove.poi.XWPFTemplate;
 import com.deepoove.poi.exception.RenderException;
-import com.deepoove.poi.policy.RenderPolicy;
 import com.deepoove.poi.render.compute.EnvModel;
 import com.deepoove.poi.render.processor.EnvIterator;
 import com.deepoove.poi.template.ElementTemplate;
@@ -20,7 +19,7 @@ import java.util.Map;
  *
  * @author zqh
  */
-public class LoopExistedAndFillRowTableRenderPolicy extends AbstractLoopRowTableRenderPolicy implements RenderPolicy {
+public class LoopExistedAndFillRowTableRenderPolicy extends AbstractLoopRowTableRenderPolicy {
 
     public LoopExistedAndFillRowTableRenderPolicy() {
         this(false);
@@ -114,7 +113,7 @@ public class LoopExistedAndFillRowTableRenderPolicy extends AbstractLoopRowTable
                     this.renderMultipleRow(table, insertPosition, insertPosition, resolver, documentProcessor);
                     this.removeCurrentLineData(globalEnv, root);
                     // Clear cache for default calculation method
-                    if (documentProcessor != null){
+                    if (documentProcessor != null) {
                         documentProcessor.clearElementProcessorInCache();
                     }
                 }

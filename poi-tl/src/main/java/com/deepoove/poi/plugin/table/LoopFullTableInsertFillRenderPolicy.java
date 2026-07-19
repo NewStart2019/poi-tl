@@ -2,7 +2,6 @@ package com.deepoove.poi.plugin.table;
 
 import com.deepoove.poi.XWPFTemplate;
 import com.deepoove.poi.exception.RenderException;
-import com.deepoove.poi.policy.RenderPolicy;
 import com.deepoove.poi.render.compute.EnvModel;
 import com.deepoove.poi.render.processor.EnvIterator;
 import com.deepoove.poi.template.ElementTemplate;
@@ -18,7 +17,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
-public class LoopFullTableInsertFillRenderPolicy extends AbstractLoopRowTableRenderPolicy implements RenderPolicy {
+public class LoopFullTableInsertFillRenderPolicy extends AbstractLoopRowTableRenderPolicy {
 
     public LoopFullTableInsertFillRenderPolicy() {
         this(false);
@@ -159,7 +158,7 @@ public class LoopFullTableInsertFillRenderPolicy extends AbstractLoopRowTableRen
                 }
                 this.removeCurrentLineData(globalEnv, root);
                 // Clear cache for default calculation method
-                if (documentProcessor != null){
+                if (documentProcessor != null) {
                     documentProcessor.clearElementProcessorInCache();
                 }
             }

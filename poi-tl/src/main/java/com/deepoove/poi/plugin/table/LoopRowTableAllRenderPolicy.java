@@ -1,12 +1,11 @@
 package com.deepoove.poi.plugin.table;
 
 import com.deepoove.poi.XWPFTemplate;
-import com.deepoove.poi.policy.RenderPolicy;
 import com.deepoove.poi.template.ElementTemplate;
 
 import java.util.Map;
 
-public class LoopRowTableAllRenderPolicy extends AbstractLoopRowTableRenderPolicy implements RenderPolicy {
+public class LoopRowTableAllRenderPolicy extends AbstractLoopRowTableRenderPolicy {
 
     public LoopRowTableAllRenderPolicy() {
         this(false);

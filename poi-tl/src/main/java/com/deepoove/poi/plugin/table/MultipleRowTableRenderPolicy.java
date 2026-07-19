@@ -1,25 +1,7 @@
 package com.deepoove.poi.plugin.table;
 
-import java.util.Iterator;
-import java.util.List;
-import java.util.Objects;
-import java.util.Vector;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import com.deepoove.poi.util.word.WordTableUtils;
-import org.apache.poi.xwpf.usermodel.XWPFParagraph;
-import org.apache.poi.xwpf.usermodel.XWPFRun;
-import org.apache.poi.xwpf.usermodel.XWPFTable;
-import org.apache.poi.xwpf.usermodel.XWPFTableCell;
-import org.apache.poi.xwpf.usermodel.XWPFTableRow;
-import org.apache.xmlbeans.XmlCursor;
-import org.apache.xmlbeans.XmlObject;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTRow;
-
 import com.deepoove.poi.XWPFTemplate;
 import com.deepoove.poi.exception.RenderException;
-import com.deepoove.poi.policy.RenderPolicy;
 import com.deepoove.poi.render.compute.EnvModel;
 import com.deepoove.poi.render.compute.RenderDataCompute;
 import com.deepoove.poi.render.processor.DocumentProcessor;
@@ -29,6 +11,18 @@ import com.deepoove.poi.template.ElementTemplate;
 import com.deepoove.poi.template.MetaTemplate;
 import com.deepoove.poi.template.run.RunTemplate;
 import com.deepoove.poi.util.TableTools;
+import com.deepoove.poi.util.word.WordTableUtils;
+import org.apache.poi.xwpf.usermodel.*;
+import org.apache.xmlbeans.XmlCursor;
+import org.apache.xmlbeans.XmlObject;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTRow;
+
+import java.util.Iterator;
+import java.util.List;
+import java.util.Objects;
+import java.util.Vector;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * word模板替换，多行表格复用渲染
@@ -42,7 +36,7 @@ import com.deepoove.poi.util.TableTools;
  * @author llzero54
  * @author li.ming
  */
-public class MultipleRowTableRenderPolicy extends AbstractLoopRowTableRenderPolicy implements RenderPolicy {
+public class MultipleRowTableRenderPolicy extends AbstractLoopRowTableRenderPolicy {
 
     private final static String DEFAULT_MULTIPLE_PREFIX = "$(";
 
@@ -85,7 +79,7 @@ public class MultipleRowTableRenderPolicy extends AbstractLoopRowTableRenderPoli
             RunTemplate runTemplate = cast2runTemplate(eleTemplate);
             XWPFRun run = runTemplate.getRun();
             checkTargetIsTable(run,
-                    "Processing [" + runTemplate.getTagName() + "] failed, the target content is not a table");
+                "Processing [" + runTemplate.getTagName() + "] failed, the target content is not a table");
             XWPFTableCell tagCell = (XWPFTableCell) ((XWPFParagraph) run.getParent()).getBody();
             final XWPFTable table = tagCell.getTableRow().getTable();
             run.setText("", 0);
@@ -123,11 +117,11 @@ public class MultipleRowTableRenderPolicy extends AbstractLoopRowTableRenderPoli
 
                         List<XWPFTableCell> cells = newRow.getTableCells();
                         RenderDataCompute dataCompute = template.getConfig()
-                                .getRenderDataComputeFactory()
-                                .newCompute(EnvModel.of(dt, EnvIterator.makeEnv(index, hasNextData || hasNextTempRow)));
+                            .getRenderDataComputeFactory()
+                            .newCompute(EnvModel.of(dt, EnvIterator.makeEnv(index, hasNextData || hasNextTempRow)));
                         cells.forEach(tableCell -> {
                             List<MetaTemplate> metaTemplates = resolver
-                                    .resolveBodyElements(tableCell.getBodyElements());
+                                .resolveBodyElements(tableCell.getBodyElements());
                             new DocumentProcessor(template, resolver, dataCompute).process(metaTemplates);
                         });
                         ++position;
