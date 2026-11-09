@@ -1,4 +1,4 @@
-package com.deepoove.poi.util;
+package com.deepoove.poi.util.excel;
 
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.RichTextString;

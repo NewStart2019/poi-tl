@@ -8,11 +8,13 @@ import com.deepoove.poi.template.IterableTemplate;
 import com.deepoove.poi.template.MetaTemplate;
 import com.deepoove.poi.template.run.RunTemplate;
 import com.deepoove.poi.util.word.WordTableUtils;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import com.deepoove.poi.XWPFTemplate;
 import com.deepoove.poi.config.Configure;
 
+@DisplayName("测试删除表格行")
 public class SectionTableRenderPolicyTest {
 
     String resource = "src/test/resources/template/ifcol.docx";
@@ -58,7 +60,6 @@ public class SectionTableRenderPolicyTest {
     /**
      * 删除表格行测试（最简单版本）
      * 目前：只要是这一行有跨列的则不删除这个单元格
-     * @throws Exception
      */
     @Test
     public void removeLine() throws Exception {
@@ -66,9 +67,9 @@ public class SectionTableRenderPolicyTest {
         Map<String, Object> data = new HashMap<>();
         data.put("r34", 50);
         data.put("empty", null);
-        data.put("rs1_show", null);
+        data.put("rs1_show", "——");
         data.put("rs2_show", null);
-        data.put("rs4_show", true);
+        data.put("rs4_show", "任意值都可以保留行");
         data.put("rs5_show", true);
         data.put("rs6_show", null);
         data.put("rs7_show", false);

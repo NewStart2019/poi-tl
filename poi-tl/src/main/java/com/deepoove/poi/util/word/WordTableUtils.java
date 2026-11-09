@@ -18,6 +18,7 @@ import org.openxmlformats.schemas.drawingml.x2006.picture.CTPicture;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.w3c.dom.Node;
 
 import java.awt.*;
 import java.awt.font.FontRenderContext;
@@ -25,10 +26,11 @@ import java.awt.geom.AffineTransform;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
- * copy → clean → remove → find → set → merge
+ * copy → clean -> remove → find → set → merge → move
  * TODO update doc property id， DrawingSupport.updateDocPrId(table);
  */
 @SuppressWarnings("unused")
@@ -375,6 +377,32 @@ public class WordTableUtils {
         });
     }
 
+    /**
+     * 清空行内所有段落的文本内容，但保留段落属性与单元格结构（TcPr 中的 gridSpan、vMerge、宽度等）。
+     *
+     * @param row 待清空的底层行（通常为深拷贝出的副本）
+     */
+    public static void cleanRowTextKeepStructure(CTRow row) {
+        for (CTTc tc : row.getTcList()) {
+            for (CTP p : tc.getPList()) {
+                Node paragraphNode = p.getDomNode();
+                List<Node> toRemove = new ArrayList<>();
+                Node child = paragraphNode.getFirstChild();
+                while (child != null) {
+                    // 仅保留段落属性 pPr，其余元素子节点（run、超链接等）全部移除。
+                    if (child.getNodeType() == Node.ELEMENT_NODE
+                        && !"pPr".equals(child.getLocalName())) {
+                        toRemove.add(child);
+                    }
+                    child = child.getNextSibling();
+                }
+                for (Node node : toRemove) {
+                    paragraphNode.removeChild(node);
+                }
+            }
+        }
+    }
+
     public static void cleanCellContent(XWPFTableCell cell) {
         removeAllParagraphsOfCell(cell);
     }
@@ -464,12 +492,18 @@ public class WordTableUtils {
         removeRow(row);
     }
 
+    /**
+     * Remove row self.
+     * <p>The deleted rows do not consider the issue of cross-row and column deletion processing. Please use with caution</p>
+     *
+     * @param row {@link XWPFTableRow row}
+     */
     public static void removeRow(XWPFTableRow row) {
         if (row == null) {
             return;
         }
         XWPFTable table = row.getTable();
-        int rowIndex = table.getRows().indexOf(row);
+        int rowIndex = findRowIndex(table, row.getCtRow());
         table.removeRow(rowIndex);
     }
 
@@ -799,6 +833,23 @@ public class WordTableUtils {
         return rows.indexOf(row);
     }
 
+    /**
+     * 以底层 CTRow 对象身份在 CTTbl 中定位真实当前索引。
+     *
+     * @param table 表格
+     * @param ctRow 目标底层行
+     * @return 当前索引；不存在时返回 -1
+     */
+    public static int findRowIndex(XWPFTable table, CTRow ctRow) {
+        CTRow[] rows = table.getCTTbl().getTrArray();
+        for (int i = 0; i < rows.length; i++) {
+            if (rows[i] == ctRow) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
     public static int findRowHeight(XWPFTableRow row) {
         return row.getHeight();
     }
@@ -832,7 +883,7 @@ public class WordTableUtils {
      * <p>CTVMerge directly returns the corresponding 1 or 2 if there is a value, and returns 0 in other cases</p>
      *
      * @param cell {@link XWPFTableCell cell}
-     * @return Integer | null则表示没有跨行
+     * @return Integer | null | 0 则表示没有跨行
      */
     public static int findVMerge(XWPFTableCell cell) {
         // Get cell properties
@@ -1735,5 +1786,26 @@ public class WordTableUtils {
             }
         }
         return fontSize;
+    }
+
+
+    /**
+     * Migrate the content and cell attributes of the "restart" cell to the corresponding column in the specified reserved row.
+     *
+     * @param table            {@link XWPFTable}
+     * @param restartRowIndex  restart the line
+     * @param col              column index
+     * @param targetRowIndex   first reserved row index
+     */
+    public static void moveRestartCell(XWPFTable table, int restartRowIndex, int col, int targetRowIndex) {
+        XWPFTableCell source = table.getRow(restartRowIndex).getCell(col);
+        XWPFTableRow targetRow = table.getRow(targetRowIndex);
+        XWPFTableCell target = targetRow.getCell(col);
+        if (target == null) {
+            target = targetRow.createCell();
+        }
+        // 复制段落内容及 TcPr（含 restart 的 vMerge 标记）。
+        WordTableUtils.copyVerticallyCellContent(source, target);
+        WordTableUtils.cleanCellContent(source);
     }
 }
