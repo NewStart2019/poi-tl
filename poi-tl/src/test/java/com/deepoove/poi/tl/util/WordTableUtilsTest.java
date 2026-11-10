@@ -23,6 +23,8 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 class WordTableUtilsTest {
 
@@ -573,32 +575,134 @@ class WordTableUtilsTest {
     }
 
     @Test
-    @Disabled
     void testCalculateFontSize() throws IOException {
-        String template = "src/test/resources/util//copy_border.docx";
-        template = "C:\\Users\\Administrator\\Desktop\\道路照明（现用）.docx";
-        FileInputStream fileInputStream = new FileInputStream(template);
-        NiceXWPFDocument document = new NiceXWPFDocument(fileInputStream);
-        XWPFTable table = document.getTables().get(0);
-        XWPFTableRow row = table.getRow(3);
-        int cellHeight = row.getHeight();
-        XWPFTableCell cell = row.getCell(2);
-        int cellWidth = cell.getWidth();
+        // 使用 src/test/resources 下的模板，不再依赖本机桌面绝对路径。
+        String template = "src/test/resources/util/copy_border.docx";
+        try (FileInputStream in = new FileInputStream(template);
+             NiceXWPFDocument document = new NiceXWPFDocument(in)) {
+            XWPFTable table = document.getTables().get(0);
+            XWPFTableRow row = table.getRow(0);
+            XWPFTableCell cell = row.getCell(0);
+            int cellWidth = cell.getWidth();
+            int cellHeight = row.getHeight();
+            // 基准字号优先取模板 run 的原始字号；未显式设置时才回退默认字号 12。
+            XWPFRun existingRun = cell.getParagraphs().get(0).getRuns().get(0);
+            double baseSize = expectedBaseSize(existingRun);
 
-        // String content = "这是需要自适应的长文本内容，测试动态字体调整功能测试动态字体调整功能123。";
-        String content = "铜遂人才共育园（科能技校园）项目（一期用地一期建设）施工";
-        double fontSize = WordTableUtils.adjustFontSize(cell, content, cellWidth, cellHeight);
-        XWPFParagraph paragraph = cell.getParagraphs().get(0);
-        XWPFRun run = paragraph.getRuns().isEmpty() ? paragraph.createRun() : paragraph.getRuns().get(0);
-        Style style = Style.builder().buildFontSize(fontSize).build();
-        run.setText(content, 0);
-        StyleUtils.styleRun(run, style);
+            // 1) 长文本在有限高度内放不下：字号应从基准字号向下缩小，且仍在可读范围内。
+            String longText = "铜遂人才共育园（科能技校园）项目（一期用地一期建设）施工铜遂人才共育园（科能技校园）项目";
+            double shrunk = WordTableUtils.adjustFontSize(cell, longText, cellWidth, cellHeight);
+            assertTrue(shrunk < baseSize, "长文本字号应小于基准字号");
+            assertTrue(shrunk >= 1, "字号不应小于最小可读字号");
 
-        // 保存文档
-        try (FileOutputStream out = new FileOutputStream("target/adjusted-table.docx")) {
-            document.write(out);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+            // 2) 短文本放得下：保持基准字号。
+            assertEquals(baseSize, WordTableUtils.adjustFontSize(cell, "短", cellWidth, cellHeight),
+                "短文本应保持基准字号");
+
+            // 3) null / 空内容不抛异常，返回基准字号。
+            assertEquals(baseSize, WordTableUtils.adjustFontSize(cell, null, cellWidth, cellHeight));
+            assertEquals(baseSize, WordTableUtils.adjustFontSize(cell, "", cellWidth, cellHeight));
+
+            // 4) 非正宽高不做缩放，返回基准字号（避免除零退化）。
+            assertEquals(baseSize, WordTableUtils.adjustFontSize(cell, longText, 0, cellHeight));
+            assertEquals(baseSize, WordTableUtils.adjustFontSize(cell, longText, cellWidth, 0));
+
+            // 5) 应用计算出的字号并写出，确认可正常生成文档。
+            XWPFParagraph paragraph = cell.getParagraphs().get(0);
+            XWPFRun run = paragraph.getRuns().isEmpty() ? paragraph.createRun()
+                : paragraph.getRuns().get(0);
+            Style style = Style.builder().buildFontSize(shrunk).build();
+            run.setText(longText, 0);
+            StyleUtils.styleRun(run, style);
+            try (FileOutputStream out = new FileOutputStream("target/adjusted-table.docx")) {
+                document.write(out);
+            }
         }
+    }
+
+    @Test
+    void testCalculateFontSizeInMemory() {
+        String longText = "铜遂人才共育园（科能技校园）项目（一期用地一期建设）施工内容很长很长很长很长铜遂" +
+            "人才共育园（科能技校园）项目（一期用地一期建设）施工内容很长很长很长很长";
+
+        // 回归：仅设置 w:sz（无 szCs）时 findFontSize 必须返回该字号（旧实现返回 0）。
+        XWPFDocument probe = new XWPFDocument();
+        XWPFRun probeRun = newMemoryCell(probe, 14).getParagraphs().get(0).getRuns().get(0);
+        assertEquals(14.0, WordTableUtils.findFontSize(probeRun));
+
+        // 覆盖三种基准字号：未显式设置（回退 12）、显式 14、显式 20（大于基准 12）。
+        double[] configuredSizes = {0, 14, 20};
+        for (double configured : configuredSizes) {
+            XWPFDocument document = new XWPFDocument();
+            XWPFTableCell cell = newMemoryCell(document, configured);
+            XWPFRun run = cell.getParagraphs().get(0).getRuns().get(0);
+
+            // 基准字号：显式设置则用显式值（含大于 12 的 20），否则回退默认 12。
+            double baseSize = expectedBaseSize(run);
+            double expectedConfigured = configured > 0 ? configured : 12;
+            assertEquals(expectedConfigured, baseSize, "基准字号取值不符合预期");
+
+            // 宽高充足：短文本保持基准字号。
+            assertEquals(baseSize, WordTableUtils.adjustFontSize(cell, "短", 2000, 1000),
+                "短文本应保持基准字号");
+
+            // 狭小单元格：长文本从基准字号向下缩小，且不低于最小可读值。
+            double shrunk = WordTableUtils.adjustFontSize(cell, longText, 600, 400);
+            assertTrue(shrunk < baseSize, "长文本应小于基准字号");
+            assertTrue(shrunk >= 1.0, "字号不应小于最小可读值");
+
+            // 非正宽高：返回基准字号，不做缩放。
+            assertEquals(baseSize, WordTableUtils.adjustFontSize(cell, longText, 0, 400));
+            assertEquals(baseSize, WordTableUtils.adjustFontSize(cell, longText, 600, 0));
+
+            // null / 空内容：返回基准字号，不抛异常。
+            assertEquals(baseSize, WordTableUtils.adjustFontSize(cell, null, 600, 400));
+            assertEquals(baseSize, WordTableUtils.adjustFontSize(cell, "", 600, 400));
+        }
+    }
+
+    /**
+     * 计算预期基准字号：优先取 run 显式字号（即使大于默认 12），缺失或非法时回退默认字号 12。
+     * 与 {@link WordTableUtils#adjustFontSize} 的基准字号口径保持一致。
+     */
+    private static double expectedBaseSize(XWPFRun run) {
+        double size = WordTableUtils.findFontSize(run);
+        return size <= 0 ? 12 : size;
+    }
+
+    /**
+     * 构造内存单元格；fontSize 小于等于 0 表示不设置显式字号（用于验证回退默认字号）。
+     */
+    private static XWPFTableCell newMemoryCell(XWPFDocument document, double fontSize) {
+        XWPFTableCell cell = document.createTable(1, 1).getRow(0).getCell(0);
+        XWPFRun run = cell.getParagraphs().get(0).createRun();
+        if (fontSize > 0) {
+            run.setFontSize((int) fontSize);
+        }
+        run.setText("x");
+        return cell;
+    }
+
+    @Test
+    void testBoldItalicStyleCombination() {
+        // 粗体与斜体同时设置时应能共存（位或组合），方法不应抛异常并返回有效字号。
+        XWPFDocument document = new XWPFDocument();
+        XWPFTable table = document.createTable(1, 1);
+        XWPFTableCell cell = table.getRow(0).getCell(0);
+        XWPFRun run = cell.getParagraphs().get(0).createRun();
+        run.setFontSize(14);
+        run.setBold(true);
+        run.setItalic(true);
+        assertTrue(run.isBold());
+        assertTrue(run.isItalic());
+        double size = WordTableUtils.adjustFontSize(cell, "粗斜体文本内容", 1200, 600);
+        assertTrue(size >= 1.0 && size <= 14.0);
+
+        // 显式关闭（w:val=0）：isBold/isItalic 应返回 false。
+        XWPFRun run2 = cell.getParagraphs().get(0).createRun();
+        run2.setBold(false);
+        run2.setItalic(false);
+        assertFalse(run2.isBold());
+        assertFalse(run2.isItalic());
     }
 }

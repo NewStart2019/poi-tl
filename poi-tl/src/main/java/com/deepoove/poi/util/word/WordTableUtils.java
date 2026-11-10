@@ -967,22 +967,15 @@ public class WordTableUtils {
         if (run == null) {
             return 0;
         }
+        // 优先使用常规字号（w:sz）。此前在常规字号非空时反而用复杂脚本字号覆盖，
+        // 当仅设置 w:sz（无 szCs）时会被覆盖成 null 而返回 0，导致上层误判为默认字号。
         Double fontSizeAsDouble = run.getFontSizeAsDouble();
-        if (fontSizeAsDouble == null) {
-            CTRPr rPr = run.getCTR().getRPr();
-            if (rPr != null && CollectionUtils.isNotEmpty(rPr.getSzCsList())) {
-                Object val = rPr.getSzCsList().get(0).getVal();
-                if (val instanceof BigInteger) {
-                    fontSizeAsDouble = ((BigInteger) val).doubleValue() / 2;
-                } else {
-                    fontSizeAsDouble = Double.parseDouble((String) val);
-                }
-            }
-        } else {
-            // complex script font size
-            fontSizeAsDouble = run.getComplexScriptFontSizeAsDouble();
+        if (fontSizeAsDouble != null) {
+            return fontSizeAsDouble;
         }
-        return fontSizeAsDouble == null ? 0 : fontSizeAsDouble;
+        // 常规字号缺失时，回退到复杂脚本字号（w:szCs）。
+        Double complexScriptSize = run.getComplexScriptFontSizeAsDouble();
+        return complexScriptSize == null ? 0 : complexScriptSize;
     }
 
     /**
@@ -1709,83 +1702,171 @@ public class WordTableUtils {
         }
     }
 
+    /** 1 点对应的 twips 数（1 point = 20 twips）。 */
+    private static final int TWIPS_PER_POINT = 20;
+    /** 默认字号（点）。 */
+    private static final double DEFAULT_FONT_SIZE = 12;
+    /** 最小可读字号（点）。 */
+    private static final double MIN_FONT_SIZE = 1;
+    /** 字号递减步长（点）。 */
+    private static final double FONT_SIZE_STEP = 0.2;
+
+    /**
+     * 根据单元格宽高与文本内容计算可容纳的字号（单位：点）。
+     *
+     * <p>计算思路：按当前字号用 AWT 测量文本宽度（点 × 20 换算为 twips），结合可用宽度得到
+     * 占用行数，再结合单行高度与段前段后间距得到总高度；若总高度超过单元格高度，则以 0.5 点为
+     * 步长逐级缩小，直到放得下或达到最小可读下限。
+     *
+     * <p>本版本修复：
+     * <ol>
+     *     <li>补充 cell/content 空值与非正宽高防护，避免 NPE 与除零退化；</li>
+     *     <li>粗体、斜体使用位或组合，两者可同时生效，并通过 {@link XWPFRun#isBold()}、
+     *     {@link XWPFRun#isItalic()} 正确识别 {@code w:val=0} 的显式关闭；</li>
+     *     <li>段前段后优先使用 twips 间距（before/after），百分之一行单位（beforeLines）
+     *     按当前行高换算，不再当作 twips 直接相减；</li>
+     *     <li>行距根据 {@code lineRule} 区分：EXACT/AT_LEAST 为 twips，AUTO 为 1/240 行倍数；</li>
+     *     <li>使用 {@link Font#deriveFont(float)} 支持小数字号，测量与返回值保持一致。</li>
+     * </ol>
+     *
+     * @param cell       目标单元格
+     * @param content    待渲染文本
+     * @param cellWidth  单元格宽度（twips）
+     * @param cellHeight 单元格高度（twips）
+     * @return 计算出的字号（点）；无法缩放时返回默认或最小字号
+     */
     public static double adjustFontSize(XWPFTableCell cell, String content, double cellWidth, double cellHeight) {
-        if (cell.getParagraphs().isEmpty()) {
-            return 12;
+        if (cell == null || cell.getParagraphs().isEmpty()) {
+            return DEFAULT_FONT_SIZE;
         }
         XWPFParagraph paragraph = cell.getParagraphs().get(0);
         if (paragraph.getRuns().isEmpty()) {
-            return 12;
+            return DEFAULT_FONT_SIZE;
         }
         XWPFRun run = paragraph.getRuns().get(0);
-        // Default font size (e.g. 12 dots)
-        double tempFontSize = findFontSize(run);
-        double fontSize = tempFontSize == 0 ? 12 : tempFontSize;
 
-        CTP ctp = paragraph.getCTP();
-        int indentSize = 0;
-        double lineSize = fontSize * 20;
-        int beforeSize = 0;
-        int afterSize = 0;
-        if (ctp.isSetPPr()) {
-            CTPPr pPr = ctp.getPPr();
-            if (pPr.isSetInd()) {
-                CTInd ind = pPr.getInd();
-                if (ind.getFirstLine() != null) {
-                    if (ind.getFirstLine() instanceof BigInteger) {
-                        indentSize = ((BigInteger) ind.getFirstLine()).intValue();
-                    } else {
-                        indentSize = Integer.parseInt((String) ind.getFirstLine());
-                    }
-                }
-            }
-            if (pPr.isSetSpacing()) {
-                CTSpacing spacing = pPr.getSpacing();
-                if (spacing.getLine() != null) {
-                    if (spacing.getLine() instanceof BigInteger) {
-                        lineSize = ((BigInteger) spacing.getLine()).intValue();
-                    } else {
-                        lineSize = Double.parseDouble((String) spacing.getLine());
-                    }
-                }
-                if (spacing.getBeforeLines() != null) {
-                    beforeSize = spacing.getBeforeLines().intValue();
-                }
-                if (spacing.getAfterLines() != null) {
-                    afterSize = spacing.getAfterLines().intValue();
-                }
-            }
+        // 基准字号：取 run 实际字号，缺失或非法时回退默认字号。
+        double baseSize = findFontSize(run);
+        if (baseSize <= 0) {
+            baseSize = DEFAULT_FONT_SIZE;
         }
-        cellHeight = cellHeight - beforeSize - afterSize;
+        // 空文本在任意字号下都放得下，直接返回基准字号。
+        if (content == null || content.isEmpty()) {
+            return baseSize;
+        }
+        // 宽高非法时不做缩放，避免除零产生 0.5 之类的退化结果。
+        if (cellWidth <= 0 || cellHeight <= 0) {
+            return baseSize;
+        }
 
-        // Adaptability of computational content
+        // 可用宽度：扣除左右缩进；缩进异常导致非正时回退到单元格宽度。
+        double usableWidth = cellWidth - paragraph.getIndentationLeft() - paragraph.getIndentationRight();
+        if (usableWidth <= 0) {
+            usableWidth = cellWidth;
+        }
+        // 首行额外缩进（首行缩进 - 悬挂），计入文本宽度。
+        int firstLineExtra = paragraph.getFirstLineIndent();
+
+        CTSpacing spacing = readSpacing(paragraph);
+
         String fontFamily = run.getFontFamily();
-        fontFamily = fontFamily == null ? "SimSun" : fontFamily;
-        AffineTransform affineTransform = new AffineTransform();
-        FontRenderContext frc = new FontRenderContext(affineTransform, true, true);
+        if (fontFamily == null) {
+            fontFamily = "SimSun";
+        }
         int style = Font.PLAIN;
-        CTRPr rPr = run.getCTR().getRPr();
-        if (rPr != null) {
-            if (CollectionUtils.isNotEmpty(rPr.getBList())) {
-                style = Font.BOLD;
-            }
-            if (CollectionUtils.isNotEmpty(rPr.getIList())) {
-                style = Font.ITALIC;
-            }
+        // 位或组合，粗体与斜体可同时生效；isBold/isItalic 已正确处理 val=0 的显式关闭。
+        if (run.isBold()) {
+            style |= Font.BOLD;
         }
-        String styleID = paragraph.getStyleID();
-        Font font = new Font(fontFamily, style, (int) fontSize);
-        double totalWidth = font.getStringBounds(content, frc).getWidth() * 20 + indentSize;
-        // If the height of the entire row is greater than the height of the table cells, the font size will be reduced
-        while ((int) Math.ceil(totalWidth / cellWidth) * lineSize > cellHeight) {
-            fontSize -= 0.5;
-            font = new Font(fontFamily, style, (int) fontSize);
-            totalWidth = font.getStringBounds(content, frc).getWidth() * 20 + indentSize;
-            if (fontSize < 1) {
-                break;
-            }
+        if (run.isItalic()) {
+            style |= Font.ITALIC;
         }
-        return fontSize;
+
+        FontRenderContext frc = new FontRenderContext(new AffineTransform(), true, true);
+        // 先建 1 号基准字体，再用 deriveFont 应用各候选字号，保留小数字号且不截断。
+        Font templateFont = new Font(fontFamily, style, 1);
+
+        double candidate = baseSize;
+        while (candidate >= MIN_FONT_SIZE) {
+            Font font = templateFont.deriveFont((float) candidate);
+            // 文本宽度（twips）：点 × 20，再加上首行额外缩进。
+            double textWidth = font.getStringBounds(content, frc).getWidth() * TWIPS_PER_POINT
+                + firstLineExtra;
+            int lineCount = (int) Math.ceil(textWidth / usableWidth);
+            double lineHeight = lineHeightTwips(spacing, candidate);
+            double neededHeight = lineCount * lineHeight + verticalPaddingTwips(spacing, lineHeight);
+            if (neededHeight <= cellHeight) {
+                return candidate;
+            }
+            candidate -= FONT_SIZE_STEP;
+        }
+        // 达到最小可读下限仍放不下：返回最小字号，避免返回不可见的 0.5 以下值。
+        return MIN_FONT_SIZE;
+    }
+
+    /** 读取段落的间距设置，未设置时返回 null。 */
+    private static CTSpacing readSpacing(XWPFParagraph paragraph) {
+        CTP ctp = paragraph.getCTP();
+        if (ctp.isSetPPr() && ctp.getPPr().isSetSpacing()) {
+            return ctp.getPPr().getSpacing();
+        }
+        return null;
+    }
+
+    /**
+     * 计算单行高度（twips）。
+     *
+     * <p>EXACT/AT_LEAST 行距直接取 twips；AUTO（多倍行距）按 1/240 行倍数乘以自然行高；
+     * 未设置行距时，自然行高近似为字号（点）× 20。
+     */
+    private static double lineHeightTwips(CTSpacing spacing, double fontSizePoints) {
+        double naturalHeight = fontSizePoints * TWIPS_PER_POINT;
+        if (spacing == null || !spacing.isSetLine()) {
+            return naturalHeight;
+        }
+        int line = toTwips(spacing.getLine());
+        STLineSpacingRule.Enum rule = spacing.isSetLineRule()
+            ? spacing.getLineRule() : STLineSpacingRule.AUTO;
+        if (rule == STLineSpacingRule.EXACT || rule == STLineSpacingRule.AT_LEAST) {
+            return line;
+        }
+        // AUTO：line 以 1/240 行表示。
+        return line / 240.0 * naturalHeight;
+    }
+
+    /**
+     * 计算段前段后占用的垂直间距（twips）。
+     *
+     * <p>优先使用 twips 间距 before/after；仅设置百分之一行单位 beforeLines/afterLines 时，
+     * 按当前行高换算。
+     */
+    private static double verticalPaddingTwips(CTSpacing spacing, double lineHeightTwips) {
+        if (spacing == null) {
+            return 0;
+        }
+        double padding = 0;
+        if (spacing.isSetBefore()) {
+            padding += toTwips(spacing.getBefore());
+        } else if (spacing.isSetBeforeLines()) {
+            padding += spacing.getBeforeLines().doubleValue() / 100.0 * lineHeightTwips;
+        }
+        if (spacing.isSetAfter()) {
+            padding += toTwips(spacing.getAfter());
+        } else if (spacing.isSetAfterLines()) {
+            padding += spacing.getAfterLines().doubleValue() / 100.0 * lineHeightTwips;
+        }
+        return padding;
+    }
+
+    /** 将间距值安全转换为 twips（兼容 Number 与字符串表示）。 */
+    private static int toTwips(Object value) {
+        if (value == null) {
+            return 0;
+        }
+        if (value instanceof Number) {
+            return ((Number) value).intValue();
+        }
+        return Integer.parseInt(value.toString());
     }
 
 
