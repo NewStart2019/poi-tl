@@ -7,6 +7,8 @@ import com.deepoove.poi.plugin.table.LoopRowTableAllRenderPolicy;
 import com.deepoove.poi.plugin.table.LoopRowTableRenderPolicy;
 import com.deepoove.poi.util.word.WordTableUtils;
 import com.deepoove.poi.xwpf.NiceXWPFDocument;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.poi.xwpf.usermodel.BodyElementType;
 import org.apache.poi.xwpf.usermodel.IBodyElement;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
@@ -22,6 +24,7 @@ import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTSectPr;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTSectType;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.STSectionMark;
 
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -344,8 +347,37 @@ public class LoopRowTableAllRenderPolicyTest {
                 .build();
             XWPFTemplate template = XWPFTemplate.compile(resource, config).render(stringObjectMap);
             WordTableUtils.setMinHeightParagraph(template.getXWPFDocument());
+            WordTableUtils.removeLastBlankParagraph(template.getXWPFDocument());
+            WordTableUtils.setMinHeightParagraph(template.getXWPFDocument());
             template.writeToFile("target/out_loop_copy_header" + condition + ".docx");
         }
+    }
+
+    @Test
+    public void testLoopCopyHeaderRowRenderPolicyAndMutilTableTemplate() throws IOException {
+        resource = "src/test/resources/template/室内环境污染物.docx";
+        // 先读取 JSON 文件内容为字符串（UTF-8），再用 Jackson 转换为 Map。
+        // 嵌套对象映射为 Map、数组映射为 List，数字/字符串/布尔分别映射为对应 Java 类型。
+        String json = Files.readString(
+            Paths.get("src/test/resources/template/室内环境污染物.json"));
+        Map<String, Object> stringObjectMap = new ObjectMapper().readValue(
+            json, new TypeReference<Map<String, Object>>() {});
+        Configure config = Configure.builder()
+            .useSpringEL(false)
+            // {{re_FSQ0_SWRW01_subRecords}}序号
+            .bind("re_FSQ0_SWRW01_subRecords", policy)
+            .bind("re_FSQ0_SWRW02_subRecords", policy)
+            .bind("re_FSQ0_SWRW03_subRecords", policy)
+            .bind("re_FSQ0_SWRW04_subRecords", policy)
+            .bind("re_FSQ0_SWRW05_subRecords", policy)
+            .bind("re_FSQ0_SWRW06_subRecords", policy)
+            .bind("re_FSQ0_SWRW07_subRecords", policy)
+            .build();
+        XWPFTemplate template = XWPFTemplate.compile(resource, config).render(stringObjectMap);
+        WordTableUtils.setMinHeightParagraph(template.getXWPFDocument());
+        WordTableUtils.removeLastBlankParagraph(template.getXWPFDocument());
+        WordTableUtils.setMinHeightParagraph(template.getXWPFDocument());
+        template.writeToFile("target/out_loop_copy_header_and_mutiple_template.docx");
     }
 
     public Map<String, Object> init3(int number) {

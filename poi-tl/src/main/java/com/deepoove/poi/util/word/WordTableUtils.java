@@ -63,6 +63,7 @@ public class WordTableUtils {
      * @param doc         {@link XWPFDocument doc}
      * @param sourceTable {@link XWPFTable sourceTable}
      * @param xmlCursor   {@link XmlCursor xmlCursor}
+     * @param isAfter     boolean, whether to place the new table after the current table
      * @param isTail      boolean, whether to place the new table at the end of the document
      * @return {@link XWPFTable}
      */
@@ -520,13 +521,16 @@ public class WordTableUtils {
         if (paragraph == null) {
             return;
         }
-        if (paragraph.getRuns().isEmpty()) {
-            return;
-        }
+        // 注意：不能因为段落没有 run 就跳过删除。分页段落通过段落属性 w:pageBreakBefore
+        // 实现（见 XWPFParagraph.setPageBreak(true)），本身不包含任何 run，若在此提前
+        // 返回会导致末位分页符无法删除，进而把表后的备注挤到下一页。
         IBody body = paragraph.getBody();
         if (body instanceof XWPFDocument) {
             XWPFDocument document = (XWPFDocument) body;
             int posOfTable = document.getPosOfParagraph(paragraph);
+            if (posOfTable < 0) {
+                return;
+            }
             document.removeBodyElement(posOfTable);
         } else if (body instanceof XWPFTableCell) {
             XWPFTableCell cell = (XWPFTableCell) body;

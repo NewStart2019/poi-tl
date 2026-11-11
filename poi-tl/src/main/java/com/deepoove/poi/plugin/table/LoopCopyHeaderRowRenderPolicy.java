@@ -182,9 +182,14 @@ public class LoopCopyHeaderRowRenderPolicy extends AbstractLoopRowTableRenderPol
             this.fillBlankRow(insertLine, table, templateRowIndex);
             this.blankDeal(table, mode, templateRowIndex, insertLine, true, writeCol);
 
+            // 渲染过程中每开启一个新页都会“预创建”分页段落 + 下一页表格，循环结束后
+            // 最后一次预创建的内容一定没有被使用。这里无条件删除最后一个分页段落，保证
+            // 无论是否真的新增过表格，表后的备注都不会被分页符挤到下一页；而各页之间真正
+            // 用于分隔的分页符不在此列，会继续保留。
             if (paragraph != null) {
                 WordTableUtils.removeParagraph(paragraph);
             }
+            // 删除预创建但最终未使用的续表，避免在正文末尾留下空表格
             if (table != nextTable) {
                 WordTableUtils.removeTable(xwpfDocument, nextTable);
             }
