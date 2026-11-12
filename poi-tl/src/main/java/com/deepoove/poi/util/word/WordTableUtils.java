@@ -90,28 +90,38 @@ public class WordTableUtils {
         if (doc == null || sourceTable == null) {
             throw new RuntimeException("The parameters passed in cannot be empty!");
         }
-        // doc.getPosOfTable：What is obtained is the position of the table in the body
-        // int tableIndex = doc.getPosOfTable(sourceTable);
-        if (xmlCursor == null) {
+        // 记录游标是否由本方法内部创建：外部传入的游标按约定由调用方负责释放，
+        // 内部创建的游标必须在 finally 中关闭，否则会一直占用 XML store 的定位资源。
+        boolean selfCreatedCursor = (xmlCursor == null);
+        if (selfCreatedCursor) {
             xmlCursor = sourceTable.getCTTbl().newCursor();
         }
-        if (isAfter) {
-            xmlCursor.toNextSibling();
+        try {
+            // isAfter 时移到源表的下一个兄弟节点；若源表已是最后一个元素，toNextSibling 返回
+            // false 且游标仍停留在源表上，insertNewTbl 会把新表插到源表之后，结果仍正确。
+            if (isAfter) {
+                xmlCursor.toNextSibling();
+            }
+            if (isTail) {
+                while (xmlCursor.toNextSibling()) ;
+            }
+            XWPFTable table = doc.insertNewTbl(xmlCursor);
+            table.removeRow(0);
+            CTTbl ctTbl = table.getCTTbl();
+            ctTbl.set(sourceTable.getCTTbl());
+            CTRow[] trArray = ctTbl.getTrArray();
+            List<XWPFTableRow> tableRows =
+                (List<XWPFTableRow>) ReflectionUtils.getValue("tableRows", table);
+            for (int i = 0; i < trArray.length; i++) {
+                XWPFTableRow row = new XWPFTableRow(trArray[i], table);
+                tableRows.add(i, row);
+            }
+            return table;
+        } finally {
+            if (selfCreatedCursor) {
+                xmlCursor.close();
+            }
         }
-        if (isTail) {
-            while (xmlCursor.toNextSibling()) ;
-        }
-        XWPFTable table = doc.insertNewTbl(xmlCursor);
-        table.removeRow(0);
-        CTTbl ctTbl = table.getCTTbl();
-        ctTbl.set(sourceTable.getCTTbl());
-        CTRow[] trArray = ctTbl.getTrArray();
-        List<XWPFTableRow> tableRows = (List<XWPFTableRow>) ReflectionUtils.getValue("tableRows", table);
-        for (int i = 0; i < trArray.length; i++) {
-            XWPFTableRow row = new XWPFTableRow(trArray[i], table);
-            tableRows.add(i, row);
-        }
-        return table;
     }
 
     /**
@@ -125,7 +135,16 @@ public class WordTableUtils {
             return;
         }
         CTTblPr sourceTblPr = sourceTable.getCTTbl().getTblPr();
-        CTTblPr targetTblPr = targetTable.getCTTbl().getTblPr();
+        // 源表没有可复制的 tblPr 时保持目标不变，避免 set(null) 静默清空目标已有的表样式。
+        if (sourceTblPr == null) {
+            return;
+        }
+        CTTbl targetCTTbl = targetTable.getCTTbl();
+        CTTblPr targetTblPr = targetCTTbl.getTblPr();
+        if (targetTblPr == null) {
+            // 目标缺少 tblPr 时按 schema 位置新建，避免旧实现对 null 调用 set 抛出 NPE。
+            targetTblPr = targetCTTbl.addNewTblPr();
+        }
         targetTblPr.set(sourceTblPr);
     }
 

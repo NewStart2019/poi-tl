@@ -204,19 +204,71 @@ class WordTableUtilsTest {
 
     @Test
     void testCopyTable() throws Exception {
-        // 创建一个新的 Word 文档
         String file = "src/test/resources/util/copy_template.docx";
-        FileInputStream fileInputStream = new FileInputStream(file);
-        XWPFDocument document = new XWPFDocument(fileInputStream);
-        XWPFTable table = document.getTables().get(0);
-        XWPFTable newTable = WordTableUtils.copyTable(document, table, true);
+        try (FileInputStream fileInputStream = new FileInputStream(file);
+             XWPFDocument document = new XWPFDocument(fileInputStream)) {
+            XWPFTable table = document.getTables().get(0);
+            int beforeCount = document.getTables().size();
+            XWPFTable newTable = WordTableUtils.copyTable(document, table, true);
 
-        out_file = "target/test.docx";
-        // 保存文档
-        try (FileOutputStream out = new FileOutputStream(out_file)) {
-            document.write(out);
+            // 1) 新表已注册到文档，且行数与源表一致。
+            assertEquals(beforeCount + 1, document.getTables().size());
+            assertEquals(table.getRows().size(), newTable.getRows().size());
+            assertEquals(table.getCTTbl().sizeOfTrArray(), newTable.getCTTbl().sizeOfTrArray());
+
+            // 2) 逐行比较单元格数量与文本内容，确认内容完整复制。
+            for (int i = 0; i < table.getRows().size(); i++) {
+                XWPFTableRow sr = table.getRow(i);
+                XWPFTableRow tr = newTable.getRow(i);
+                assertEquals(sr.getTableCells().size(), tr.getTableCells().size());
+                for (int c = 0; c < sr.getTableCells().size(); c++) {
+                    assertEquals(sr.getCell(c).getText(), tr.getCell(c).getText());
+                }
+            }
+
+            // 3) 表样式 tblPr 与网格 tblGrid 完全一致。
+            assertEquals(table.getCTTbl().getTblPr().xmlText(),
+                newTable.getCTTbl().getTblPr().xmlText());
+            assertEquals(table.getCTTbl().getTblGrid().xmlText(),
+                newTable.getCTTbl().getTblGrid().xmlText());
+
+            // 4) 深拷贝独立性：修改副本不应影响源表。
+            String sourceText = table.getRow(0).getCell(0).getText();
+            newTable.getRow(0).getCell(0).setText("__changed__");
+            assertEquals(sourceText, table.getRow(0).getCell(0).getText());
+
+            try (FileOutputStream out = new FileOutputStream("target/test.docx")) {
+                document.write(out);
+            }
         }
-        document.close();
+    }
+
+    @Test
+    void testCopyTableTblPrEdgeCases() throws Exception {
+        // 目标缺少 tblPr：不应抛 NPE，且复制后样式与源一致。
+        XWPFDocument doc = new XWPFDocument();
+        XWPFTable source = doc.createTable(1, 1);
+        XWPFTable target = doc.createTable(1, 1);
+        target.getCTTbl().getTblPr().getDomNode().getParentNode()
+            .removeChild(target.getCTTbl().getTblPr().getDomNode());
+        assertEquals(null, target.getCTTbl().getTblPr());
+        WordTableUtils.copyTableTblPr(source, target);
+        assertEquals(source.getCTTbl().getTblPr().xmlText(),
+            target.getCTTbl().getTblPr().xmlText());
+
+        // 源缺少 tblPr：应保持目标不变（不静默清空）。
+        XWPFDocument doc2 = new XWPFDocument();
+        XWPFTable emptySource = doc2.createTable(1, 1);
+        XWPFTable keptTarget = doc2.createTable(1, 1);
+        emptySource.getCTTbl().getTblPr().getDomNode().getParentNode()
+            .removeChild(emptySource.getCTTbl().getTblPr().getDomNode());
+        String keptXml = keptTarget.getCTTbl().getTblPr().xmlText();
+        WordTableUtils.copyTableTblPr(emptySource, keptTarget);
+        assertEquals(keptXml, keptTarget.getCTTbl().getTblPr().xmlText());
+
+        // 空值防护：不抛异常。
+        WordTableUtils.copyTableTblPr(null, target);
+        WordTableUtils.copyTableTblPr(source, null);
     }
 
     @Test
