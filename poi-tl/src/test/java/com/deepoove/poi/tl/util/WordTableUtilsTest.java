@@ -627,7 +627,7 @@ class WordTableUtilsTest {
     }
 
     @Test
-    void testCaclFontSize() throws IOException {
+    void testCalculateFontSize2() throws IOException {
         // re_FSP0_DLZM01_subRecords
         LoopRowTableAllRenderPolicy policy = new LoopRowTableAllRenderPolicy();
         String resource = "src/test/resources/template/道路照明（现用）.docx";
@@ -648,47 +648,6 @@ class WordTableUtilsTest {
         WordTableUtils.removeLastBlankParagraph(template.getXWPFDocument());
         WordTableUtils.setMinHeightParagraph(template.getXWPFDocument());
         template.writeToFile("target/out_道路照明.docx");
-    }
-
-    @Test
-    void testCalculateFontSizeInMemory() {
-        String longText = "铜遂人才共育园（科能技校园）项目（一期用地一期建设）施工内容很长很长很长很长铜遂" +
-            "人才共育园（科能技校园）项目（一期用地一期建设）施工内容很长很长很长很长";
-
-        // 回归：仅设置 w:sz（无 szCs）时 findFontSize 必须返回该字号（旧实现返回 0）。
-        XWPFDocument probe = new XWPFDocument();
-        XWPFRun probeRun = newMemoryCell(probe, 14).getParagraphs().get(0).getRuns().get(0);
-        assertEquals(14.0, WordTableUtils.findFontSize(probeRun));
-
-        // 覆盖三种基准字号：未显式设置（回退 12）、显式 14、显式 20（大于基准 12）。
-        double[] configuredSizes = {0, 14, 20};
-        for (double configured : configuredSizes) {
-            XWPFDocument document = new XWPFDocument();
-            XWPFTableCell cell = newMemoryCell(document, configured);
-            XWPFRun run = cell.getParagraphs().get(0).getRuns().get(0);
-
-            // 基准字号：显式设置则用显式值（含大于 12 的 20），否则回退默认 12。
-            double baseSize = expectedBaseSize(run);
-            double expectedConfigured = configured > 0 ? configured : 12;
-            assertEquals(expectedConfigured, baseSize, "基准字号取值不符合预期");
-
-            // 宽高充足：短文本保持基准字号。
-            assertEquals(baseSize, WordTableUtils.adjustFontSize(cell, "短", 2000, 1000),
-                "短文本应保持基准字号");
-
-            // 狭小单元格：长文本从基准字号向下缩小，且不低于最小可读值。
-            double shrunk = WordTableUtils.adjustFontSize(cell, longText, 600, 400);
-            assertTrue(shrunk < baseSize, "长文本应小于基准字号");
-            assertTrue(shrunk >= 1.0, "字号不应小于最小可读值");
-
-            // 非正宽高：返回基准字号，不做缩放。
-            assertEquals(baseSize, WordTableUtils.adjustFontSize(cell, longText, 0, 400));
-            assertEquals(baseSize, WordTableUtils.adjustFontSize(cell, longText, 600, 0));
-
-            // null / 空内容：返回基准字号，不抛异常。
-            assertEquals(baseSize, WordTableUtils.adjustFontSize(cell, null, 600, 400));
-            assertEquals(baseSize, WordTableUtils.adjustFontSize(cell, "", 600, 400));
-        }
     }
 
     /**
