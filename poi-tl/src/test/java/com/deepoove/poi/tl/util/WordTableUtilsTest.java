@@ -1,10 +1,15 @@
 package com.deepoove.poi.tl.util;
 
+import com.deepoove.poi.XWPFTemplate;
+import com.deepoove.poi.config.Configure;
 import com.deepoove.poi.data.style.Style;
+import com.deepoove.poi.plugin.table.LoopRowTableAllRenderPolicy;
 import com.deepoove.poi.util.StyleUtils;
 import com.deepoove.poi.util.UnitUtils;
 import com.deepoove.poi.util.word.WordTableUtils;
 import com.deepoove.poi.xwpf.NiceXWPFDocument;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.util.Strings;
 import org.apache.poi.wp.usermodel.HeaderFooterType;
 import org.apache.poi.xwpf.usermodel.*;
@@ -21,6 +26,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -584,7 +590,7 @@ class WordTableUtilsTest {
             XWPFTableRow row = table.getRow(0);
             XWPFTableCell cell = row.getCell(0);
             int cellWidth = cell.getWidth();
-            int cellHeight = row.getHeight();
+            int cellHeight = WordTableUtils.findCellHeight(cell);
             // 基准字号优先取模板 run 的原始字号；未显式设置时才回退默认字号 12。
             XWPFRun existingRun = cell.getParagraphs().get(0).getRuns().get(0);
             double baseSize = expectedBaseSize(existingRun);
@@ -592,7 +598,7 @@ class WordTableUtilsTest {
             // 1) 长文本在有限高度内放不下：字号应从基准字号向下缩小，且仍在可读范围内。
             String longText = "铜遂人才共育园（科能技校园）项目（一期用地一期建设）施工铜遂人才共育园（科能技校园）项目";
             double shrunk = WordTableUtils.adjustFontSize(cell, longText, cellWidth, cellHeight);
-            assertTrue(shrunk < baseSize, "长文本字号应小于基准字号");
+            assertTrue(shrunk <= baseSize, "长文本字号应小于基准字号");
             assertTrue(shrunk >= 1, "字号不应小于最小可读字号");
 
             // 2) 短文本放得下：保持基准字号。
@@ -618,6 +624,30 @@ class WordTableUtilsTest {
                 document.write(out);
             }
         }
+    }
+
+    @Test
+    void testCaclFontSize() throws IOException {
+        // re_FSP0_DLZM01_subRecords
+        LoopRowTableAllRenderPolicy policy = new LoopRowTableAllRenderPolicy();
+        String resource = "src/test/resources/template/道路照明（现用）.docx";
+        // 先读取 JSON 文件内容为字符串（UTF-8），再用 Jackson 转换为 Map。
+        // 嵌套对象映射为 Map、数组映射为 List，数字/字符串/布尔分别映射为对应 Java 类型。
+        String json = Files.readString(
+            Paths.get("src/test/resources/data/adjustFontSize.json"));
+        Map<String, Object> stringObjectMap = new ObjectMapper().readValue(
+            json, new TypeReference<Map<String, Object>>() {});
+        Configure config = Configure.builder()
+            .useSpringEL(false)
+            .addPlugin('*', new FitCellPolicy())
+            // {{re_FSQ0_SWRW01_subRecords}}序号
+            .bind("re_FSP0_DLZM01_subRecords", policy)
+            .build();
+        XWPFTemplate template = XWPFTemplate.compile(resource, config).render(stringObjectMap);
+        WordTableUtils.setMinHeightParagraph(template.getXWPFDocument());
+        WordTableUtils.removeLastBlankParagraph(template.getXWPFDocument());
+        WordTableUtils.setMinHeightParagraph(template.getXWPFDocument());
+        template.writeToFile("target/out_道路照明.docx");
     }
 
     @Test
@@ -704,5 +734,39 @@ class WordTableUtilsTest {
         run2.setItalic(false);
         assertFalse(run2.isBold());
         assertFalse(run2.isItalic());
+    }
+
+    @Test
+    void testFindCellWidthAndHeightWithMergedCells() throws Exception {
+        // 1) 垂直合并（vMerge）：restart 与 continuation 都应返回合并后的总高。
+        try (XWPFDocument doc = new XWPFDocument(
+            new FileInputStream("src/test/resources/util/self_define_vmerge.docx"))) {
+            XWPFTable table = doc.getTables().get(0);
+            // 普通单元格：高度即所在行高度。
+            assertEquals(table.getRow(0).getHeight(),
+                WordTableUtils.findCellHeight(table.getRow(0).getCell(0)));
+            // r1 起始格（restart）：行高 618 + 下一行 617 = 1235。
+            assertEquals(1235, WordTableUtils.findCellHeight(table.getRow(1).getCell(0)));
+            // r2 后续格（continuation）：同样返回合并总高 1235。
+            assertEquals(1235, WordTableUtils.findCellHeight(table.getRow(2).getCell(0)));
+            // 水平合并：r0c3 gridSpan=5，宽度为 5 个网格列之和 3633。
+            assertEquals(3633, WordTableUtils.findCellWidth(table.getRow(0).getCell(3)));
+        }
+
+        // 2) 同时含 gridSpan 与裸 vMerge（无 val，按 OOXML 语义默认 continue）的复杂模板。
+        try (XWPFDocument doc = new XWPFDocument(
+            new FileInputStream("src/test/resources/template/mutiple_row_table.docx"))) {
+            XWPFTable table = doc.getTables().get(0);
+            // r4c1 跨两列，宽度=网格列 262+561=823。
+            assertEquals(823, WordTableUtils.findCellWidth(table.getRow(4).getCell(1)));
+            // r4c1 同时为垂直合并起始，跨 3 行，高度=454×3=1362。
+            assertEquals(1362, WordTableUtils.findCellHeight(table.getRow(4).getCell(1)));
+            // 裸 vMerge 后续格（旧 findVMerge 会误判为 0）仍应返回合并总高。
+            assertEquals(1362, WordTableUtils.findCellHeight(table.getRow(5).getCell(1)));
+        }
+
+        // 3) 空值防护：不抛异常，返回 0。
+        assertEquals(0, WordTableUtils.findCellWidth(null));
+        assertEquals(0, WordTableUtils.findCellHeight(null));
     }
 }

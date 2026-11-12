@@ -38,6 +38,24 @@ public class WordTableUtils {
 
     private static final Logger logger = LoggerFactory.getLogger(WordTableUtils.class);
 
+    /**
+     * 无垂直合并标记。
+     */
+    private static final int VMERGE_NONE = 0;
+    /**
+     * 垂直合并的后续单元格（vMerge=continue，含未显式写 val 的情况）。
+     */
+    private static final int VMERGE_CONTINUE = 1;
+    /**
+     * 垂直合并的起始单元格（vMerge=restart）。
+     */
+    private static final int VMERGE_RESTART = 2;
+
+    /**
+     * 1 点对应的 twips 数（1 point = 20 twips）。
+     */
+    private static final int TWIPS_PER_POINT = 20;
+
     public static XWPFTable copyTable(XWPFDocument doc, XWPFTable sourceTable) {
         return copyTable(doc, sourceTable, null, true, false);
     }
@@ -858,12 +876,158 @@ public class WordTableUtils {
         return row.getHeight();
     }
 
-    public static String findCellWidth(XWPFTableCell cell) {
+
+    /**
+     * 获取单元格宽度（单位：twips），支持水平合并（gridSpan/跨列）。
+     *
+     * <p>优先按表格网格（tblGrid）累加该单元格覆盖的所有网格列宽，普通单元格（span=1）与
+     * 跨列单元格口径一致；网格缺失或为自动宽度（列宽为 0）时回退到单元格自身的 tcW，
+     * 合并单元格通常已在其中写入合并后的总宽。
+     *
+     * @param cell 单元格
+     * @return 宽度（twips）；无法确定时返回 0
+     */
+    public static int findCellWidth(XWPFTableCell cell) {
+        if (cell == null) {
+            return 0;
+        }
+        XWPFTable table = cell.getTableRow().getTable();
+        int startGridCol = findCellStartGridCol(cell);
+        int gridSpan = findTableCellGridSpan(cell);
+
+        // 首选：按 tblGrid 累加 gridSpan 覆盖的网格列。
+        CTTblGrid grid = table.getCTTbl().getTblGrid();
+        if (grid != null && grid.sizeOfGridColArray() > 0) {
+            int gridCount = grid.sizeOfGridColArray();
+            int sum = 0;
+            boolean covered = true;
+            for (int i = 0; i < gridSpan; i++) {
+                int colIndex = startGridCol + i;
+                if (colIndex >= gridCount) {
+                    covered = false;
+                    break;
+                }
+                sum += toTwips(grid.getGridColArray(colIndex).getW());
+            }
+            if (covered && sum > 0) {
+                return sum;
+            }
+        }
+
+        // 回退：单元格自身 tcW（旧实现用 (int) 强转 BigInteger 会抛 ClassCastException，这里统一走 toTwips）。
         CTTcPr tcPr = cell.getCTTc().getTcPr();
         if (tcPr != null && tcPr.isSetTcW()) {
-            return tcPr.getTcW().getW().toString();
+            return toTwips(tcPr.getTcW().getW());
         }
-        return "0";
+        return 0;
+    }
+
+    /**
+     * 获取单元格高度（单位：twips），支持垂直合并（vMerge/跨行）。
+     *
+     * <p>若单元格处于垂直合并中，先定位到合并起始行（vMerge=restart），再累加起始行及其后
+     * 同网格列上所有 continuation 行的行高；普通单元格直接返回所在行高度。
+     *
+     * @param cell 单元格
+     * @return 高度（twips）；无法确定时返回 0
+     */
+    public static int findCellHeight(XWPFTableCell cell) {
+        if (cell == null) {
+            return 0;
+        }
+        XWPFTable table = cell.getTableRow().getTable();
+        int gridCol = findCellStartGridCol(cell);
+
+        // 若传入的是 continue，则向上回溯到合并起始行（restart）。
+        int startRow = findRowIndex(cell);
+        while (startRow > 0
+            && vMergeState(findCellAtGridColumn(table.getRow(startRow), gridCol)) == VMERGE_CONTINUE) {
+            startRow--;
+        }
+
+        int totalHeight = 0;
+        int rowCount = table.getRows().size();
+        for (int r = startRow; r < rowCount; r++) {
+            XWPFTableCell current = findCellAtGridColumn(table.getRow(r), gridCol);
+            if (current == null) {
+                break;
+            }
+            int state = vMergeState(current);
+            if (r == startRow) {
+                // 起始行：计入行高；若并非合并单元格（无 vMerge）则直接结束。
+                totalHeight += findRowHeight(table.getRow(r));
+                if (state == VMERGE_NONE) {
+                    break;
+                }
+            } else if (state == VMERGE_CONTINUE) {
+                totalHeight += findRowHeight(table.getRow(r));
+            } else {
+                // 遇到新的 restart 或无 vMerge，当前垂直合并结束。
+                break;
+            }
+        }
+        return totalHeight;
+    }
+
+    /**
+     * 计算单元格在表格网格中的起始列索引（累加其前面所有单元格的 gridSpan）。
+     *
+     * @param cell 单元格
+     * @return 起始网格列索引（从 0 开始）
+     */
+    public static int findCellStartGridCol(XWPFTableCell cell) {
+        CTTc target = cell.getCTTc();
+        int startGridCol = 0;
+        for (XWPFTableCell sibling : cell.getTableRow().getTableCells()) {
+            if (sibling.getCTTc() == target) {
+                break;
+            }
+            startGridCol += findTableCellGridSpan(sibling);
+        }
+        return startGridCol;
+    }
+
+    /**
+     * 按网格列索引定位某行中覆盖该列的单元格（兼容行内 gridSpan 导致的列错位）。
+     *
+     * @param row     行
+     * @param gridCol 网格列索引
+     * @return 覆盖该列的单元格；行内不存在时返回 null
+     */
+    public static XWPFTableCell findCellAtGridColumn(XWPFTableRow row, int gridCol) {
+        int accumulated = 0;
+        for (XWPFTableCell candidate : row.getTableCells()) {
+            int span = findTableCellGridSpan(candidate);
+            if (gridCol < accumulated + span) {
+                return candidate;
+            }
+            accumulated += span;
+        }
+        return null;
+    }
+
+    /**
+     * 读取单元格的垂直合并状态。
+     *
+     * <p>vMerge 未显式写 val 时按 OOXML 语义默认 continue。
+     *
+     * @param cell 单元格
+     * @return {@link #VMERGE_NONE}（无合并）、{@link #VMERGE_CONTINUE}（后续）或
+     * {@link #VMERGE_RESTART}（起始）
+     */
+    public static int vMergeState(XWPFTableCell cell) {
+        if (cell == null) {
+            return VMERGE_NONE;
+        }
+        CTTcPr tcPr = cell.getCTTc().getTcPr();
+        if (tcPr == null || !tcPr.isSetVMerge()) {
+            return VMERGE_NONE;
+        }
+        CTVMerge vMerge = tcPr.getVMerge();
+        if (vMerge != null && vMerge.isSetVal() && vMerge.getVal() == STMerge.RESTART) {
+            return VMERGE_RESTART;
+        }
+        return VMERGE_CONTINUE;
     }
 
     /**
@@ -1706,14 +1870,27 @@ public class WordTableUtils {
         }
     }
 
-    /** 1 点对应的 twips 数（1 point = 20 twips）。 */
-    private static final int TWIPS_PER_POINT = 20;
-    /** 默认字号（点）。 */
+    /**
+     * 默认字号（点）。
+     */
     private static final double DEFAULT_FONT_SIZE = 12;
-    /** 最小可读字号（点）。 */
+    /**
+     * 最小可读字号（点）。
+     */
     private static final double MIN_FONT_SIZE = 1;
-    /** 字号递减步长（点）。 */
-    private static final double FONT_SIZE_STEP = 0.2;
+    /**
+     * 字号递减步长（点）。
+     */
+    private static final double FONT_SIZE_STEP = 0.5;
+    /**
+     * 高度安全系数：对计算出的所需高度预留 8% 余量。
+     *
+     * <p>不同渲染器对同一字体的行高口径不同（宋体 win 指标为 1.0× em，而 hhea/typo 含行间距
+     * 为 1.14× em，LibreOffice 取后者、Word 取前者），且半磅取整、居中对齐都会累积误差。
+     * 预留固定比例余量可保证选出的字号在各渲染器下都不被 exact 固定行高裁剪，属工程上的
+     * 保守取值，而非随机魔数。
+     */
+    private static final double HEIGHT_SAFETY_FACTOR = 1.08;
 
     /**
      * 根据单元格宽高与文本内容计算可容纳的字号（单位：点）。
@@ -1763,20 +1940,26 @@ public class WordTableUtils {
             return baseSize;
         }
 
-        // 可用宽度：扣除左右缩进；缩进异常导致非正时回退到单元格宽度。
-        double usableWidth = cellWidth - paragraph.getIndentationLeft() - paragraph.getIndentationRight();
+        // 单元格内边距（tcMar → 表级 tblCellMar → Word 默认值）。文字只能在扣除内边距后的
+        // 区域内排版，不扣除会高估可用宽度，导致字号偏大、文字被单元格裁剪。
+        Insets cellMargin = cellMarginTwips(cell);
+
+        // 可用宽度：扣除单元格左右内边距与段落左右缩进；结果非正时回退到单元格宽度。
+        double usableWidth = cellWidth - cellMargin.left - cellMargin.right
+            - paragraph.getIndentationLeft() - paragraph.getIndentationRight();
         if (usableWidth <= 0) {
             usableWidth = cellWidth;
+        }
+        // 可用高度：扣除单元格上下内边距；结果非正时回退到单元格高度。
+        double usableHeight = cellHeight - cellMargin.top - cellMargin.bottom;
+        if (usableHeight <= 0) {
+            usableHeight = cellHeight;
         }
         // 首行额外缩进（首行缩进 - 悬挂），计入文本宽度。
         int firstLineExtra = paragraph.getFirstLineIndent();
 
         CTSpacing spacing = readSpacing(paragraph);
 
-        String fontFamily = run.getFontFamily();
-        if (fontFamily == null) {
-            fontFamily = "SimSun";
-        }
         int style = Font.PLAIN;
         // 位或组合，粗体与斜体可同时生效；isBold/isItalic 已正确处理 val=0 的显式关闭。
         if (run.isBold()) {
@@ -1787,8 +1970,9 @@ public class WordTableUtils {
         }
 
         FontRenderContext frc = new FontRenderContext(new AffineTransform(), true, true);
-        // 先建 1 号基准字体，再用 deriveFont 应用各候选字号，保留小数字号且不截断。
-        Font templateFont = new Font(fontFamily, style, 1);
+        // 选择与文本实际脚本匹配的测量字体：中文等东亚文字必须用 eastAsia 字体，
+        // 若用 ascii 的 Times New Roman 会明显低估宽度、算出偏大的字号。
+        Font templateFont = resolveMeasureFont(run, content, style);
 
         double candidate = baseSize;
         while (candidate >= MIN_FONT_SIZE) {
@@ -1797,9 +1981,10 @@ public class WordTableUtils {
             double textWidth = font.getStringBounds(content, frc).getWidth() * TWIPS_PER_POINT
                 + firstLineExtra;
             int lineCount = (int) Math.ceil(textWidth / usableWidth);
-            double lineHeight = lineHeightTwips(spacing, candidate);
+            double lineHeight = lineHeightTwips(spacing, font, frc);
             double neededHeight = lineCount * lineHeight + verticalPaddingTwips(spacing, lineHeight);
-            if (neededHeight <= cellHeight) {
+            // 预留安全余量后再比较，确保居中块在各渲染器行高口径与取整误差下都不越过行格边界。
+            if (neededHeight * HEIGHT_SAFETY_FACTOR <= usableHeight) {
                 return candidate;
             }
             candidate -= FONT_SIZE_STEP;
@@ -1808,7 +1993,139 @@ public class WordTableUtils {
         return MIN_FONT_SIZE;
     }
 
-    /** 读取段落的间距设置，未设置时返回 null。 */
+    /**
+     * 读取单元格内边距（twips）。优先取单元格级 w:tcMar，其次表级 w:tblCellMar，
+     * 两者都未设置时回退到 Word 默认值（左右各 108、上下 0）。
+     *
+     * @return 按 top/left/bottom/right 顺序封装的内边距
+     */
+    private static Insets cellMarginTwips(XWPFTableCell cell) {
+        int top = 0;
+        /**
+         *  Word 默认单元格左右内边距（twips，各 108）。
+         */
+        int DEFAULT_CELL_MARGIN_X = 108;
+        int left = DEFAULT_CELL_MARGIN_X;
+        int bottom = 0;
+        int right = DEFAULT_CELL_MARGIN_X;
+
+        CTTcMar tcMar = null;
+        CTTcPr tcPr = cell.getCTTc().getTcPr();
+        if (tcPr != null && tcPr.isSetTcMar()) {
+            tcMar = tcPr.getTcMar();
+        }
+        CTTblCellMar tblMar = null;
+        CTTblPr tblPr = cell.getTableRow().getTable().getCTTbl().getTblPr();
+        if (tblPr != null && tblPr.isSetTblCellMar()) {
+            tblMar = tblPr.getTblCellMar();
+        }
+
+        if (tcMar != null) {
+            top = marginTwips(tcMar.getTop(), top);
+            left = marginTwips(tcMar.getLeft(), left);
+            bottom = marginTwips(tcMar.getBottom(), bottom);
+            right = marginTwips(tcMar.getRight(), right);
+        } else if (tblMar != null) {
+            top = marginTwips(tblMar.getTop(), top);
+            left = marginTwips(tblMar.getLeft(), left);
+            bottom = marginTwips(tblMar.getBottom(), bottom);
+            right = marginTwips(tblMar.getRight(), right);
+        }
+        return new Insets(top, left, bottom, right);
+    }
+
+    /**
+     * 读取单个内边距（仅支持绝对 dxa 单位），缺失或非法时返回默认值。
+     */
+    private static int marginTwips(CTTblWidth width, int fallback) {
+        if (width == null || width.getW() == null) {
+            return fallback;
+        }
+        Object w = width.getW();
+        if (w instanceof Number) {
+            return ((Number) w).intValue();
+        }
+        try {
+            return Integer.parseInt(w.toString());
+        } catch (NumberFormatException e) {
+            return fallback;
+        }
+    }
+
+    /**
+     * 选择用于测量文本宽度的 AWT 字体。
+     *
+     * <p>Word 中 ascii/hAnsi 与 eastAsia 分别使用不同字体：中文等东亚文字实际由 eastAsia
+     * 字体渲染。若一律用 ascii 字体（如 Times New Roman）测量，其东亚字符回退字形明显偏窄，
+     * 会低估文本宽度、算出偏大的字号。这里按文本脚本优先选择对应字体，并通过
+     * {@link Font#canDisplayUpTo(String)} 确认字体可完整渲染，否则逐级回退，最后使用
+     * 逻辑字体 {@link Font#SANS_SERIF}（Windows 上映射为含中文字形的字体）。
+     *
+     * @return 字号为 1 的基准字体，后续用 {@link Font#deriveFont(float)} 应用候选字号
+     */
+    private static Font resolveMeasureFont(XWPFRun run, String content, int style) {
+        String ascii = run.getFontFamily(XWPFRun.FontCharRange.ascii);
+        String hAnsi = run.getFontFamily(XWPFRun.FontCharRange.hAnsi);
+        String eastAsia = run.getFontFamily(XWPFRun.FontCharRange.eastAsia);
+
+        // 按内容脚本排列候选字体优先级：含东亚文字时 eastAsia 优先，否则 ascii 优先。
+        List<String> families = new ArrayList<>();
+        if (containsEastAsian(content)) {
+            addIfNotBlank(families, eastAsia);
+            addIfNotBlank(families, ascii);
+            addIfNotBlank(families, hAnsi);
+        } else {
+            addIfNotBlank(families, ascii);
+            addIfNotBlank(families, hAnsi);
+            addIfNotBlank(families, eastAsia);
+        }
+
+        for (String family : families) {
+            Font font = new Font(family, style, 1);
+            // 字体名可被解析且能完整显示全部文本时才采用。
+            if (font.canDisplayUpTo(content) == -1) {
+                return font;
+            }
+        }
+        // 兜底：逻辑 SansSerif 在 Windows 上可覆盖中文。
+        return new Font(Font.SANS_SERIF, style, 1);
+    }
+
+    private static void addIfNotBlank(List<String> list, String value) {
+        if (value != null && !value.trim().isEmpty() && !list.contains(value)) {
+            list.add(value);
+        }
+    }
+
+    /**
+     * 判断文本是否包含东亚文字（CJK 统一表意文字及扩展、日文假名、韩文谚文、CJK 标点、
+     * 全角字符等），用于决定测量字体的优先级。
+     */
+    private static boolean containsEastAsian(String content) {
+        for (int i = 0; i < content.length(); ) {
+            int cp = content.codePointAt(i);
+            i += Character.charCount(cp);
+            if (isEastAsianCodePoint(cp)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean isEastAsianCodePoint(int cp) {
+        return (cp >= 0x4E00 && cp <= 0x9FFF)     // CJK 统一表意文字
+            || (cp >= 0x3400 && cp <= 0x4DBF)     // CJK 扩展 A
+            || (cp >= 0x20000 && cp <= 0x2A6DF)   // CJK 扩展 B
+            || (cp >= 0x3040 && cp <= 0x309F)     // 平假名
+            || (cp >= 0x30A0 && cp <= 0x30FF)     // 片假名
+            || (cp >= 0xAC00 && cp <= 0xD7AF)     // 韩文谚文音节
+            || (cp >= 0x3000 && cp <= 0x303F)     // CJK 标点
+            || (cp >= 0xFF00 && cp <= 0xFFEF);    // 全角 ASCII/标点
+    }
+
+    /**
+     * 读取段落的间距设置，未设置时返回 null。
+     */
     private static CTSpacing readSpacing(XWPFParagraph paragraph) {
         CTP ctp = paragraph.getCTP();
         if (ctp.isSetPPr() && ctp.getPPr().isSetSpacing()) {
@@ -1820,22 +2137,40 @@ public class WordTableUtils {
     /**
      * 计算单行高度（twips）。
      *
-     * <p>EXACT/AT_LEAST 行距直接取 twips；AUTO（多倍行距）按 1/240 行倍数乘以自然行高；
-     * 未设置行距时，自然行高近似为字号（点）× 20。
+     * <p>EXACT 行距直接取固定 twips；AT_LEAST 取固定值与自然行高的较大者（避免自然行高
+     * 超过下限而被低估）；AUTO（多倍行距）按 1/240 行倍数乘以自然行高；未设置行距时
+     * 直接使用自然行高。
+     *
+     * <p>自然行高取自 AWT 字体的 ascent + descent + leading（含东亚字体的内部行距），
+     * 而非简单的字号 em 尺寸——宋体等字体的单倍行高约为 em 的 1.14 倍，用 em 会低估行高、
+     * 导致在固定行高（exact）单元格内文字被裁剪。
      */
-    private static double lineHeightTwips(CTSpacing spacing, double fontSizePoints) {
-        double naturalHeight = fontSizePoints * TWIPS_PER_POINT;
+    private static double lineHeightTwips(CTSpacing spacing, Font font, FontRenderContext frc) {
+        double naturalHeight = naturalLineHeightTwips(font, frc);
         if (spacing == null || !spacing.isSetLine()) {
             return naturalHeight;
         }
         int line = toTwips(spacing.getLine());
         STLineSpacingRule.Enum rule = spacing.isSetLineRule()
             ? spacing.getLineRule() : STLineSpacingRule.AUTO;
-        if (rule == STLineSpacingRule.EXACT || rule == STLineSpacingRule.AT_LEAST) {
+        if (rule == STLineSpacingRule.EXACT) {
             return line;
         }
-        // AUTO：line 以 1/240 行表示。
+        if (rule == STLineSpacingRule.AT_LEAST) {
+            return Math.max(line, naturalHeight);
+        }
+        // AUTO：line 以 1/240 行表示，240 即单倍自然行高。
         return line / 240.0 * naturalHeight;
+    }
+
+    /**
+     * 测量字体的自然单倍行高（twips）。样本同时包含拉丁与 CJK 字符，确保取到
+     * 东亚字体完整的 ascent/descent/leading。
+     */
+    private static double naturalLineHeightTwips(Font font, FontRenderContext frc) {
+        java.awt.font.LineMetrics lm = font.getLineMetrics("Ay中", frc);
+        double linePt = lm.getAscent() + lm.getDescent() + lm.getLeading();
+        return linePt * TWIPS_PER_POINT;
     }
 
     /**
@@ -1862,7 +2197,9 @@ public class WordTableUtils {
         return padding;
     }
 
-    /** 将间距值安全转换为 twips（兼容 Number 与字符串表示）。 */
+    /**
+     * 将间距值安全转换为 twips（兼容 Number 与字符串表示）。
+     */
     private static int toTwips(Object value) {
         if (value == null) {
             return 0;
@@ -1877,10 +2214,10 @@ public class WordTableUtils {
     /**
      * Migrate the content and cell attributes of the "restart" cell to the corresponding column in the specified reserved row.
      *
-     * @param table            {@link XWPFTable}
-     * @param restartRowIndex  restart the line
-     * @param col              column index
-     * @param targetRowIndex   first reserved row index
+     * @param table           {@link XWPFTable}
+     * @param restartRowIndex restart the line
+     * @param col             column index
+     * @param targetRowIndex  first reserved row index
      */
     public static void moveRestartCell(XWPFTable table, int restartRowIndex, int col, int targetRowIndex) {
         XWPFTableCell source = table.getRow(restartRowIndex).getCell(col);
