@@ -130,7 +130,8 @@ public abstract class AbstractChartTemplateRenderPolicy<T> extends AbstractTempl
         Method method = XDDFChart.class.getDeclaredMethod("fillSheet", XSSFSheet.class, XDDFDataSource.class,
                 XDDFNumericalDataSource.class);
         method.setAccessible(true);
-        for (XDDFChartData.Series series : data.getSeries()) {
+        for (int i = 0; i < data.getSeriesCount(); i++) {
+            XDDFChartData.Series series = data.getSeries(i);
             boolean numeric = series.getCategoryData().isNumeric();
             if (!numeric) {
                 Method getAxDSMethod = series.getClass().getDeclaredMethod("getAxDS");

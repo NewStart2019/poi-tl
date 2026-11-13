@@ -121,7 +121,6 @@ public class LoopRowTableAllRenderPolicyTest {
     }
 
     @Test
-    @Disabled
     public void testLoopExistedRow() throws Exception {
         resource = "src/test/resources/template/render_existed_fill.docx";
         ArrayList<Integer> conditions = new ArrayList<>();

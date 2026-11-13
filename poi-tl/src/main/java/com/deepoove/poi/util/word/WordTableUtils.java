@@ -14,6 +14,7 @@ import org.apache.poi.wp.usermodel.Paragraph;
 import org.apache.poi.xwpf.usermodel.*;
 import org.apache.xmlbeans.XmlCursor;
 import org.apache.xmlbeans.XmlObject;
+import org.openxmlformats.schemas.drawingml.x2006.main.CTBlip;
 import org.openxmlformats.schemas.drawingml.x2006.picture.CTPicture;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.*;
 import org.slf4j.Logger;
@@ -56,6 +57,10 @@ public class WordTableUtils {
      */
     private static final int TWIPS_PER_POINT = 20;
 
+    /** 查找行内所有图片 blip 节点的 XPath（用于跨文档复制后重映射图片关系）。 */
+    private static final String XPATH_BLIP =
+        "declare namespace a='http://schemas.openxmlformats.org/drawingml/2006/main' .//a:blip";
+
     public static XWPFTable copyTable(XWPFDocument doc, XWPFTable sourceTable) {
         return copyTable(doc, sourceTable, null, true, false);
     }
@@ -76,7 +81,11 @@ public class WordTableUtils {
      * <p>Copy the specified table after the specified {@link XmlCursor xmlCursor}. If <b>{@link XmlCursor xmlCursor}</b> parameter is <b>empty</b>,
      * it will be added by default before the position of the <b>current</b> tbale.</p>
      * <p>If isTail is True, the new table will be placed at the end of the document.</p>
-     * <p>If the {@link XmlCursor xmlCursor} parameter is created externally, remember to release the resource yourself</p>
+     * <p><b>Notice: </b></p>
+     * <ul>
+     *     <li>If the {@link XmlCursor xmlCursor} parameter is created externally, remember to release the resource yourself</li>
+     *     <li>The copy table function can only be used to copy within the same table</li>
+     * </ul>
      *
      * @param doc         {@link XWPFDocument doc}
      * @param sourceTable {@link XWPFTable sourceTable}
@@ -149,18 +158,98 @@ public class WordTableUtils {
     }
 
     /**
-     * <p>TODO Copy the content of the current line to the next line.</p>
+     * 复制表格行（含行内所有单元格内容与样式）到目标行。
      *
-     * @param currentLine    {@link XWPFTableRow currentLine}
-     * @param nextLine       {@link  XWPFTableRow nextLine}
-     * @param isIncludeStyle boolean, whether to keep the style of the target cell
+     * <p>支持三种场景：同一文档的同一表格、同一文档的不同表格、不同文档的不同表格。
+     * 行级属性（trPr，如行高/对齐）、单元格属性（TcPr，如 gridSpan/vMerge/宽高/边框）与段落、
+     * run 样式都会随 XML 一并复制；跨文档复制时，图片关系（r:id）会被重映射到目标文档，
+     * 避免出现悬空引用。</p>
+     * <p>提示：注意原来的表格行的单元格有跨列需压迫自行处理这种特殊情况</p>
+     *
+     * @param currentLine    源行
+     * @param nextLine       目标行（已存在于目标表格中）
+     * @param isIncludeStyle true：连同样式完整复制；false：仅复制文本，保留目标行原有样式
      */
     public static void copyLine(XWPFTableRow currentLine, XWPFTableRow nextLine, boolean isIncludeStyle) {
-        // if in the same document
-        XWPFTable sourceTable = currentLine.getTable();
-        XWPFTable targetTable = currentLine.getTable();
+        if (currentLine == null || nextLine == null) {
+            return;
+        }
+        XWPFTable targetTable = nextLine.getTable();
+        XWPFDocument sourceDoc = currentLine.getTable().getBody().getXWPFDocument();
+        XWPFDocument targetDoc = targetTable.getBody().getXWPFDocument();
+        boolean sameDoc = sourceDoc == targetDoc;
 
-        if (sourceTable == targetTable) {
+        if (isIncludeStyle) {
+            // 深拷贝整段行 XML：trPr、各 TcPr（gridSpan/vMerge/宽高/边框）与全部内容，
+            // 同表复制时源行与目标行底层对象互不影响。
+            nextLine.getCtRow().set(currentLine.getCtRow());
+            // 去掉目标行的跨行（vMerge）设置，使复制出的行成为独立行，不再与源行共享垂直合并。
+            if (!sameDoc) {
+                // 跨文档：XML 中的图片 r:id 仍指向源文档，需要把图片数据加入目标文档并重映射。
+                remapRowPictureRelations(nextLine, sourceDoc, targetDoc);
+            }
+        } else {
+            // 仅复制文本内容，保留目标行自身的 trPr 与单元格 TcPr。
+            copyLineContentOnly(currentLine, nextLine);
+        }
+
+        // 底层 CTRow 变化后，同步刷新目标行内部的单元格包装，避免高层 getCell 与底层 tc 脱节。
+        refreshRowCells(nextLine, targetTable);
+    }
+
+    /**
+     * 跨文档复制后，把目标行内所有图片的 blip 引用重映射到目标文档。
+     *
+     * @param targetRow 目标行（已复制源行 XML）
+     * @param sourceDoc 源文档
+     * @param targetDoc 目标文档
+     */
+    private static void remapRowPictureRelations(XWPFTableRow targetRow, XWPFDocument sourceDoc,
+                                                 XWPFDocument targetDoc) {
+        XmlObject[] blips = targetRow.getCtRow().selectPath(XPATH_BLIP);
+        for (XmlObject obj : blips) {
+            CTBlip blip = (CTBlip) obj;
+            if (!blip.isSetEmbed()) {
+                continue;
+            }
+            String oldId = blip.getEmbed();
+            XWPFPictureData picture = sourceDoc.getPictureDataByID(oldId);
+            if (picture == null) {
+                continue;
+            }
+            try {
+                String newId = targetDoc.addPictureData(picture.getData(), picture.getPictureType());
+                blip.setEmbed(newId);
+            } catch (InvalidFormatException e) {
+                logger.warn("Failed to remap picture relation {} when copying row across documents", oldId, e);
+            }
+        }
+    }
+
+    /**
+     * Only copy the text content to the target row, retaining the style and structure of each cell in the target row.
+     */
+    private static void copyLineContentOnly(XWPFTableRow source, XWPFTableRow target) {
+        List<XWPFTableCell> sourceCells = source.getTableCells();
+        for (int i = 0; i < sourceCells.size(); i++) {
+            XWPFTableCell targetCell = i < target.getTableCells().size()
+                ? target.getCell(i) : target.addNewTableCell();
+            // copyCellContent 保留目标段落属性，仅复制源段落文本。
+            copyCellContent(sourceCells.get(i), targetCell, false);
+        }
+    }
+
+
+    /**
+     * 底层 CTRow 变化后，原地重建目标行的单元格包装列表，保证高层 API 与底层 tc 一致。
+     */
+    @SuppressWarnings("unchecked")
+    private static void refreshRowCells(XWPFTableRow row, XWPFTable table) {
+        List<XWPFTableCell> cells =
+            (List<XWPFTableCell>) ReflectionUtils.getValue("tableCells", row);
+        cells.clear();
+        for (CTTc ctTc : row.getCtRow().getTcList()) {
+            cells.add(new XWPFTableCell(ctTc, row, table.getBody()));
         }
     }
 
@@ -183,28 +272,36 @@ public class WordTableUtils {
         }
         XWPFTable table = nextLine.getTable();
         if (CollectionUtils.isEmpty(nextLine.getTableCells())) {
-            // 复制行
-            XmlCursor sourceCursor = currentLine.getCtRow().newCursor();
-            XmlObject object = sourceCursor.getObject();
-            XmlObject targetXmlObject = nextLine.getCtRow().newCursor().getObject();
-            targetXmlObject = targetXmlObject.set(object);
-            nextLine = new XWPFTableRow((CTRow) targetXmlObject, table);
-            setTableRow(table, nextLine, templateRowIndex);
-        } else {
-            List<XWPFTableCell> tableCells = currentLine.getTableCells();
-            int nextCellSize = nextLine.getTableCells().size() - 1;
-            for (int i = 0; i < tableCells.size(); i++) {
-                XWPFTableCell currentCell = tableCells.get(i);
-                boolean isNoHasCell = nextCellSize < i;
-                XWPFTableCell nextCell = isNoHasCell ? nextLine.addNewTableCell() : nextLine.getCell(i);
-                copyCellContent(currentCell, nextCell, isNoHasCell);
-            }
-            if (nextLine.getCtRow().isSetTrPr()) {
-                nextLine.getCtRow().unsetTrPr();
-                nextLine.getCtRow().setTrPr(currentLine.getCtRow().getTrPr());
-            }
+            // 目标是无单元格的新建空行：直接在底层 CTRow 上深拷贝源行 XML（无需 XmlCursor， 再原地刷新单元格包装。
+            nextLine.getCtRow().set(currentLine.getCtRow());
+            refreshRowCells(nextLine, table);
+            return nextLine;
         }
+
+        // 目标已有单元格：逐格复制内容，单元格不足时新建。
+        List<XWPFTableCell> sourceCells = currentLine.getTableCells();
+        int nextCellSize = nextLine.getTableCells().size() - 1;
+        for (int i = 0; i < sourceCells.size(); i++) {
+            boolean isNoHasCell = nextCellSize < i;
+            XWPFTableCell nextCell = isNoHasCell ? nextLine.addNewTableCell() : nextLine.getCell(i);
+            copyCellContent(sourceCells.get(i), nextCell, isNoHasCell);
+        }
+        // 复制行级属性（行高/对齐等）
+        copyTrPr(currentLine.getCtRow(), nextLine.getCtRow());
         return nextLine;
+    }
+
+    /**
+     * 把源行的 trPr（行高、对齐、分页控制等）复制到目标行。
+     *
+     * <p>源行没有 trPr 时保持目标不变；目标缺少 trPr 时按 schema 位置新建，避免空指针。
+     */
+    private static void copyTrPr(CTRow source, CTRow target) {
+        if (!source.isSetTrPr()) {
+            return;
+        }
+        CTTrPr targetTrPr = target.isSetTrPr() ? target.getTrPr() : target.addNewTrPr();
+        targetTrPr.set(source.getTrPr());
     }
 
     /**
@@ -543,6 +640,27 @@ public class WordTableUtils {
         XWPFTable table = row.getTable();
         int rowIndex = findRowIndex(table, row.getCtRow());
         table.removeRow(rowIndex);
+    }
+
+    public static void removeRowVMerge(XWPFTableRow tableRow) {
+        removeRowVMerge(tableRow.getCtRow());
+    }
+
+    /**
+     * 移除行内所有单元格的垂直合并（vMerge，即跨行）标记，保留其余 TcPr（宽度、边框、gridSpan 等）。
+     *
+     * <p>无论 vMerge 是 restart 还是 continue（含未显式写 val 的情况）都移除，使复制出的行
+     * 不再与目标表中的相邻行发生垂直合并。
+     */
+    public static void removeRowVMerge(CTRow ctRow) {
+        for (CTTc ctTc : ctRow.getTcList()) {
+            if (ctTc.isSetTcPr()) {
+                CTTcPr tcPr = ctTc.getTcPr();
+                if (tcPr.isSetVMerge()) {
+                    tcPr.unsetVMerge();
+                }
+            }
+        }
     }
 
     public static void removeLastRow(XWPFTable table) {

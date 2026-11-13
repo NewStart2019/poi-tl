@@ -16,8 +16,8 @@ import org.apache.poi.xwpf.usermodel.*;
 import org.apache.xmlbeans.XmlCursor;
 import org.apache.xmlbeans.XmlException;
 import org.apache.xmlbeans.XmlObject;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.openxmlformats.schemas.drawingml.x2006.main.CTBlip;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.*;
 
 import javax.xml.namespace.QName;
@@ -28,9 +28,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.*;
 
 class WordTableUtilsTest {
 
@@ -113,27 +111,180 @@ class WordTableUtilsTest {
         }
     }
 
+    private static final String COPY_TEMPLATE = "src/test/resources/util/copy_template.docx";
+
+    /**
+     * 查找单元格内所有图片 blip 节点。
+     */
+    private static XmlObject[] blipsOf(XWPFTableCell cell) {
+        return cell.getCTTc().selectPath(
+            "declare namespace a='http://schemas.openxmlformats.org/drawingml/2006/main' .//a:blip");
+    }
+
     @Test
-    void testRowCopy() throws Exception {
-        String template = "src/test/resources/util/copy_template.docx";
-        String template2 = "target/out_copy_row_copys.docx";
-        try (FileInputStream fileInputStream = new FileInputStream(template);
-             XWPFDocument document = new XWPFDocument(fileInputStream);
-             XWPFDocument document2 = new XWPFDocument()) {
-            XWPFTable table1 = document.getTables().get(0);
+    void testCopyLineSameTable() throws Exception {
+        try (FileInputStream in = new FileInputStream(COPY_TEMPLATE);
+             XWPFDocument doc = new XWPFDocument(in)) {
+            XWPFTable table = doc.getTables().get(0);
+            XWPFTableRow source = table.getRow(0);
+            // 默认是在表格尾部创建新的行
+            XWPFTableRow target = table.createRow();
+            WordTableUtils.copyLine(source, target, true);
 
+            // 单元格数量与底层 tc 一致
+            assertEquals(source.getTableCells().size(), target.getTableCells().size());
+            assertEquals(source.getCtRow().sizeOfTcArray(), target.getCtRow().sizeOfTcArray());
+            // 文本逐格一致
+            for (int i = 0; i < source.getTableCells().size(); i++) {
+                assertEquals(source.getCell(i).getText(), target.getCell(i).getText());
+            }
+            // 深拷贝：底层 XML 为不同对象，修改目标不影响源
+            assertNotSame(source.getCtRow(), target.getCtRow());
+            String original = source.getCell(0).getText();
+            target.getCell(0).setText("changed");
+            assertEquals(original, source.getCell(0).getText());
 
-            // 跨文档
-            XWPFTable table = document2.createTable();
-            WordTableUtils.setTableWidthA4(table);
-            WordTableUtils.removeLastRow(table);
-
-            out_file = "target/out_copy_row.docx";
             // 保存文档
-            try (FileOutputStream out = new FileOutputStream(out_file);
-                 FileOutputStream out2 = new FileOutputStream(template2)) {
-                document.write(out);
-                document2.write(out2);
+            try (FileOutputStream out = new FileOutputStream("target/CopyLineSameTable.docx")) {
+                doc.write(out);
+            }
+        }
+    }
+
+    @Test
+    void testCopyLineSameDocDifferentTable() throws Exception {
+        try (FileInputStream in = new FileInputStream(COPY_TEMPLATE);
+             XWPFDocument doc = new XWPFDocument(in)) {
+            XWPFTableRow source = doc.getTables().get(0).getRow(0);
+            XWPFTable otherTable = doc.createTable(1, 1);
+            XWPFTableRow target = otherTable.getRow(0);
+            WordTableUtils.copyLine(source, target, true);
+
+            assertEquals(source.getTableCells().size(), target.getTableCells().size());
+            assertEquals(source.getCtRow().sizeOfTcArray(), target.getCtRow().sizeOfTcArray());
+            for (int i = 0; i < source.getTableCells().size(); i++) {
+                assertEquals(source.getCell(i).getText(), target.getCell(i).getText());
+            }
+            target.getCell(1).setText("我是新增的文本，看看原来的表格是否也没有，没有则正常");
+            // 保存文档
+            try (FileOutputStream out = new FileOutputStream("target/CopyLineSameDocDifferentTable.docx")) {
+                doc.write(out);
+            }
+        }
+    }
+
+    @Test
+    void testCopyLineCrossDocument() throws Exception {
+        try (FileInputStream in = new FileInputStream(COPY_TEMPLATE);
+             XWPFDocument sourceDoc = new XWPFDocument(in);
+             XWPFDocument targetDoc = new XWPFDocument()) {
+            XWPFTableRow source = sourceDoc.getTables().get(0).getRow(0);
+            XWPFTable targetTable = targetDoc.createTable(1, 1);
+            XWPFTableRow target = targetTable.getRow(0);
+            WordTableUtils.copyLine(source, target, true);
+
+            assertEquals(source.getTableCells().size(), target.getTableCells().size());
+            // 图片数据已加入目标文档
+            assertFalse(targetDoc.getAllPictures().isEmpty());
+            // 目标行每个 blip 的 embed 都能在目标文档中解析到对应图片（关系已重映射）
+            for (XWPFTableCell cell : target.getTableCells()) {
+                for (XmlObject obj : blipsOf(cell)) {
+                    CTBlip blip = (CTBlip) obj;
+                    if (blip.isSetEmbed()) {
+                        assertNotNull(targetDoc.getPictureDataByID(blip.getEmbed()));
+                    }
+                }
+            }
+
+            try (FileOutputStream out = new FileOutputStream("target/CopyLineCrossDocument1.docx");
+                 FileOutputStream out2 = new FileOutputStream("target/CopyLineCrossDocument2.docx")
+            ) {
+                sourceDoc.write(out);
+                targetDoc.write(out2);
+            }
+        }
+    }
+
+    @Test
+    void testCopyLineContentOnly() throws Exception {
+        try (FileInputStream in = new FileInputStream(COPY_TEMPLATE);
+             XWPFDocument sourceDoc = new XWPFDocument(in);
+             XWPFDocument targetDoc = new XWPFDocument()) {
+            XWPFTableRow source = sourceDoc.getTables().get(0).getRow(0);
+            // 目标行 2 个单元格，内容复制后保留目标结构，不足的单元格会被新建
+            XWPFTableRow target = targetDoc.createTable(1, 2).getRow(0);
+            WordTableUtils.copyLine(source, target, false);
+
+            assertEquals(source.getTableCells().size(), target.getTableCells().size());
+            for (int i = 0; i < source.getTableCells().size(); i++) {
+                assertEquals(source.getCell(i).getText(), target.getCell(i).getText());
+            }
+
+            try (FileOutputStream out2 = new FileOutputStream("target/CopyLineContentOnly2.docx")) {
+                targetDoc.write(out2);
+            }
+        }
+    }
+
+    @Test
+    void testCopyLineNullGuards() throws Exception {
+        try (FileInputStream in = new FileInputStream(COPY_TEMPLATE);
+             XWPFDocument doc = new XWPFDocument(in)) {
+            XWPFTableRow source = doc.getTables().get(0).getRow(0);
+            // 不应抛异常
+            WordTableUtils.copyLine(null, source, true);
+            WordTableUtils.copyLine(source, null, true);
+        }
+    }
+
+    /** 行内是否存在任何带垂直合并（vMerge）的单元格。 */
+    private static boolean rowHasVMerge(XWPFTableRow row) {
+        for (XWPFTableCell cell : row.getTableCells()) {
+            CTTc ctTc = cell.getCTTc();
+            if (ctTc.isSetTcPr() && ctTc.getTcPr().isSetVMerge()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Test
+    void testCopyLineRemovesVMerge() throws Exception {
+        String vmergeTemplate = "src/test/resources/util/self_define_vmerge.docx";
+        try (FileInputStream in = new FileInputStream(vmergeTemplate);
+             XWPFDocument doc = new XWPFDocument(in)) {
+            XWPFTable table = doc.getTables().get(0);
+            // 定位一个含 vMerge 的源行
+            XWPFTableRow source = null;
+            for (int i = 0; i < table.getNumberOfRows(); i++) {
+                if (rowHasVMerge(table.getRow(i))) {
+                    source = table.getRow(i);
+                    break;
+                }
+            }
+            assertNotNull(source);
+            assertTrue(rowHasVMerge(source));
+
+            // 同表复制：目标行去掉跨行设置，内容与单元格数保留
+            XWPFTableRow target = table.createRow();
+            WordTableUtils.copyLine(source, target, true);
+            assertFalse(rowHasVMerge(target));
+            assertEquals(source.getTableCells().size(), target.getTableCells().size());
+            for (int i = 0; i < source.getTableCells().size(); i++) {
+                assertEquals(source.getCell(i).getText(), target.getCell(i).getText());
+            }
+            // 源行的 vMerge 不受影响（深拷贝独立）
+            assertTrue(rowHasVMerge(source));
+
+            // 跨文档复制同样去掉跨行设置
+            try (XWPFDocument targetDoc = new XWPFDocument()) {
+                XWPFTableRow crossTarget = targetDoc.createTable(1, 1).getRow(0);
+                WordTableUtils.copyLine(source, crossTarget, true);
+                assertFalse(rowHasVMerge(crossTarget));
+
+                try (FileOutputStream out2 = new FileOutputStream("target/CopyLineRemovesVMerge.docx")) {
+                    targetDoc.write(out2);
+                }
             }
         }
     }
@@ -688,7 +839,8 @@ class WordTableUtilsTest {
         String json = Files.readString(
             Paths.get("src/test/resources/data/adjustFontSize.json"));
         Map<String, Object> stringObjectMap = new ObjectMapper().readValue(
-            json, new TypeReference<Map<String, Object>>() {});
+            json, new TypeReference<Map<String, Object>>() {
+            });
         Configure config = Configure.builder()
             .useSpringEL(false)
             .addPlugin('*', new FitCellPolicy())

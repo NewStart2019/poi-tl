@@ -12,10 +12,8 @@ import com.deepoove.poi.template.MetaTemplate;
 import com.deepoove.poi.template.run.RunTemplate;
 import com.deepoove.poi.util.TableTools;
 import com.deepoove.poi.util.word.WordTableUtils;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.poi.xwpf.usermodel.*;
-import org.apache.xmlbeans.XmlCursor;
-import org.apache.xmlbeans.XmlObject;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTRow;
 
 import java.util.Iterator;
 import java.util.List;
@@ -81,15 +79,22 @@ public class MultipleRowTableRenderPolicy extends AbstractLoopRowTableRenderPoli
             checkTargetIsTable(run,
                 "Processing [" + runTemplate.getTagName() + "] failed, the target content is not a table");
             XWPFTableCell tagCell = (XWPFTableCell) ((XWPFParagraph) run.getParent()).getBody();
+            XWPFTableRow tableRow = tagCell.getTableRow();
+            int rowIndex = WordTableUtils.findRowIndex(tableRow);
             final XWPFTable table = tagCell.getTableRow().getTable();
             run.setText("", 0);
             this.resolver = new TemplateResolver(template.getConfig().copy(prefix, suffix));
-            // 获取模板所在的起始行
-            int position = WordTableUtils.findVerticalMergedRows(table, tagCell);
-            List<XWPFTableRow> tempRows = getAllTemplateRow(table, position);
+            // 表头（含跨行表头）占用的行数
+            int vMergeNum = WordTableUtils.findVerticalMergedRows(table, tagCell);
+            // 模板模式行的起始位置
+            int templateStart = rowIndex + vMergeNum;
+            List<XWPFTableRow> tempRows = getAllTemplateRow(table, rowIndex, vMergeNum);
+            if (CollectionUtils.isEmpty(tempRows)) {
+                return;
+            }
+
+            int insertPos = templateStart;
             if (data instanceof Iterable) {
-                // 保存第行模板，以便在后续操作中获取光标
-                final XWPFTableRow firstTempRow = tempRows.get(0);
                 Iterator<?> dataIt = ((Iterable<?>) data).iterator();
                 boolean hasNextData = dataIt.hasNext();
                 int index = 0;
@@ -102,40 +107,32 @@ public class MultipleRowTableRenderPolicy extends AbstractLoopRowTableRenderPoli
                         XWPFTableRow tempRow = rowTempIt.next();
                         hasNextTempRow = rowTempIt.hasNext();
 
-                        if (!table.addRow(tempRow, position)) {
-                            throw new RenderException("创建新的表格行失败");
-                        }
+                        // 插入空行并复制模板行（含样式；copyLine 会去掉跨行设置，使新行独立）。
+                        XWPFTableRow newRow = table.insertNewTableRow(insertPos);
+                        WordTableUtils.copyLine(tempRow, newRow, true);
 
-                        // 光标操作，移动光标到目标行，以便后续的模板渲染
-                        XmlCursor newCursor = firstTempRow.getCtRow().newCursor();
-                        newCursor.toPrevSibling();
-                        XmlObject object = newCursor.getObject();
-                        newCursor.close();
-                        XWPFTableRow newRow = new XWPFTableRow((CTRow) object, table);
-                        newRow.getCtRow().set(object);
-                        WordTableUtils.setTableRow(table, newRow, position);
-
-                        List<XWPFTableCell> cells = newRow.getTableCells();
                         RenderDataCompute dataCompute = template.getConfig()
                             .getRenderDataComputeFactory()
                             .newCompute(EnvModel.of(dt, EnvIterator.makeEnv(index, hasNextData || hasNextTempRow)));
+                        List<XWPFTableCell> cells = newRow.getTableCells();
                         cells.forEach(tableCell -> {
                             List<MetaTemplate> metaTemplates = resolver
                                 .resolveBodyElements(tableCell.getBodyElements());
                             new DocumentProcessor(template, resolver, dataCompute).process(metaTemplates);
                         });
-                        ++position;
+                        ++insertPos;
                     }
                     ++index;
                 }
             }
-            removeTableRow(table, position, tempRows.size());
+            // 仅移除原始模板模式行（tempRows 行数）；尾部预存空白行保持不变。
+            removeTableRow(table, insertPos, tempRows.size());
         } catch (Exception e) {
             throw new RenderException("failed to render table multi-row template", e);
         }
     }
 
-    protected List<XWPFTableRow> getAllTemplateRow(XWPFTable table, int startIndex) {
+    protected List<XWPFTableRow> getAllTemplateRow(XWPFTable table, int startIndex, int vMergeNum) {
         List<XWPFTableRow> rows = table.getRows();
         int tempRowNum = DEFAULT_MULTIPLE_ROW_NUM;
         // 去除模板行数标记 如：$(3)
@@ -150,7 +147,7 @@ public class MultipleRowTableRenderPolicy extends AbstractLoopRowTableRenderPoli
                 paragraphs.get(0).getRuns().get(i).setText("", 0);
             }
         }
-        return new Vector<>(rows.subList(startIndex, startIndex + tempRowNum));
+        return new Vector<>(rows.subList(startIndex + vMergeNum, Math.min(startIndex + vMergeNum + tempRowNum, rows.size())));
     }
 
     protected void removeTableRow(XWPFTable table, int startIndex, int size) {
