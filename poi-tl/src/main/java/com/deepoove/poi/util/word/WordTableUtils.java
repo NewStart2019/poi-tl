@@ -57,7 +57,9 @@ public class WordTableUtils {
      */
     private static final int TWIPS_PER_POINT = 20;
 
-    /** 查找行内所有图片 blip 节点的 XPath（用于跨文档复制后重映射图片关系）。 */
+    /**
+     * 查找行内所有图片 blip 节点的 XPath（用于跨文档复制后重映射图片关系）。
+     */
     private static final String XPATH_BLIP =
         "declare namespace a='http://schemas.openxmlformats.org/drawingml/2006/main' .//a:blip";
 
@@ -184,6 +186,7 @@ public class WordTableUtils {
             // 同表复制时源行与目标行底层对象互不影响。
             nextLine.getCtRow().set(currentLine.getCtRow());
             // 去掉目标行的跨行（vMerge）设置，使复制出的行成为独立行，不再与源行共享垂直合并。
+            removeRowVMerge(nextLine);
             if (!sameDoc) {
                 // 跨文档：XML 中的图片 r:id 仍指向源文档，需要把图片数据加入目标文档并重映射。
                 remapRowPictureRelations(nextLine, sourceDoc, targetDoc);
@@ -607,6 +610,20 @@ public class WordTableUtils {
         }
     }
 
+    /**
+     * Remove the specified table (document-level body element) from the document.
+     *
+     * <p>The underlying layer synchronously removes CT elements and the tables
+     * and bodyElements lists maintained by the document through {@link XWPFDocument#removeBodyElement(int)}.</p>
+     * <p>
+     * If the input parameter is {@link null} or the table does not belong to the document (including nested tables -
+     * nested tables are not document-level body elements, and getPosOfTable will return -1), then silently return
+     * without any processing.
+     * </p>
+     *
+     * @param document {@link XWPFDocument} target document
+     * @param table    {@link XWPFTable} table to be removed
+     */
     public static void removeTable(XWPFDocument document, XWPFTable table) {
         if (table == null || document == null) {
             return;
@@ -615,7 +632,8 @@ public class WordTableUtils {
         if (posOfTable < 0) {
             return;
         }
-        document.removeBodyElement(document.getPosOfTable(table));
+        // 复用已计算的位置，避免重复调用 getPosOfTable。
+        document.removeBodyElement(posOfTable);
     }
 
     public static void removeRow(XWPFTable table, int rowIndex) {

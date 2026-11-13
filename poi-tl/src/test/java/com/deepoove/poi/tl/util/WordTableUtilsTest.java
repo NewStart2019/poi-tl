@@ -395,6 +395,55 @@ class WordTableUtilsTest {
     }
 
     @Test
+    void testRemoveTable() throws Exception {
+        // 用新建文档构建 3 张表，避免依赖具体模板文件。
+        try (XWPFDocument doc = new XWPFDocument()) {
+            XWPFTable t0 = doc.createTable(1, 1);
+            XWPFTable t1 = doc.createTable(2, 2);
+            XWPFTable t2 = doc.createTable(3, 3);
+            assertEquals(3, doc.getTables().size());
+            int bodyBefore = doc.getBodyElements().size();
+
+            // 1) 移除中间表：高层列表、bodyElements 与底层 CT 同步减少。
+            WordTableUtils.removeTable(doc, t1);
+            assertEquals(2, doc.getTables().size());
+            assertEquals(bodyBefore - 1, doc.getBodyElements().size());
+            assertEquals(2, doc.getDocument().getBody().sizeOfTblArray());
+            // 已删除的表不再属于文档，剩余两张表顺序保持不变。
+            assertEquals(-1, doc.getPosOfTable(t1));
+            assertSame(t0, doc.getTables().get(0));
+            assertSame(t2, doc.getTables().get(1));
+
+            // 2) 移除剩余两张表后，文档不再含任何表格。
+            WordTableUtils.removeTable(doc, t0);
+            WordTableUtils.removeTable(doc, t2);
+            assertEquals(0, doc.getTables().size());
+            assertEquals(0, doc.getDocument().getBody().sizeOfTblArray());
+
+            // 3) 重复移除已删除的表：静默无操作，不抛异常。
+            WordTableUtils.removeTable(doc, t2);
+            assertEquals(0, doc.getTables().size());
+
+            // 4) 空值防护：不抛异常。
+            WordTableUtils.removeTable(null, t0);
+            WordTableUtils.removeTable(doc, null);
+
+            // 5) 外文档的表不属于本文档：本文档不新增删除，源表仍在其所属文档中。
+            try (XWPFDocument other = new XWPFDocument()) {
+                XWPFTable foreign = other.createTable(1, 1);
+                WordTableUtils.removeTable(doc, foreign);
+                assertEquals(1, other.getTables().size());
+                assertEquals(0, doc.getTables().size());
+            }
+
+            // 6) 删除后文档仍可正常写出。
+            try (FileOutputStream out = new FileOutputStream("target/remove_table_test.docx")) {
+                doc.write(out);
+            }
+        }
+    }
+
+    @Test
     void testCopyTableTblPrEdgeCases() throws Exception {
         // 目标缺少 tblPr：不应抛 NPE，且复制后样式与源一致。
         XWPFDocument doc = new XWPFDocument();
